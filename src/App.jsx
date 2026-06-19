@@ -86,6 +86,9 @@ function Sidebar({ active, setActive }) {
       { id: "prompt-templates", icon: <Zap size={14}/>, label: "Prompt Templates" },
       { id: "generated-questions", icon: <MessageSquare size={14}/>, label: "Generated Questions" },
     ]},
+    { label: "USER MANAGEMENT", items: [
+      { id: "users", icon: <Users size={14}/>, label: "Users List" },
+    ]},
   ];
   return (
     <aside style={{ width: 210, minWidth: 210, background: C.sidebar, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", height: "100vh", overflowY: "auto", flexShrink: 0 }}>
@@ -862,6 +865,7 @@ export default function App() {
 
   const renderView = () => {
     switch (active) {
+      case "users": return <UsersView/>;
       case "courses": return <CoursesView/>;
       case "course-runs": return <CourseRunsView/>;
       case "chapters": return <ChaptersView/>;
@@ -915,3 +919,89 @@ function CourseRunsView() {
     </div>
   );
 }
+
+// --- Users View -------------------------------------------------------------
+function UsersView() {
+  const [users, setUsers] = useState([
+    { id: 1, name: "Nguyen_An", role: "Anonymous Student", active: true },
+    { id: 2, name: "SenseiMiko", role: "Teacher", active: true },
+    { id: 3, name: "Thao_Reviewer", role: "Influencer", active: false },
+  ]);
+  const [newName, setNewName] = useState("");
+  const [newRole, setNewRole] = useState("Anonymous Student");
+
+  const addUser = (e) => {
+    e.preventDefault();
+    if (!newName) return;
+    setUsers([...users, { id: Date.now(), name: newName, role: newRole, active: true }]);
+    setNewName("");
+  };
+
+  const deleteUser = (id) => {
+    setUsers(users.filter(u => u.id !== id));
+  };
+
+  return (
+    <div style={{ padding: "20px 24px" }}>
+      <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: "0 0 4px" }}>User Management</h1>
+      <p style={{ fontSize: 13, color: C.muted, margin: "0 0 20px" }}>Quản lý danh sách người dùng LUCY (Học viên ẩn danh, Giảng viên, Influencer)</p>
+      
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 20 }}>
+        {/* Form Add */}
+        <SectionCard style={{ alignSelf: "start" }}>
+          <CardHead icon={<Plus size={13}/>} title="Thêm Người dùng mới"/>
+          <form onSubmit={addUser} style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 4, display: "block" }}>Tên người dùng</label>
+              <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Nhập tên..." style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+            </div>
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: C.text, marginBottom: 4, display: "block" }}>Vai trò (Role)</label>
+              <select value={newRole} onChange={e => setNewRole(e.target.value)} style={{ width: "100%", padding: "8px 12px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, outline: "none", boxSizing: "border-box" }}>
+                <option value="Anonymous Student">Học viên ẩn danh</option>
+                <option value="Teacher">Giảng viên (Teacher)</option>
+                <option value="Influencer">Người ảnh hưởng (Influencer)</option>
+              </select>
+            </div>
+            <Btn style={{ marginTop: 8 }} onClick={addUser}>Thêm người dùng</Btn>
+          </form>
+        </SectionCard>
+
+        {/* List Users */}
+        <SectionCard>
+          <CardHead icon={<Users size={13}/>} title={`Danh sách người dùng (${users.length})`}/>
+          <div style={{ padding: 16 }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr style={{ borderBottom: `1px solid ${C.borderLight}`, textAlign: "left" }}>
+                  <th style={{ padding: "8px 0", color: C.muted, fontWeight: 600 }}>Tên</th>
+                  <th style={{ padding: "8px 0", color: C.muted, fontWeight: 600 }}>Vai trò</th>
+                  <th style={{ padding: "8px 0", color: C.muted, fontWeight: 600 }}>Trạng thái</th>
+                  <th style={{ padding: "8px 0", textAlign: "right", color: C.muted, fontWeight: 600 }}>Hành động</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map(u => (
+                  <tr key={u.id} style={{ borderBottom: `1px solid ${C.borderLight}` }}>
+                    <td style={{ padding: "10px 0", fontWeight: 500, color: C.text }}>{u.name}</td>
+                    <td style={{ padding: "10px 0" }}>
+                      <Badge bg={u.role === "Teacher" ? C.purpleLight : u.role === "Influencer" ? C.yellowLight : C.primaryLight} color={u.role === "Teacher" ? C.purple : u.role === "Influencer" ? "#b45309" : C.primary}>
+                        {u.role}
+                      </Badge>
+                    </td>
+                    <td style={{ padding: "10px 0" }}>
+                      {u.active ? <span style={{ color: C.green, display: "flex", alignItems: "center", gap: 4 }}><CheckCircle size={12}/> Active</span> : <span style={{ color: C.muted, display: "flex", alignItems: "center", gap: 4 }}><AlertCircle size={12}/> Inactive</span>}
+                    </td>
+                    <td style={{ padding: "10px 0", textAlign: "right" }}>
+                      <button type="button" onClick={() => deleteUser(u.id)} style={{ background: "none", border: "none", color: C.red, cursor: "pointer", padding: 4 }}><Trash2 size={14}/></button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </SectionCard>
+      </div>
+    </div>
+  );
+}
