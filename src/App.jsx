@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { api } from "./apiClient";
 import {
   BookOpen, Play, FileText, Headphones, Upload, Eye, Zap,
   MessageSquare, Mic, Users, Radio, Pin, PhoneOff, Phone,
@@ -7,7 +8,7 @@ import {
   Globe, Lock, Database, Award
 } from "lucide-react";
 
-// ─── Design Tokens ───────────────────────────────────────────────
+// â”€â”€â”€ Design Tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const C = {
   primary: "#2563eb", primaryHover: "#1d4ed8",
   primaryLight: "#eff6ff", primaryBorder: "#bfdbfe",
@@ -20,7 +21,7 @@ const C = {
   purple: "#7c3aed", purpleLight: "#ede9fe",
 };
 
-// ─── Primitives ──────────────────────────────────────────────────
+// â”€â”€â”€ Primitives â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const Badge = ({ children, color = C.primary, bg = C.primaryLight, style }) => (
   <span style={{ display: "inline-flex", alignItems: "center", padding: "2px 8px", borderRadius: 12, fontSize: 11, fontWeight: 600, color, background: bg, whiteSpace: "nowrap", ...style }}>{children}</span>
 );
@@ -61,7 +62,7 @@ const statCard = (label, value, color) => (
   </div>
 );
 
-// ─── Sidebar ─────────────────────────────────────────────────────
+// â”€â”€â”€ Sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function Sidebar({ active, setActive }) {
   const groups = [
     { items: [
@@ -89,7 +90,7 @@ function Sidebar({ active, setActive }) {
   return (
     <aside style={{ width: 210, minWidth: 210, background: C.sidebar, borderRight: `1px solid ${C.border}`, display: "flex", flexDirection: "column", height: "100vh", overflowY: "auto", flexShrink: 0 }}>
       <div style={{ padding: "16px 16px 14px", borderBottom: `1px solid ${C.border}`, display: "flex", alignItems: "center", gap: 10 }}>
-        <div style={{ width: 32, height: 32, borderRadius: 10, background: `linear-gradient(135deg, ${C.primary}, ${C.purple})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>🎵</div>
+        <div style={{ width: 32, height: 32, borderRadius: 10, background: `linear-gradient(135deg, ${C.primary}, ${C.purple})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, flexShrink: 0 }}>ðŸŽµ</div>
         <div>
           <div style={{ fontWeight: 800, fontSize: 16, color: C.primary, letterSpacing: "-0.03em" }}>LUCY</div>
           <div style={{ fontSize: 10, color: C.light }}>Language Platform</div>
@@ -118,174 +119,254 @@ function Sidebar({ active, setActive }) {
   );
 }
 
-// ─── Live Rooms View ──────────────────────────────────────────────
+// --- Agora Config -------------------------------------------------------
+const AGORA_APP_ID  = "ca82570aa4a3464aadca4e28ee1d73b9";
+const AGORA_CHANNEL = "lucy_room_1";
+// Temp token (valid ~24h). Replace via Agora Console > Generate Temp Token
+const AGORA_TEMP_TOKEN = "007eJxTYNDXWpo87ddvfmvDRgYj1/oL95cvn2Wx4KxsaMwRJrOJr5QUGJITLYxMzQ0SE00SjU3MTBITU5ITTVKNLFJTDVPMjZMsV1uaZjUEMjLs3FDCwsgAgSA+N0NOaXJlfFF+fm68IQMDAOsQIYU=";
+
+// --- Live Rooms View -------------------------------------------------------
 function LiveRoomsView() {
-  const [audioConnected, setAudioConnected] = useState(true);
-  const [participants, setParticipants] = useState([]);
+  const [uid]         = useState(() => Math.floor(Math.random() * 99999) + 1);
+  const [joining,  setJoining]  = useState(false);
+  const [joined,   setJoined]   = useState(false);
+  const [muted,    setMuted]    = useState(false);
+  const [remoteUsers, setRemoteUsers] = useState([]);
+  const [error,    setError]    = useState(null);
+
+  const clientRef  = useRef(null);
+  const micRef     = useRef(null);
+
+  // Lesson / topic UI
+  const [topicIdx,       setTopicIdx]       = useState(-1);
   const [selectedLesson, setSelectedLesson] = useState("");
-  const [customTitle, setCustomTitle] = useState("");
-  const [pinned, setPinned] = useState([]);
-  const [ended, setEnded] = useState(false);
-  const [topicIdx, setTopicIdx] = useState(-1);
+  const [customTitle,    setCustomTitle]    = useState("");
+  const [pinned,         setPinned]         = useState([]);
 
-  const topics = ["Topic 1: Introducing Yourself", "Topic 2: Asking for Directions", "Topic 3: Ordering at a Restaurant", "Topic 4: Shopping Phrases", "Topic 5: At the Doctor"];
-  const lessons = ["Lesson 1 – Greetings & Farewells", "Lesson 2 – Numbers 1–20", "Lesson 3 – Colors & Shapes", "Lesson 4 – Family Members", "Lesson 5 – Daily Routines"];
-  const demoNames = ["Nguyen_An", "Tran_Binh", "Le_Cuong", "Pham_Dung", "Hoang_Thi"];
+  const topics  = ["Topic 1: Introducing Yourself","Topic 2: Asking for Directions","Topic 3: Ordering at a Restaurant","Topic 4: Shopping Phrases","Topic 5: At the Doctor"];
+  const lessons = ["Lesson 1 - Greetings & Farewells","Lesson 2 - Numbers 1-20","Lesson 3 - Colors & Shapes","Lesson 4 - Family Members","Lesson 5 - Daily Routines"];
   const currentTopic = topicIdx >= 0 ? topics[topicIdx] : null;
-
-  const nextTopic = () => setTopicIdx(i => (i + 1) % topics.length);
-  const addParticipant = () => {
-    const avail = demoNames.filter(n => !participants.find(p => p.name === n));
-    if (avail.length) setParticipants(prev => [...prev, { name: avail[0], role: "Student" }]);
-  };
-  const pinMaterial = () => {
+  const nextTopic    = () => setTopicIdx(i => (i + 1) % topics.length);
+  const pinMaterial  = () => {
     if (!selectedLesson) return;
-    setPinned(prev => [...prev, { lesson: selectedLesson, title: customTitle || selectedLesson, id: Date.now() }]);
+    setPinned(p => [...p, { id: Date.now(), title: customTitle || selectedLesson }]);
     setSelectedLesson(""); setCustomTitle("");
+  };
+
+  // Init Agora client once
+  useEffect(() => {
+    if (typeof AgoraRTC === "undefined") {
+      setError("Agora SDK chưa load. Kiểm tra kết nối internet.");
+      return;
+    }
+    const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+    client.on("user-published", async (user, mediaType) => {
+      await client.subscribe(user, mediaType);
+      if (mediaType === "audio") {
+        user.audioTrack.play();
+        setRemoteUsers(prev => prev.find(u => u.uid === user.uid) ? prev : [...prev, { uid: user.uid }]);
+      }
+    });
+    client.on("user-unpublished", user => setRemoteUsers(prev => prev.filter(u => u.uid !== user.uid)));
+    client.on("user-left",       user => setRemoteUsers(prev => prev.filter(u => u.uid !== user.uid)));
+    clientRef.current = client;
+    return () => { doLeave(); };
+  }, []);
+
+  const doLeave = async () => {
+    if (micRef.current)    { micRef.current.stop(); micRef.current.close(); micRef.current = null; }
+    if (clientRef.current && joined) await clientRef.current.leave();
+    setJoined(false); setRemoteUsers([]); setMuted(false);
+  };
+
+  const doJoin = async () => {
+    setJoining(true); setError(null);
+    try {
+      await clientRef.current.join(AGORA_APP_ID, AGORA_CHANNEL, AGORA_TEMP_TOKEN, uid);
+      const mic = await AgoraRTC.createMicrophoneAudioTrack();
+      micRef.current = mic;
+      await clientRef.current.publish([mic]);
+      setJoined(true);
+    } catch (e) {
+      setError("Join thất bại: " + e.message);
+    } finally { setJoining(false); }
+  };
+
+  const doToggleMute = async () => {
+    if (micRef.current) { await micRef.current.setMuted(!muted); setMuted(m => !m); }
   };
 
   return (
     <div style={{ padding: "20px 24px", maxWidth: 1000 }}>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-        <h1 style={{ fontSize: 18, fontWeight: 700, color: C.text, margin: 0 }}>Room: English Beginner – Daily Conversation</h1>
-        <span style={{ padding: "4px 12px", background: C.primary, color: "#fff", borderRadius: 4, fontSize: 12, fontWeight: 600 }}>PRJ301 Demo</span>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+        <div>
+          <h1 style={{ fontSize:18, fontWeight:700, color:C.text, margin:"0 0 4px" }}>Room: English Beginner – Daily Conversation</h1>
+          <div style={{ display:"flex", gap:6 }}>
+            <Badge color="#374151" bg="#f3f4f6">EN</Badge>
+            <Badge color={joined?"#065f46":"#374151"} bg={joined?"#d1fae5":"#f3f4f6"}>{joined?"🔴 LIVE":"⬤ Offline"}</Badge>
+            <Badge color="#1e40af" bg={C.primaryLight}><Globe size={10}/> Public</Badge>
+          </div>
+        </div>
+        {joined && <Btn onClick={doLeave} v="danger">Leave Room</Btn>}
       </div>
 
-      {/* Mock Banner */}
-      <div style={{ background: C.yellowLight, border: `1px solid ${C.yellowBorder}`, borderRadius: 6, padding: "10px 14px", marginBottom: 16, display: "flex", gap: 8, alignItems: "flex-start" }}>
-        <Info size={14} color={C.yellow} style={{ marginTop: 1, flexShrink: 0 }}/>
-        <span style={{ fontSize: 12, color: "#92400e" }}><strong>Mock Room:</strong> This simulates a LUCY live audio room. No real-time audio. State changes via form submissions.</span>
-      </div>
-
-      {/* Room Container */}
-      <div style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 10, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.06)" }}>
-        {/* Room Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
-          <div>
-            <h2 style={{ fontSize: 20, fontWeight: 700, margin: "0 0 8px", color: C.text }}>English Beginner – Daily Conversation</h2>
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              <Badge color="#374151" bg="#f3f4f6">EN</Badge>
-              <Badge color="#065f46" bg="#d1fae5">⭐ Live</Badge>
-              <Badge color="#1e40af" bg={C.primaryLight}><Globe size={10}/> Public</Badge>
-            </div>
-          </div>
-          <Btn onClick={() => setEnded(e => !e)} v={ended ? "outline" : "danger"}>■ {ended ? "Restart Room" : "End Room"}</Btn>
+      {/* Error */}
+      {error && (
+        <div style={{ background:C.redLight, border:`1px solid ${C.redBorder}`, borderRadius:6, padding:"10px 14px", marginBottom:14, fontSize:13, color:"#991b1b", display:"flex", gap:8, alignItems:"center" }}>
+          <AlertCircle size={14}/> {error}
         </div>
+      )}
 
-        <div style={{ fontSize: 13, color: C.muted, marginBottom: 6, display: "flex", gap: 20 }}>
-          <span>👤 Host: <strong style={{ color: C.text }}>SenseiMiko</strong></span>
-          <span>📚 Course: <strong style={{ color: C.text }}>English Stage 1</strong></span>
-        </div>
-        <p style={{ fontSize: 13, color: C.muted, margin: "0 0 16px" }}>Practice everyday English conversation with SenseiMiko</p>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14 }}>
 
-        {ended && (
-          <div style={{ background: C.redLight, border: `1px solid ${C.redBorder}`, borderRadius: 6, padding: "10px 14px", marginBottom: 14, fontSize: 13, color: "#991b1b", display: "flex", gap: 8, alignItems: "center" }}>
-            <AlertCircle size={14}/> Room has been ended. All participants have been disconnected.
-          </div>
-        )}
+        {/* LEFT */}
+        <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
 
-        {/* Grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          {/* LEFT */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <SectionCard>
-              <CardHead accent icon={<Radio size={13}/>} title="Current Lesson (Active Stage)"
-                action={<Btn sm onClick={nextTopic}>&raquo; Next Topic</Btn>}
-              />
-              <div style={{ padding: 14 }}>
-                {currentTopic
-                  ? <div style={{ background: C.primaryLight, border: `1px solid ${C.primaryBorder}`, borderRadius: 6, padding: "10px 14px" }}>
-                      <div style={{ fontSize: 11, color: C.light, marginBottom: 3 }}>Active Topic</div>
-                      <div style={{ fontWeight: 600, color: C.text, fontSize: 13 }}>{currentTopic}</div>
-                    </div>
-                  : <p style={{ fontSize: 13, color: C.light, fontStyle: "italic", margin: 0 }}>No active topic selected. Add/select a course chapter to initialize topics.</p>
-                }
+          {/* Agora Voice Card */}
+          <SectionCard>
+            <CardHead accent icon={<Volume2 size={13}/>} title="Voice Chat (Agora RTC)"
+              action={
+                joined
+                  ? <span style={{ fontSize:12, fontWeight:600, color:C.green }}>● LIVE – {remoteUsers.length + 1} người</span>
+                  : <span style={{ fontSize:12, color:C.muted }}>Chưa kết nối</span>
+              }
+            />
+            <div style={{ padding:16 }}>
+              <div style={{ fontSize:12, color:C.muted, marginBottom:12, display:"flex", gap:16 }}>
+                <span>Channel: <code style={{ background:"#f3f4f6", padding:"1px 6px", borderRadius:3 }}>{AGORA_CHANNEL}</code></span>
+                <span>UID: <code style={{ background:"#f3f4f6", padding:"1px 6px", borderRadius:3 }}>{uid}</code></span>
               </div>
-            </SectionCard>
 
-            <SectionCard>
-              <CardHead icon={<Users size={13}/>} title={`Participants (${participants.length})`}/>
-              <div style={{ padding: "10px 14px" }}>
-                <button onClick={addParticipant} style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 0", background: "none", border: "none", cursor: "pointer", color: C.primary, fontSize: 13, width: "100%", textAlign: "left" }}>
-                  ▶ Direct Add (Host/Admin)
+              {!joined ? (
+                <button onClick={doJoin} disabled={joining}
+                  style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, width:"100%", padding:"12px 0",
+                    background: joining ? "#9ca3af" : "linear-gradient(135deg,#2563eb,#7c3aed)",
+                    color:"#fff", border:"none", borderRadius:8, fontSize:14, fontWeight:700,
+                    cursor: joining ? "not-allowed" : "pointer" }}>
+                  {joining
+                    ? <><RefreshCw size={15} style={{ animation:"spin 1s linear infinite" }}/> Đang kết nối...</>
+                    : <><Phone size={15}/> Tham gia Voice Chat</>}
                 </button>
-                <button style={{ display: "flex", alignItems: "center", gap: 6, padding: "5px 0", background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: 13, width: "100%", textAlign: "left" }}>
-                  ☐ Request to Join (Visitor Simulation)
-                </button>
-                {participants.length > 0 && (
-                  <div style={{ marginTop: 10, borderTop: `1px solid ${C.border}`, paddingTop: 10 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 600, color: C.light, textTransform: "uppercase", marginBottom: 6 }}>
-                      <span>As User</span><span>Role</span>
-                    </div>
-                    {participants.map((p, i) => (
-                      <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "5px 0", borderBottom: `1px solid ${C.borderLight}`, fontSize: 13 }}>
-                        <span>👤 {p.name}</span>
-                        <Badge color="#374151" bg="#f3f4f6">{p.role}</Badge>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </SectionCard>
-          </div>
-
-          {/* RIGHT */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <SectionCard>
-              <CardHead icon={<Volume2 size={13}/>} title="Real-time Audio (Agora)"
-                action={<span style={{ fontSize: 12, fontWeight: 500, color: audioConnected ? C.green : C.red }}>{audioConnected ? "● Connected" : "○ Disconnected"}</span>}
-              />
-              <div style={{ padding: 14 }}>
-                <button onClick={() => setAudioConnected(v => !v)} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, width: "100%", padding: 8, background: audioConnected ? C.redLight : C.greenLight, color: audioConnected ? C.red : C.green, border: `1px solid ${audioConnected ? C.redBorder : C.greenBorder}`, borderRadius: 6, fontSize: 13, fontWeight: 500, cursor: "pointer" }}>
-                  {audioConnected ? <><PhoneOff size={14}/> Disconnect</> : <><Phone size={14}/> Connect</>}
-                </button>
-                <div style={{ marginTop: 10, fontSize: 12, color: C.light, textAlign: "right" }}>
-                  Channel: <code style={{ background: "#f3f4f6", padding: "1px 5px", borderRadius: 3, fontSize: 11 }}>lucy_room_1</code> | Token API: <code style={{ background: "#f3f4f6", padding: "1px 5px", borderRadius: 3, fontSize: 11 }}>Mock</code>
+              ) : (
+                <div style={{ display:"flex", gap:8 }}>
+                  <button onClick={doToggleMute}
+                    style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"10px 0",
+                      background: muted ? C.redLight : C.greenLight,
+                      color: muted ? C.red : C.green,
+                      border:`1px solid ${muted ? C.redBorder : C.greenBorder}`,
+                      borderRadius:7, fontSize:13, fontWeight:600, cursor:"pointer" }}>
+                    <Mic size={14}/> {muted ? "Bật mic" : "Tắt mic"}
+                  </button>
+                  <button onClick={doLeave}
+                    style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:6, padding:"10px 0",
+                      background:C.redLight, color:C.red, border:`1px solid ${C.redBorder}`,
+                      borderRadius:7, fontSize:13, fontWeight:600, cursor:"pointer" }}>
+                    <PhoneOff size={14}/> Rời phòng
+                  </button>
                 </div>
-              </div>
-            </SectionCard>
+              )}
 
-            <SectionCard>
-              <CardHead icon={<Pin size={13}/>} title="Pinned Materials"/>
-              <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 8 }}>
-                <select value={selectedLesson} onChange={e => setSelectedLesson(e.target.value)} style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, color: selectedLesson ? C.text : C.light, background: "#fff", outline: "none" }}>
-                  <option value="">— Select Lesson to Pin —</option>
-                  {lessons.map(l => <option key={l} value={l}>{l}</option>)}
-                </select>
-                <input value={customTitle} onChange={e => setCustomTitle(e.target.value)} placeholder="Custom title (optional)" style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: `1px solid ${C.border}`, fontSize: 13, color: C.text, outline: "none", boxSizing: "border-box" }}/>
-                <Btn onClick={pinMaterial} disabled={!selectedLesson} fullWidth><Pin size={13}/> Pin Material</Btn>
-                {pinned.length > 0 && (
-                  <div style={{ marginTop: 4 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: C.light, textTransform: "uppercase", marginBottom: 6 }}>Pinned ({pinned.length})</div>
-                    {pinned.map(m => (
-                      <div key={m.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: C.primaryLight, borderRadius: 5, marginBottom: 4, fontSize: 12 }}>
-                        <Pin size={11} color={C.primary}/>
-                        <span style={{ flex: 1, color: C.text }}>{m.title}</span>
-                        <button onClick={() => setPinned(prev => prev.filter(x => x.id !== m.id))} style={{ background: "none", border: "none", cursor: "pointer", color: C.light, fontSize: 15, padding: 0, lineHeight: 1 }}>×</button>
-                      </div>
-                    ))}
+              {/* Remote users list */}
+              {joined && (
+                <div style={{ marginTop:14, borderTop:`1px solid ${C.border}`, paddingTop:12 }}>
+                  <div style={{ fontSize:11, fontWeight:700, color:C.light, textTransform:"uppercase", marginBottom:8 }}>Trong phòng</div>
+                  <div style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 10px", background:C.greenLight, borderRadius:6, marginBottom:4, fontSize:13 }}>
+                    <span style={{ width:8, height:8, borderRadius:"50%", background:C.green, display:"inline-block", flexShrink:0 }}/>
+                    <span style={{ fontWeight:600 }}>Bạn</span>
+                    {muted && <Badge color="#991b1b" bg={C.redLight}>Muted</Badge>}
                   </div>
-                )}
-              </div>
-            </SectionCard>
-          </div>
+                  {remoteUsers.map(u => (
+                    <div key={u.uid} style={{ display:"flex", alignItems:"center", gap:8, padding:"7px 10px", background:C.primaryLight, borderRadius:6, marginBottom:4, fontSize:13 }}>
+                      <span style={{ width:8, height:8, borderRadius:"50%", background:C.primary, display:"inline-block", flexShrink:0 }}/>
+                      <span>User #{u.uid}</span>
+                      <Badge color="#065f46" bg="#d1fae5">Đang nói</Badge>
+                    </div>
+                  ))}
+                  {remoteUsers.length === 0 && <p style={{ fontSize:12, color:C.light, fontStyle:"italic", margin:0 }}>Chờ người khác vào phòng...</p>}
+                </div>
+              )}
+            </div>
+          </SectionCard>
+
+          {/* Current topic */}
+          <SectionCard>
+            <CardHead icon={<Radio size={13}/>} title="Bài học đang học" action={<Btn sm onClick={nextTopic}>&raquo; Tiếp theo</Btn>}/>
+            <div style={{ padding:14 }}>
+              {currentTopic
+                ? <div style={{ background:C.primaryLight, border:`1px solid ${C.primaryBorder}`, borderRadius:6, padding:"10px 14px" }}>
+                    <div style={{ fontSize:11, color:C.light, marginBottom:3 }}>Chủ đề</div>
+                    <div style={{ fontWeight:600, color:C.text, fontSize:13 }}>{currentTopic}</div>
+                  </div>
+                : <p style={{ fontSize:13, color:C.light, fontStyle:"italic", margin:0 }}>Bấm Tiếp theo để bắt đầu.</p>
+              }
+            </div>
+          </SectionCard>
+        </div>
+
+        {/* RIGHT */}
+        <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+
+          {/* Room info */}
+          <SectionCard>
+            <CardHead icon={<Info size={13}/>} title="Thông tin phòng"/>
+            <div style={{ padding:14 }}>
+              {[
+                ["Host",    "SenseiMiko"],
+                ["Khoá học","English Stage 1"],
+                ["App ID",  AGORA_APP_ID.slice(0,8)+"..."],
+                ["Token",   "Temp (24h)"],
+                ["Channel", AGORA_CHANNEL],
+              ].map(([k,v]) => (
+                <div key={k} style={{ display:"flex", justifyContent:"space-between", fontSize:13, padding:"6px 0", borderBottom:`1px solid ${C.borderLight}` }}>
+                  <span style={{ color:C.muted }}>{k}</span>
+                  <span style={{ fontWeight:500, color:C.text }}>{v}</span>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+
+          {/* Pinned materials */}
+          <SectionCard>
+            <CardHead icon={<Pin size={13}/>} title="Tài liệu ghim"/>
+            <div style={{ padding:14, display:"flex", flexDirection:"column", gap:8 }}>
+              <select value={selectedLesson} onChange={e => setSelectedLesson(e.target.value)}
+                style={{ width:"100%", padding:"7px 10px", borderRadius:6, border:`1px solid ${C.border}`, fontSize:13, background:"#fff", outline:"none" }}>
+                <option value="">-- Chọn bài học --</option>
+                {lessons.map(l => <option key={l} value={l}>{l}</option>)}
+              </select>
+              <input value={customTitle} onChange={e => setCustomTitle(e.target.value)}
+                placeholder="Tiêu đề tuỳ chỉnh (không bắt buộc)"
+                style={{ width:"100%", padding:"7px 10px", borderRadius:6, border:`1px solid ${C.border}`, fontSize:13, outline:"none", boxSizing:"border-box" }}
+              />
+              <Btn onClick={pinMaterial} disabled={!selectedLesson} fullWidth><Pin size={13}/> Ghim tài liệu</Btn>
+              {pinned.map(m => (
+                <div key={m.id} style={{ display:"flex", alignItems:"center", gap:8, padding:"6px 10px", background:C.primaryLight, borderRadius:5, fontSize:12 }}>
+                  <Pin size={11} color={C.primary}/>
+                  <span style={{ flex:1 }}>{m.title}</span>
+                  <button onClick={() => setPinned(p => p.filter(x => x.id !== m.id))}
+                    style={{ background:"none", border:"none", cursor:"pointer", color:C.light, fontSize:15, padding:0 }}>x</button>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
         </div>
       </div>
     </div>
   );
 }
 
-// ─── Courses View ─────────────────────────────────────────────────
+
+// â”€â”€â”€ Courses View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function CoursesView() {
   const courses = [
-    { lang: "🇬🇧", name: "English Stage 1", level: "Beginner", lessons: 20, students: 145, status: "active" },
-    { lang: "🇬🇧", name: "English Stage 2", level: "Intermediate", lessons: 25, students: 89, status: "active" },
-    { lang: "🇬🇧", name: "English Stage 3", level: "Advanced", lessons: 30, students: 43, status: "draft" },
-    { lang: "🇨🇳", name: "Chinese Stage 1", level: "Beginner", lessons: 18, students: 67, status: "active" },
-    { lang: "🇨🇳", name: "Chinese Stage 2", level: "Intermediate", lessons: 22, students: 31, status: "active" },
-    { lang: "🇯🇵", name: "Japanese Stage 1", level: "Beginner", lessons: 20, students: 52, status: "active" },
-    { lang: "🇯🇵", name: "Japanese Stage 2", level: "Intermediate", lessons: 24, students: 28, status: "draft" },
+    { lang: "ðŸ‡¬ðŸ‡§", name: "English Stage 1", level: "Beginner", lessons: 20, students: 145, status: "active" },
+    { lang: "ðŸ‡¬ðŸ‡§", name: "English Stage 2", level: "Intermediate", lessons: 25, students: 89, status: "active" },
+    { lang: "ðŸ‡¬ðŸ‡§", name: "English Stage 3", level: "Advanced", lessons: 30, students: 43, status: "draft" },
+    { lang: "ðŸ‡¨ðŸ‡³", name: "Chinese Stage 1", level: "Beginner", lessons: 18, students: 67, status: "active" },
+    { lang: "ðŸ‡¨ðŸ‡³", name: "Chinese Stage 2", level: "Intermediate", lessons: 22, students: 31, status: "active" },
+    { lang: "ðŸ‡¯ðŸ‡µ", name: "Japanese Stage 1", level: "Beginner", lessons: 20, students: 52, status: "active" },
+    { lang: "ðŸ‡¯ðŸ‡µ", name: "Japanese Stage 2", level: "Intermediate", lessons: 24, students: 28, status: "draft" },
   ];
   const active = courses.filter(c => c.status === "active");
   return (
@@ -322,15 +403,15 @@ function CoursesView() {
   );
 }
 
-// ─── Chapters View ────────────────────────────────────────────────
+// â”€â”€â”€ Chapters View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ChaptersView() {
   const chapters = [
     { course: "English Stage 1", chapter: "Chapter 1: Hello World", topics: 5, complete: true },
     { course: "English Stage 1", chapter: "Chapter 2: My Family", topics: 4, complete: true },
     { course: "English Stage 1", chapter: "Chapter 3: At School", topics: 6, complete: false },
     { course: "English Stage 2", chapter: "Chapter 1: City Life", topics: 5, complete: true },
-    { course: "Chinese Stage 1", chapter: "第一章: 你好", topics: 4, complete: true },
-    { course: "Japanese Stage 1", chapter: "第1章: はじめまして", topics: 5, complete: false },
+    { course: "Chinese Stage 1", chapter: "ç¬¬ä¸€ç« : ä½ å¥½", topics: 4, complete: true },
+    { course: "Japanese Stage 1", chapter: "ç¬¬1ç« : ã¯ã˜ã‚ã¾ã—ã¦", topics: 5, complete: false },
   ];
   return (
     <div style={{ padding: "20px 24px" }}>
@@ -343,7 +424,7 @@ function ChaptersView() {
               {ch.complete ? <CheckCircle size={15} color={C.green}/> : <div style={{ width: 15, height: 15, borderRadius: "50%", border: `2px solid ${C.border}` }}/>}
               <div>
                 <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{ch.chapter}</div>
-                <div style={{ fontSize: 12, color: C.muted }}>{ch.course} • {ch.topics} topics</div>
+                <div style={{ fontSize: 12, color: C.muted }}>{ch.course} â€¢ {ch.topics} topics</div>
               </div>
             </div>
             <ChevronRight size={14} color={C.light}/>
@@ -354,44 +435,80 @@ function ChaptersView() {
   );
 }
 
-// ─── Lessons View ─────────────────────────────────────────────────
+// â”€â”€â”€ Lessons View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function LessonsView() {
-  const lessons = [
-    { id: "EN-L01", title: "Greetings & Farewells", chapter: "Ch.1", lang: "English", duration: "15 min", level: "Beginner" },
-    { id: "EN-L02", title: "Numbers 1–20", chapter: "Ch.1", lang: "English", duration: "20 min", level: "Beginner" },
-    { id: "EN-L03", title: "Colors & Shapes", chapter: "Ch.2", lang: "English", duration: "18 min", level: "Beginner" },
-    { id: "CH-L01", title: "你好 — Saying Hello", chapter: "Ch.1", lang: "Chinese", duration: "15 min", level: "Beginner" },
-    { id: "JP-L01", title: "はじめまして — Introductions", chapter: "Ch.1", lang: "Japanese", duration: "15 min", level: "Beginner" },
-  ];
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState("EN"); // EN, ZH, JA
+
+  useEffect(() => {
+    api.lessons.fetchRealData()
+      .then(res => {
+        setData(res);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
+
+  const filtered = data.filter(r => {
+    if (tab === "EN") return r.languageCode === "LISA" || r.languageCode === "EN";
+    if (tab === "ZH") return r.languageCode === "ZH";
+    if (tab === "JA") return r.languageCode === "JA";
+    return false;
+  });
+
   return (
     <div style={{ padding: "20px 24px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: "0 0 4px" }}>Lessons</h1>
-          <p style={{ fontSize: 13, color: C.muted, margin: 0 }}>Individual lesson units (10–20 min segments)</p>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: "0 0 4px" }}>Lessons Data</h1>
+          <p style={{ fontSize: 13, color: C.muted, margin: 0 }}>Dá»¯ liá»‡u thá»±c táº¿ tá»« Java Backend (Tomcat)</p>
         </div>
-        <Btn><Plus size={14}/> New Lesson</Btn>
+        <div style={{ display: "flex", gap: 10 }}>
+          <Btn v={tab === "EN" ? "primary" : "outline"} onClick={() => setTab("EN")}>English</Btn>
+          <Btn v={tab === "ZH" ? "primary" : "outline"} onClick={() => setTab("ZH")}>Chinese</Btn>
+          <Btn v={tab === "JA" ? "primary" : "outline"} onClick={() => setTab("JA")}>Japanese</Btn>
+        </div>
       </div>
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "80px 1fr 80px 80px 90px 80px", padding: "10px 16px", background: "#f9fafb", borderBottom: `1px solid ${C.border}`, fontSize: 11, fontWeight: 700, color: C.muted, gap: 12, textTransform: "uppercase" }}>
-          <span>ID</span><span>Title</span><span>Chapter</span><span>Language</span><span>Duration</span><span>Level</span>
+        <div style={{ display: "grid", gridTemplateColumns: "80px 100px 120px 1fr", padding: "10px 16px", background: "#f9fafb", borderBottom: `1px solid ${C.border}`, fontSize: 11, fontWeight: 700, color: C.muted, gap: 12, textTransform: "uppercase" }}>
+          <span>Lang</span><span>Stage</span><span>Level Name</span><span>Content / Question</span>
         </div>
-        {lessons.map((l, i) => (
-          <div key={i} style={{ display: "grid", gridTemplateColumns: "80px 1fr 80px 80px 90px 80px", padding: "11px 16px", borderBottom: i < lessons.length - 1 ? `1px solid ${C.borderLight}` : "none", fontSize: 13, alignItems: "center", gap: 12 }}>
-            <code style={{ fontSize: 11, background: "#f3f4f6", padding: "2px 6px", borderRadius: 4 }}>{l.id}</code>
-            <span style={{ fontWeight: 500, color: C.text }}>{l.title}</span>
-            <span style={{ color: C.muted }}>{l.chapter}</span>
-            <span style={{ color: C.muted }}>{l.lang}</span>
-            <span style={{ color: C.muted }}>{l.duration}</span>
-            <Badge color="#374151" bg="#f3f4f6" style={{ fontSize: 10 }}>{l.level}</Badge>
+        
+        {loading ? (
+          <div style={{ padding: 20, textAlign: "center", color: C.muted }}>Äang táº£i dá»¯ liá»‡u tá»« API...</div>
+        ) : filtered.length === 0 ? (
+          <div style={{ padding: 20, textAlign: "center", color: C.muted }}>KhÃ´ng cÃ³ dá»¯ liá»‡u cho ngÃ´n ngá»¯ nÃ y. HÃ£y cháº¯c cháº¯n NetBeans Ä‘ang cháº¡y.</div>
+        ) : (
+          <div style={{ maxHeight: "calc(100vh - 200px)", overflowY: "auto" }}>
+            {filtered.map((l, i) => (
+              <div key={i} style={{ display: "grid", gridTemplateColumns: "80px 100px 120px 1fr", padding: "11px 16px", borderBottom: i < filtered.length - 1 ? `1px solid ${C.borderLight}` : "none", fontSize: 13, alignItems: "center", gap: 12 }}>
+                <Badge color="#374151" bg="#f3f4f6" style={{ fontSize: 10 }}>{l.languageCode}</Badge>
+                <span style={{ color: C.muted, fontSize: 12 }}>{l.stage}</span>
+                <span style={{ fontWeight: 500, color: C.text, fontSize: 12 }}>{l.levelName}</span>
+                <div style={{ color: C.muted, fontSize: 12 }}>
+                  {tab === "ZH" ? (
+                    <>
+                      <div><strong style={{color: C.purple}}>Q:</strong> {l.questionAi}</div>
+                      <div style={{marginTop: 4}}><strong style={{color: C.green}}>A:</strong> {l.answer}</div>
+                    </>
+                  ) : (
+                    <div>{l.subLevel}</div>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
 }
 
-// ─── Podcasts View ────────────────────────────────────────────────
+// â”€â”€â”€ Podcasts View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function PodcastsView() {
   const pods = [
     { title: "Daily English Tips", ep: 12, lang: "English", subs: 234 },
@@ -407,11 +524,11 @@ function PodcastsView() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
         {pods.map((p, i) => (
           <div key={i} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: 16 }}>
-            <div style={{ width: 48, height: 48, borderRadius: 10, background: `linear-gradient(135deg, ${C.primary}, ${C.purple})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, marginBottom: 12 }}>🎙️</div>
+            <div style={{ width: 48, height: 48, borderRadius: 10, background: `linear-gradient(135deg, ${C.primary}, ${C.purple})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, marginBottom: 12 }}>ðŸŽ™ï¸</div>
             <div style={{ fontWeight: 600, fontSize: 14, color: C.text, marginBottom: 4 }}>{p.title}</div>
-            <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>{p.lang} • {p.ep} episodes</div>
+            <div style={{ fontSize: 12, color: C.muted, marginBottom: 12 }}>{p.lang} â€¢ {p.ep} episodes</div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: 12, color: C.muted }}>👥 {p.subs} subscribers</span>
+              <span style={{ fontSize: 12, color: C.muted }}>ðŸ‘¥ {p.subs} subscribers</span>
               <Btn sm v="outline">View</Btn>
             </div>
           </div>
@@ -421,7 +538,7 @@ function PodcastsView() {
   );
 }
 
-// ─── Premium Content View ─────────────────────────────────────────
+// â”€â”€â”€ Premium Content View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function PremiumContentView() {
   return (
     <div style={{ padding: "20px 24px" }}>
@@ -435,7 +552,7 @@ function PremiumContentView() {
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 600, fontSize: 13, color: C.text }}>{t}</div>
-              <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>Premium • Locked</div>
+              <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>Premium â€¢ Locked</div>
             </div>
             <Lock size={14} color={C.light}/>
           </div>
@@ -445,7 +562,7 @@ function PremiumContentView() {
   );
 }
 
-// ─── Import Files View ────────────────────────────────────────────
+// â”€â”€â”€ Import Files View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ImportFilesView() {
   const [files, setFiles] = useState([
     { name: "LISA_English_Stage1.docx", size: "2.3 MB", status: "success", records: 145, date: "2026-06-14" },
@@ -455,7 +572,7 @@ function ImportFilesView() {
     { name: "Chinese_Stage2_Content.docx", size: "2.1 MB", status: "error", records: null, date: "2026-06-10" },
     { name: "Japanese_Stage1_Content.docx", size: "1.9 MB", status: "success", records: 130, date: "2026-06-12" },
     { name: "Japanese_Stage2_Content.docx", size: "2.2 MB", status: "success", records: 142, date: "2026-06-12" },
-    { name: "Japanese_Stage3_Content.docx", size: "2.5 MB", status: "pending", records: null, date: "—" },
+    { name: "Japanese_Stage3_Content.docx", size: "2.5 MB", status: "pending", records: null, date: "â€”" },
   ]);
   const [drag, setDrag] = useState(false);
 
@@ -493,7 +610,7 @@ function ImportFilesView() {
         <div style={{ fontSize: 15, fontWeight: 600, color: drag ? C.primary : C.text, marginBottom: 4 }}>
           {drag ? "Drop files here" : "Drag & Drop DOCX files here"}
         </div>
-        <p style={{ fontSize: 13, color: C.muted, margin: "0 0 14px" }}>Supports .docx — LISA, Chinese, Japanese content formats (Apache POI parser)</p>
+        <p style={{ fontSize: 13, color: C.muted, margin: "0 0 14px" }}>Supports .docx â€” LISA, Chinese, Japanese content formats (Apache POI parser)</p>
         <Btn v="outline">Browse Files</Btn>
       </div>
 
@@ -513,7 +630,7 @@ function ImportFilesView() {
               <span style={{ fontWeight: 500, color: C.text, fontSize: 12 }}>{f.name}</span>
             </div>
             <span style={{ color: C.muted, fontSize: 12 }}>{f.size}</span>
-            <span style={{ color: C.muted, fontSize: 12 }}>{f.records ? f.records.toLocaleString() : "—"}</span>
+            <span style={{ color: C.muted, fontSize: 12 }}>{f.records ? f.records.toLocaleString() : "â€”"}</span>
             {statusBadge(f.status)}
             <span style={{ color: C.muted, fontSize: 12 }}>{f.date}</span>
             <Btn sm v="outline" onClick={() => reimport(f.name)}><RefreshCw size={11}/> Re-import</Btn>
@@ -524,13 +641,13 @@ function ImportFilesView() {
   );
 }
 
-// ─── DOCX Preview View ────────────────────────────────────────────
+// â”€â”€â”€ DOCX Preview View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function DocxPreviewView() {
   const [sel, setSel] = useState("LISA_English_Stage1.docx");
   const content = {
-    "LISA_English_Stage1.docx": { title: "English Stage 1 — Beginner", lessons: [
+    "LISA_English_Stage1.docx": { title: "English Stage 1 â€” Beginner", lessons: [
       { title: "Lesson 1: Greetings", content: "Hello / Hi / Good morning / Good afternoon / Good evening...", questions: 5 },
-      { title: "Lesson 2: Numbers 1–10", content: "One, Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten", questions: 4 },
+      { title: "Lesson 2: Numbers 1â€“10", content: "One, Two, Three, Four, Five, Six, Seven, Eight, Nine, Ten", questions: 4 },
     ]},
   };
   const preview = content[sel] || content["LISA_English_Stage1.docx"];
@@ -557,7 +674,7 @@ function DocxPreviewView() {
   );
 }
 
-// ─── Prompt Templates View ────────────────────────────────────────
+// â”€â”€â”€ Prompt Templates View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function PromptTemplatesView() {
   const [templates, setTemplates] = useState([
     { id: 1, name: "Generate MCQ Questions", cat: "Assessment", model: "claude-sonnet-4-6", tokens: 800, active: true },
@@ -603,7 +720,7 @@ function PromptTemplatesView() {
   );
 }
 
-// ─── Generated Questions View (AI-powered) ───────────────────────
+// â”€â”€â”€ Generated Questions View (AI-powered) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function GeneratedQuestionsView() {
   const [lang, setLang] = useState("English");
   const [level, setLevel] = useState("Beginner");
@@ -647,7 +764,7 @@ Return ONLY a valid JSON array with no markdown or explanation:
       {/* Config Card */}
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: 20, marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 600, fontSize: 14, color: C.primary, marginBottom: 16 }}>
-          <Zap size={15}/> Question Generator — Claude AI
+          <Zap size={15}/> Question Generator â€” Claude AI
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
           {[["Language", lang, setLang, ["English", "Chinese", "Japanese"]],
@@ -693,7 +810,7 @@ Return ONLY a valid JSON array with no markdown or explanation:
         <div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
             <div style={{ fontSize: 13, color: C.muted }}>
-              <strong style={{ color: C.text }}>{questions.length} questions</strong> • {lang} • {level} • "{topic}"
+              <strong style={{ color: C.text }}>{questions.length} questions</strong> â€¢ {lang} â€¢ {level} â€¢ "{topic}"
             </div>
             <Btn sm v="outline" onClick={() => { setQuestions(null); setSelected({}); }}>Clear</Btn>
           </div>
@@ -724,7 +841,7 @@ Return ONLY a valid JSON array with no markdown or explanation:
                 </div>
                 {selected[qi] !== undefined && q.explanation && (
                   <div style={{ fontSize: 12, color: C.muted, background: "#f0f9ff", padding: "8px 12px", borderRadius: 5, borderLeft: `3px solid ${C.primary}` }}>
-                    💡 {q.explanation}
+                    ðŸ’¡ {q.explanation}
                   </div>
                 )}
                 {selected[qi] === undefined && (
@@ -739,7 +856,7 @@ Return ONLY a valid JSON array with no markdown or explanation:
   );
 }
 
-// ─── Main App ─────────────────────────────────────────────────────
+// â”€â”€â”€ Main App â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export default function App() {
   const [active, setActive] = useState("live-rooms");
 
@@ -787,7 +904,7 @@ function CourseRunsView() {
             <div style={{ width: 10, height: 10, borderRadius: "50%", background: r.status === "live" ? C.green : C.light, flexShrink: 0 }}/>
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 600, fontSize: 13, color: C.text }}>{r.course}</div>
-              <div style={{ fontSize: 12, color: C.muted }}>Host: {r.host} • Start: {r.start}</div>
+              <div style={{ fontSize: 12, color: C.muted }}>Host: {r.host} â€¢ Start: {r.start}</div>
             </div>
             <Badge color={r.status === "live" ? "#065f46" : "#374151"} bg={r.status === "live" ? "#d1fae5" : "#f3f4f6"}>{r.status}</Badge>
             <span style={{ fontSize: 12, color: C.muted }}>{r.students} students</span>

@@ -40,6 +40,18 @@ export const api = {
     create: (body)         => req('POST', '/lessons', body),
     update: (id, body)     => req('PUT', `/lessons/${id}`, body),
     delete: (id)           => req('DELETE', `/lessons/${id}`),
+    // Call Real Java API
+    fetchRealData: (lang, stage, level) => {
+      const params = new URLSearchParams()
+      if (lang) params.append('language', lang)
+      if (stage) params.append('stage', stage)
+      if (level) params.append('level', level)
+      return fetch(`http://localhost:8080/LucyBackendAPI/api/contents?${params}`)
+        .then(res => {
+          if (!res.ok) throw new Error('Failed to fetch from Java Backend')
+          return res.json()
+        })
+    },
   },
 
   // ── Live Rooms ───────────────────────────────────────────────
