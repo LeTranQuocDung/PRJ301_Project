@@ -1,3 +1,4 @@
+import lessonsData from "./lessonsData.json";
 import { useState, useEffect, useRef } from "react";
 import { api } from "./apiClient";
 import {
@@ -445,62 +446,20 @@ function LessonsView() {
 
   const toggle = (id) => setOpenId(prev => prev === id ? null : id);
 
-  const allData = {
-    EN: [
-      { level: 1, title: "SAYING WHO I AM", titleVi: "Tu gioi thieu", stage: "Stage 1", vocab: "Hello, Name, Nice to meet you", grammar: "I am + [Name]: I am Lucy.", question: 'What does "Nice to meet you" mean?', answer: "Rat vui duoc gap ban" },
-      { level: 2, title: "WHERE I'M FROM", titleVi: "Que quan", stage: "Stage 1", vocab: "Country, Vietnam, Where", grammar: "I am from + [Country]: I am from Vietnam.", question: "I am _____ Vietnam.", answer: "from" },
-      { level: 3, title: "MY FAMILY", titleVi: "Gia dinh", stage: "Stage 1", vocab: "Father - Bo, Mother - Me, Brother - Anh em trai", grammar: "This is my [family member].", question: "What is 'mother' in Vietnamese?", answer: "Me" },
-      { level: 4, title: "NUMBERS & TIME", titleVi: "So va Thoi gian", stage: "Stage 1", vocab: "One - Mot, Time - Thoi gian, Clock - Dong ho", grammar: "It is [number] o'clock.", question: "What time is it? (8:00)", answer: "It is eight o'clock." },
-      { level: 5, title: "DAILY ROUTINE", titleVi: "Sinh hoat", stage: "Stage 1", vocab: "Wake up - Thuc day, Sleep - Ngu", grammar: "I + verb + every day.", question: "I _____ at 6AM every day.", answer: "wake up" },
-      { level: 6, title: "FOOD & DRINKS", titleVi: "Do an", stage: "Stage 1", vocab: "Rice - Com, Water - Nuoc", grammar: "I would like + [food/drink], please.", question: "How do you order rice politely?", answer: "I would like rice, please." },
-      { level: 7, title: "SHOPPING", titleVi: "Mua sam", stage: "Stage 1", vocab: "Buy - Mua, Money - Tien", grammar: "How much does this cost?", question: "How do you ask for a price?", answer: "How much does this cost?" },
-      { level: 8, title: "ASKING FOR DIRECTIONS", titleVi: "Hoi duong", stage: "Stage 1", vocab: "Left - Trai, Right - Phai", grammar: "Could you tell me how to get to [place]?", question: "How do you ask for directions to the station?", answer: "Could you tell me how to get to the station?" },
-      { level: 9, title: "AT THE HOTEL", titleVi: "Khach san", stage: "Stage 1", vocab: "Room - Phong, Bed - Giuong", grammar: "I have a reservation.", question: "How do you say you booked a room?", answer: "I have a reservation." },
-      { level: 10, title: "HEALTH & BODY", titleVi: "Suc khoe", stage: "Stage 1", vocab: "Head - Dau, Hand - Tay", grammar: "I have a + [symptom].", question: "How do you say you have a headache?", answer: "I have a headache." },
-      { level: 11, title: "WEATHER & SEASONS", titleVi: "Thoi tiet", stage: "Stage 1", vocab: "Rain - Mua, Sun - Nang", grammar: "It is + adjective + today.", question: "How do you say it is raining?", answer: "It is raining today." },
-    ],
-    ZH: [
-      { level: 1, title: "介绍", titleVi: "Gioi thieu", stage: "Stage 1", vocab: "ni hao, xie xie, zai jian", grammar: "Wo jiao [Name].", question: "Ni jiao shenme mingzi?", answer: "Wo jiao Xiao Ming." },
-      { level: 2, title: "家庭", titleVi: "Gia dinh", stage: "Stage 1", vocab: "ba ba, ma ma, ge ge, mei mei", grammar: "Wo jia you [number] kou ren.", question: "Ni jia you ji kou ren?", answer: "Wo jia you si kou ren." },
-      { level: 3, title: "数字和时间", titleVi: "So va Thoi gian", stage: "Stage 1", vocab: "yi er san si wu liu qi ba jiu shi", grammar: "Xianzai [number] dian.", question: "Xianzai ji dian?", answer: "Xianzai ba dian." },
-      { level: 4, title: "日常生活", titleVi: "Sinh hoat", stage: "Stage 1", vocab: "qi chuang - thuc day, shui jiao - ngu", grammar: "Wo mei tian [number] dian qi chuang.", question: "Ni mei tian ji dian qi chuang?", answer: "Wo liu dian qi chuang." },
-      { level: 5, title: "饮食", titleVi: "An uong", stage: "Stage 1", vocab: "mi fan - com, mian tiao - mi, ji dan - trung", grammar: "Wo xiang chi [food].", question: "Ni xiang chi shenme?", answer: "Wo xiang chi mi fan." },
-      { level: 6, title: "购物", titleVi: "Mua sam", stage: "Stage 1", vocab: "duo shao qian - bao nhieu tien, pian yi - re, gui - dat", grammar: "Zhe ge duo shao qian?", question: "How do you ask for a price in Chinese?", answer: "Zhe ge duo shao qian?" },
-      { level: 7, title: "交通", titleVi: "Giao thong", stage: "Stage 2", vocab: "gong jiao - xe bus, zuo - ngoi, qu - di", grammar: "Wo zuo [transport] qu [place].", question: "Ni zenme qu xuexiao?", answer: "Wo zuo gong jiao che qu." },
-      { level: 8, title: "住宿", titleVi: "Cho o", stage: "Stage 2", vocab: "fang jian - phong, zhu - o, na li - o dau", grammar: "Wo zhu zai [place].", question: "Ni zhu zai nali?", answer: "Wo zhu zai Beijing." },
-      { level: 9, title: "身体健康", titleVi: "Suc khoe", stage: "Stage 2", vocab: "tou - dau, shou - tay, bing - benh", grammar: "Wo [symptom] le.", question: "Ni zenme le?", answer: "Wo ganmao le." },
-      { level: 10, title: "天气", titleVi: "Thoi tiet", stage: "Stage 2", vocab: "xia yu - mua, qing tian - nang, leng - lanh, re - nong", grammar: "Jintian tianqi [adjective].", question: "Jintian tianqi zenmeyang?", answer: "Jintian xia yu." },
-      { level: 11, title: "爱好", titleVi: "So thich", stage: "Stage 2", vocab: "shu - sach, yinyue - am nhac, yundong - the thao", grammar: "Wo xihuan [activity].", question: "Ni de aihao shi shenme?", answer: "Wo xihuan kan shu." },
-    ],
-    JA: [
-      { level: 1, title: "自己紹介", titleVi: "Tu gioi thieu", stage: "Stage 1", vocab: "watashi - toi, namae - ten", grammar: "Watashi wa [Name] desu.", question: "How do you introduce yourself in Japanese?", answer: "Hajimemashite! Watashi wa Lucy desu." },
-      { level: 2, title: "家族", titleVi: "Gia dinh", stage: "Stage 1", vocab: "chichi - bo, haha - me, oniisan - anh trai", grammar: "Kore wa watashi no [family] desu.", question: "How do you say 'This is my mother'?", answer: "Kore wa watashi no haha desu." },
-      { level: 3, title: "数字と時間", titleVi: "So va Thoi gian", stage: "Stage 1", vocab: "ichi ni san shi go - 1 2 3 4 5, ji - gio", grammar: "[number]-ji desu.", question: "How do you say it is 8 o'clock?", answer: "Hachi-ji desu." },
-      { level: 4, title: "毎日の生活", titleVi: "Sinh hoat", stage: "Stage 1", vocab: "okiru - thuc day, neru - ngu, taberu - an", grammar: "Watashi wa mai nichi [time] ni [action].", question: "How do you say you wake up at 6?", answer: "Watashi wa roku-ji ni okimasu." },
-      { level: 5, title: "食べ物と飲み物", titleVi: "Do an", stage: "Stage 1", vocab: "taberu - an, nomu - uong, gohan - com", grammar: "[food] o tabetai desu.", question: "How do you say you want to eat rice?", answer: "Gohan o tabetai desu." },
-      { level: 6, title: "買い物", titleVi: "Mua sam", stage: "Stage 1", vocab: "kau - mua, okane - tien, yasui - re, takai - dat", grammar: "Kore wa ikura desu ka?", question: "How do you ask how much something costs?", answer: "Kore wa ikura desu ka?" },
-      { level: 7, title: "道を聞く", titleVi: "Hoi duong", stage: "Stage 2", vocab: "migi - phai, hidari - trai, massugu - thang", grammar: "[place] wa doko desu ka?", question: "How do you ask where the station is?", answer: "Eki wa doko desu ka?" },
-      { level: 8, title: "ホテルで", titleVi: "Khach san", stage: "Stage 2", vocab: "heya - phong, beddo - giuong, chekku in - check in", grammar: "Yoyaku shite imasu.", question: "How do you say you have a reservation?", answer: "Yoyaku shite imasu." },
-      { level: 9, title: "体と健康", titleVi: "Suc khoe", stage: "Stage 2", vocab: "atama - dau, te - tay, byoki - benh", grammar: "[body part] ga itai desu.", question: "How do you say your head hurts?", answer: "Atama ga itai desu." },
-      { level: 10, title: "天気と季節", titleVi: "Thoi tiet", stage: "Stage 2", vocab: "ame - mua, hare - nang, samui - lanh, atsui - nong", grammar: "Kyou wa [weather] desu.", question: "How do you say it is raining today?", answer: "Kyou wa ame desu." },
-      { level: 11, title: "趣味", titleVi: "So thich", stage: "Stage 2", vocab: "hon - sach, ongaku - am nhac, eiga - phim", grammar: "[activity] ga suki desu.", question: "How do you say you like music?", answer: "Ongaku ga suki desu." },
-    ]
-  };
-
-  const filtered = allData[tab] || [];
-  const stageColors = { "Stage 1": { bg: "#eff6ff", color: "#2563eb" }, "Stage 2": { bg: "#f0fdf4", color: "#16a34a" }, "Stage 3": { bg: "#fdf4ff", color: "#9333ea" } };
+  const filtered = lessonsData[tab] || [];
+  const stageColors = { "Sơ cấp": { bg: "#eff6ff", color: "#2563eb" }, "Trung cấp": { bg: "#f0fdf4", color: "#16a34a" }, "Cao cấp": { bg: "#fdf4ff", color: "#9333ea" } };
 
   return (
     <div style={{ padding: "20px 24px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: "0 0 4px" }}>Lessons</h1>
-          <p style={{ fontSize: 13, color: C.muted, margin: 0 }}>Click on a lesson to view its content (EN: 11 levels / ZH: 11 / JA: 11 - from SQL data)</p>
+          <p style={{ fontSize: 13, color: C.muted, margin: 0 }}>LUCY Course Content - English: {(lessonsData?.EN?.length || 0)} | Chinese: {(lessonsData?.ZH?.length || 0)} | Japanese: {(lessonsData?.JA?.length || 0)}</p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <Btn v={tab === "EN" ? "primary" : "outline"} onClick={() => { setTab("EN"); setOpenId(null); }}>English ({allData.EN.length})</Btn>
-          <Btn v={tab === "ZH" ? "primary" : "outline"} onClick={() => { setTab("ZH"); setOpenId(null); }}>Chinese ({allData.ZH.length})</Btn>
-          <Btn v={tab === "JA" ? "primary" : "outline"} onClick={() => { setTab("JA"); setOpenId(null); }}>Japanese ({allData.JA.length})</Btn>
+          <Btn v={tab === "EN" ? "primary" : "outline"} onClick={() => { setTab("EN"); setOpenId(null); }}>English ({(lessonsData?.EN?.length || 0)})</Btn>
+          <Btn v={tab === "ZH" ? "primary" : "outline"} onClick={() => { setTab("ZH"); setOpenId(null); }}>Chinese ({(lessonsData?.ZH?.length || 0)})</Btn>
+          <Btn v={tab === "JA" ? "primary" : "outline"} onClick={() => { setTab("JA"); setOpenId(null); }}>Japanese ({(lessonsData?.JA?.length || 0)})</Btn>
         </div>
       </div>
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
@@ -516,28 +475,33 @@ function LessonsView() {
                 <span style={{ width: 28, height: 28, borderRadius: "50%", background: isOpen ? C.primary : "#e5e7eb", color: isOpen ? "#fff" : C.muted, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0, marginRight: 12 }}>{l.level}</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{l.title}</div>
-                  <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{l.titleVi}</div>
                 </div>
                 <Badge color={sc.color} bg={sc.bg} style={{ marginRight: 12 }}>{l.stage}</Badge>
                 <span style={{ color: C.muted, fontSize: 13, transition: "transform 0.2s", transform: isOpen ? "rotate(90deg)" : "rotate(0deg)", display: "inline-block" }}>›</span>
               </div>
               {isOpen && (
                 <div style={{ padding: "16px 20px 20px 56px", background: "#f8fbff", borderBottom: `1px solid ${C.border}` }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-                    <div style={{ background: "#f0fdf4", padding: "10px 14px", borderRadius: 8, border: "1px solid #bbf7d0" }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: C.green, marginBottom: 6, textTransform: "uppercase" }}>Vocabulary</div>
-                      <div style={{ fontSize: 13, color: C.text }}>{l.vocab}</div>
+                  {tab === 'ZH' ? (
+                     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {(l.qa || []).map((qa, idx) => (
+                          <div key={idx} style={{ background: "#fff", padding: "10px 14px", borderRadius: 8, border: "1px solid #e5e7eb" }}>
+                            <div style={{ fontSize: 13, color: C.text, fontWeight: 600, marginBottom: 4 }}>Q: {qa.q}</div>
+                            <div style={{ fontSize: 13, color: "#16a34a" }}>A: {qa.a}</div>
+                          </div>
+                        ))}
+                     </div>
+                  ) : (
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                      <div style={{ background: "#f0fdf4", padding: "10px 14px", borderRadius: 8, border: "1px solid #bbf7d0" }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "#16a34a", marginBottom: 6, textTransform: "uppercase" }}>Vocabulary</div>
+                        <div style={{ fontSize: 13, color: C.text, whiteSpace: "pre-line" }}>{l.vocab}</div>
+                      </div>
+                      <div style={{ background: "#eff6ff", padding: "10px 14px", borderRadius: 8, border: "1px solid #bfdbfe" }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: C.primary, marginBottom: 6, textTransform: "uppercase" }}>Grammar</div>
+                        <div style={{ fontSize: 13, color: C.text, whiteSpace: "pre-line" }}>{l.grammar}</div>
+                      </div>
                     </div>
-                    <div style={{ background: "#eff6ff", padding: "10px 14px", borderRadius: 8, border: "1px solid #bfdbfe" }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: C.primary, marginBottom: 6, textTransform: "uppercase" }}>Grammar</div>
-                      <div style={{ fontSize: 13, color: C.text }}>{l.grammar}</div>
-                    </div>
-                  </div>
-                  <div style={{ background: "#fefce8", padding: "10px 14px", borderRadius: 8, border: "1px solid #fde68a" }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: "#a16207", marginBottom: 6, textTransform: "uppercase" }}>Practice Question</div>
-                    <div style={{ fontSize: 13, color: C.text, marginBottom: 6 }}>Q: {l.question}</div>
-                    <div style={{ fontSize: 13, color: C.green, fontWeight: 500 }}>A: {l.answer}</div>
-                  </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1067,7 +1031,7 @@ function UsersView() {
                       </Badge>
                     </td>
                     <td style={{ padding: "10px 0" }}>
-                      {u.active ? <span style={{ color: C.green, display: "flex", alignItems: "center", gap: 4 }}><CheckCircle size={12}/> Active</span> : <span style={{ color: C.muted, display: "flex", alignItems: "center", gap: 4 }}><AlertCircle size={12}/> Inactive</span>}
+                      {u.active ? <span style={{ color: "#16a34a", display: "flex", alignItems: "center", gap: 4 }}><CheckCircle size={12}/> Active</span> : <span style={{ color: C.muted, display: "flex", alignItems: "center", gap: 4 }}><AlertCircle size={12}/> Inactive</span>}
                     </td>
                     <td style={{ padding: "10px 0", textAlign: "right" }}>
                       <button type="button" onClick={() => startEdit(u)} style={{ background: "none", border: "none", color: C.primary, cursor: "pointer", padding: 4, marginRight: 8 }}><Settings size={14}/></button>
