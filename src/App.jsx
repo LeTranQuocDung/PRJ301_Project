@@ -406,15 +406,15 @@ function CoursesView() {
   );
 }
 
-// â”€â”€â”€ Chapters View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ——————————————————————————————————————————————————
 function ChaptersView() {
   const chapters = [
     { course: "English Stage 1", chapter: "Chapter 1: Hello World", topics: 5, complete: true },
     { course: "English Stage 1", chapter: "Chapter 2: My Family", topics: 4, complete: true },
     { course: "English Stage 1", chapter: "Chapter 3: At School", topics: 6, complete: false },
     { course: "English Stage 2", chapter: "Chapter 1: City Life", topics: 5, complete: true },
-    { course: "Chinese Stage 1", chapter: "ç¬¬ä¸€ç« : ä½ å¥½", topics: 4, complete: true },
-    { course: "Japanese Stage 1", chapter: "ç¬¬1ç« : ã¯ã˜ã‚ã¾ã—ã¦", topics: 5, complete: false },
+    { course: "Chinese Stage 1", chapter: "Chapter 1: Ni Hao", topics: 4, complete: true },
+    { course: "Japanese Stage 1", chapter: "Chapter 1: Hajimemashite", topics: 5, complete: false },
   ];
   return (
     <div style={{ padding: "20px 24px" }}>
@@ -427,7 +427,7 @@ function ChaptersView() {
               {ch.complete ? <CheckCircle size={15} color={C.green}/> : <div style={{ width: 15, height: 15, borderRadius: "50%", border: `2px solid ${C.border}` }}/>}
               <div>
                 <div style={{ fontSize: 13, fontWeight: 500, color: C.text }}>{ch.chapter}</div>
-                <div style={{ fontSize: 12, color: C.muted }}>{ch.course} â€¢ {ch.topics} topics</div>
+                <div style={{ fontSize: 12, color: C.muted }}>{ch.course} • {ch.topics} topics</div>
               </div>
             </div>
             <ChevronRight size={14} color={C.light}/>
@@ -438,26 +438,28 @@ function ChaptersView() {
   );
 }
 
-// â”€â”€â”€ Lessons View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// --- Lessons View -------------------------------------------------
 function LessonsView() {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState("EN"); // EN, ZH, JA
+  const [tab, setTab] = useState("EN");
 
-  useEffect(() => {
-    api.lessons.fetchRealData()
-      .then(res => {
-        setData(res);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error(err);
-        setLoading(false);
-      });
-  }, []);
+  const mockData = [
+    { languageCode: "EN", stage: "Beginner", levelName: "Saying Who I Am", subLevel: "Vocab: Hello, Name, Nice to meet you | Grammar: I am + [Name]" },
+    { languageCode: "EN", stage: "Beginner", levelName: "Where I'm From", subLevel: "Vocab: Country, Vietnam, Where | Grammar: I am from + [Country]" },
+    { languageCode: "EN", stage: "Beginner", levelName: "My Family", subLevel: "Vocab: Father, Mother, Brother, Sister | Grammar: This is my..." },
+    { languageCode: "EN", stage: "Beginner", levelName: "Daily Routines", subLevel: "Vocab: Wake up, Eat, Work, Sleep | Grammar: I + verb every day" },
+    { languageCode: "EN", stage: "Beginner", levelName: "Colors and Numbers", subLevel: "Vocab: Red, Blue, 1-20 | Grammar: There are [number] [color] things" },
+    { languageCode: "EN", stage: "Intermediate", levelName: "Ordering Food", subLevel: "Vocab: Menu, Order, Bill | Grammar: I would like + [food]" },
+    { languageCode: "EN", stage: "Intermediate", levelName: "Asking Directions", subLevel: "Vocab: Left, Right, Straight | Grammar: Could you tell me how to get to..." },
+    { languageCode: "ZH", stage: "Beginner", levelName: "Xin chao - Hello", subLevel: "Vocab: ni hao, zaijian, xiexie | Pinyin practice" },
+    { languageCode: "ZH", stage: "Beginner", levelName: "Jia ren - Family", subLevel: "Vocab: baba, mama, gege | Grammar: zhe shi wo de..." },
+    { languageCode: "ZH", stage: "Intermediate", levelName: "Mai dong xi - Shopping", subLevel: "Vocab: duo shao qian, pian yi, gui | Grammar: zhe ge duo shao qian?" },
+    { languageCode: "JA", stage: "Beginner", levelName: "Hajimemashite - Hello", subLevel: "Vocab: hajimemashite, yoroshiku | Grammar: watashi wa [name] desu" },
+    { languageCode: "JA", stage: "Beginner", levelName: "Kazoku - Family", subLevel: "Vocab: otousan, okaasan | Grammar: kore wa watashi no..." },
+    { languageCode: "JA", stage: "Intermediate", levelName: "Kaimono - Shopping", subLevel: "Vocab: ikura, yasui, takai | Grammar: kore wa ikura desu ka?" },
+  ];
 
-  const filtered = data.filter(r => {
-    if (tab === "EN") return r.languageCode === "LISA" || r.languageCode === "EN";
+  const filtered = mockData.filter(r => {
+    if (tab === "EN") return r.languageCode === "EN";
     if (tab === "ZH") return r.languageCode === "ZH";
     if (tab === "JA") return r.languageCode === "JA";
     return false;
@@ -468,7 +470,7 @@ function LessonsView() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: "0 0 4px" }}>Lessons Data</h1>
-          <p style={{ fontSize: 13, color: C.muted, margin: 0 }}>Dá»¯ liá»‡u thá»±c táº¿ tá»« Java Backend (Tomcat)</p>
+          <p style={{ fontSize: 13, color: C.muted, margin: 0 }}>LUCY Course Content - 3 Languages (EN / ZH / JA)</p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <Btn v={tab === "EN" ? "primary" : "outline"} onClick={() => setTab("EN")}>English</Btn>
