@@ -126,7 +126,7 @@ function Sidebar({ active, setActive }) {
 const AGORA_APP_ID  = "ca82570aa4a3464aadca4e28ee1d73b9";
 const AGORA_CHANNEL = "lucy_room_1";
 // Temp token (valid ~24h). Replace via Agora Console > Generate Temp Token
-const AGORA_TEMP_TOKEN = "007eJxTYNDXWpo87ddvfmvDRgYj1/oL95cvn2Wx4KxsaMwRJrOJr5QUGJITLYxMzQ0SE00SjU3MTBITU5ITTVKNLFJTDVPMjZMsV1uaZjUEMjLs3FDCwsgAgSA+N0NOaXJlfFF+fm68IQMDAOsQIYU=";
+const AGORA_TEMP_TOKEN = "006ca82570aa4a3464aadca4e28ee1d73b9IACc5s3b/IwXIquJv0NUyYgLxo3PXKy0esWGIFIZ5GaFrJrnejAAAAAAIgCzgFZ7Vp06agQAAQBWnTpqAgBWnTpqAwBWnTpqBABWnTpq";
 
 // --- Live Rooms View -------------------------------------------------------
 function LiveRoomsView() {
