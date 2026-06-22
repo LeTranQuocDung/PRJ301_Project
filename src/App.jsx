@@ -125,8 +125,15 @@ function Sidebar({ active, setActive }) {
 // --- Agora Config -------------------------------------------------------
 const AGORA_APP_ID  = "ca82570aa4a3464aadca4e28ee1d73b9";
 const AGORA_CHANNEL = "lucy_room_1";
-// Temp token (valid ~24h). Replace via Agora Console > Generate Temp Token
-const AGORA_TEMP_TOKEN = "006ca82570aa4a3464aadca4e28ee1d73b9IACc5s3b/IwXIquJv0NUyYgLxo3PXKy0esWGIFIZ5GaFrJrnejAAAAAAIgCzgFZ7Vp06agQAAQBWnTpqAgBWnTpqAwBWnTpqBABWnTpq";
+const TOKEN_SERVER_URL = "http://localhost:3001"; // Auto Token Server
+
+// Fetch a fresh token from local Token Server (valid 24h each)
+async function fetchAgoraToken(channel, uid) {
+  const res = await fetch(`${TOKEN_SERVER_URL}/api/agora-token?channel=${channel}&uid=${uid}`);
+  if (!res.ok) throw new Error("Token server không phản hồi. Hãy kiểm tra Token Server đang chạy!");
+  const data = await res.json();
+  return data.token;
+}
 
 // --- Live Rooms View -------------------------------------------------------
 function LiveRoomsView() {
@@ -185,7 +192,9 @@ function LiveRoomsView() {
   const doJoin = async () => {
     setJoining(true); setError(null);
     try {
-      await clientRef.current.join(AGORA_APP_ID, AGORA_CHANNEL, AGORA_TEMP_TOKEN, uid);
+      // Auto-fetch fresh token from Token Server
+      const token = await fetchAgoraToken(AGORA_CHANNEL, uid);
+      await clientRef.current.join(AGORA_APP_ID, AGORA_CHANNEL, token, uid);
       const mic = await AgoraRTC.createMicrophoneAudioTrack();
       micRef.current = mic;
       await clientRef.current.publish([mic]);
