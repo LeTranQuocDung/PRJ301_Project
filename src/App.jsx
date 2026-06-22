@@ -443,77 +443,68 @@ function LessonsView() {
   const [tab, setTab] = useState("EN");
 
   const mockData = [
-    { languageCode: "EN", stage: "Beginner", levelName: "Saying Who I Am", subLevel: "Vocab: Hello, Name, Nice to meet you | Grammar: I am + [Name]" },
-    { languageCode: "EN", stage: "Beginner", levelName: "Where I'm From", subLevel: "Vocab: Country, Vietnam, Where | Grammar: I am from + [Country]" },
-    { languageCode: "EN", stage: "Beginner", levelName: "My Family", subLevel: "Vocab: Father, Mother, Brother, Sister | Grammar: This is my..." },
-    { languageCode: "EN", stage: "Beginner", levelName: "Daily Routines", subLevel: "Vocab: Wake up, Eat, Work, Sleep | Grammar: I + verb every day" },
-    { languageCode: "EN", stage: "Beginner", levelName: "Colors and Numbers", subLevel: "Vocab: Red, Blue, 1-20 | Grammar: There are [number] [color] things" },
-    { languageCode: "EN", stage: "Intermediate", levelName: "Ordering Food", subLevel: "Vocab: Menu, Order, Bill | Grammar: I would like + [food]" },
-    { languageCode: "EN", stage: "Intermediate", levelName: "Asking Directions", subLevel: "Vocab: Left, Right, Straight | Grammar: Could you tell me how to get to..." },
-    { languageCode: "ZH", stage: "Beginner", levelName: "Xin chao - Hello", subLevel: "Vocab: ni hao, zaijian, xiexie | Pinyin practice" },
-    { languageCode: "ZH", stage: "Beginner", levelName: "Jia ren - Family", subLevel: "Vocab: baba, mama, gege | Grammar: zhe shi wo de..." },
-    { languageCode: "ZH", stage: "Intermediate", levelName: "Mai dong xi - Shopping", subLevel: "Vocab: duo shao qian, pian yi, gui | Grammar: zhe ge duo shao qian?" },
-    { languageCode: "JA", stage: "Beginner", levelName: "Hajimemashite - Hello", subLevel: "Vocab: hajimemashite, yoroshiku | Grammar: watashi wa [name] desu" },
-    { languageCode: "JA", stage: "Beginner", levelName: "Kazoku - Family", subLevel: "Vocab: otousan, okaasan | Grammar: kore wa watashi no..." },
-    { languageCode: "JA", stage: "Intermediate", levelName: "Kaimono - Shopping", subLevel: "Vocab: ikura, yasui, takai | Grammar: kore wa ikura desu ka?" },
+    // English - 11 levels from LISA Word files
+    { languageCode: "EN", stage: "Stage 1 - Survival Speaking", level: 1, levelName: "SAYING WHO I AM", subLevel: "Vocab: Hello, Name, Nice to meet you | Grammar: I am + [Name]" },
+    { languageCode: "EN", stage: "Stage 1 - Survival Speaking", level: 2, levelName: "WHERE I'M FROM", subLevel: "Vocab: Country, Vietnam, Where | Grammar: I am from + [Country]" },
+    { languageCode: "EN", stage: "Stage 1 - Survival Speaking", level: 3, levelName: "MY FAMILY", subLevel: "Vocab: Father, Mother, Brother, Sister | Grammar: This is my..." },
+    { languageCode: "EN", stage: "Stage 1 - Survival Speaking", level: 4, levelName: "MY DAILY ROUTINE", subLevel: "Vocab: Wake up, Eat, Go to work, Sleep | Grammar: I + verb every day" },
+    { languageCode: "EN", stage: "Stage 1 - Survival Speaking", level: 5, levelName: "COLORS AND NUMBERS", subLevel: "Vocab: Colors, Numbers 1-20 | Grammar: There are [n] [color] things" },
+    { languageCode: "EN", stage: "Stage 1 - Survival Speaking", level: 6, levelName: "AT THE COFFEE SHOP", subLevel: "Vocab: Coffee, Tea, Menu, Bill | Grammar: I would like + [item], please" },
+    { languageCode: "EN", stage: "Stage 1 - Survival Speaking", level: 7, levelName: "ASKING DIRECTIONS", subLevel: "Vocab: Left, Right, Straight, Near | Grammar: Could you tell me how to get to [place]?" },
+    { languageCode: "EN", stage: "Stage 2 - Conversational", level: 8, levelName: "TALKING ABOUT HOBBIES", subLevel: "Vocab: Reading, Cooking, Sports | Grammar: I like/love/enjoy + V-ing" },
+    { languageCode: "EN", stage: "Stage 2 - Conversational", level: 9, levelName: "THE WEATHER", subLevel: "Vocab: Sunny, Rainy, Hot, Cold | Grammar: It is + adjective today" },
+    { languageCode: "EN", stage: "Stage 2 - Conversational", level: 10, levelName: "SHOPPING", subLevel: "Vocab: Price, Cheap, Expensive | Grammar: How much does this cost?" },
+    { languageCode: "EN", stage: "Stage 2 - Conversational", level: 11, levelName: "AT THE DOCTOR", subLevel: "Vocab: Pain, Fever, Medicine | Grammar: I have a [symptom]. I feel + adjective." },
+    // Chinese - 5 levels
+    { languageCode: "ZH", stage: "Stage 1 - Basic", level: 1, levelName: "Xin Chao - Greetings", subLevel: "Pinyin: ni hao, zai jian, xie xie | Vocab: Hello, Goodbye, Thank you" },
+    { languageCode: "ZH", stage: "Stage 1 - Basic", level: 2, levelName: "Jia Ren - Family", subLevel: "Pinyin: ba ba, ma ma, ge ge | Grammar: zhe shi wo de..." },
+    { languageCode: "ZH", stage: "Stage 1 - Basic", level: 3, levelName: "Shu Zi - Numbers", subLevel: "Pinyin: yi er san si wu | 1-10 Mandarin" },
+    { languageCode: "ZH", stage: "Stage 1 - Basic", level: 4, levelName: "Shi Wu - Food", subLevel: "Pinyin: mi fan, mian tiao, ji dan | Rice, Noodles, Egg" },
+    { languageCode: "ZH", stage: "Stage 2 - Intermediate", level: 5, levelName: "Mai Dong Xi - Shopping", subLevel: "Pinyin: duo shao qian, pian yi, gui | How much, Cheap, Expensive" },
+    // Japanese - 5 levels
+    { languageCode: "JA", stage: "Stage 1 - Basic", level: 1, levelName: "Hajimemashite - First Meeting", subLevel: "Vocab: hajimemashite, yoroshiku | Grammar: watashi wa [name] desu" },
+    { languageCode: "JA", stage: "Stage 1 - Basic", level: 2, levelName: "Kazoku - Family", subLevel: "Vocab: otousan, okaasan, oniisan | Grammar: kore wa watashi no..." },
+    { languageCode: "JA", stage: "Stage 1 - Basic", level: 3, levelName: "Suji - Numbers", subLevel: "Vocab: ichi, ni, san, shi, go | 1-10 Japanese" },
+    { languageCode: "JA", stage: "Stage 2 - Intermediate", level: 4, levelName: "Kaimono - Shopping", subLevel: "Vocab: ikura, yasui, takai | Grammar: kore wa ikura desu ka?" },
+    { languageCode: "JA", stage: "Stage 2 - Intermediate", level: 5, levelName: "Tenki - Weather", subLevel: "Vocab: hare, ame, samui, atsui | Grammar: kyou wa [weather] desu" },
   ];
 
-  const filtered = mockData.filter(r => {
-    if (tab === "EN") return r.languageCode === "EN";
-    if (tab === "ZH") return r.languageCode === "ZH";
-    if (tab === "JA") return r.languageCode === "JA";
-    return false;
-  });
+  const filtered = mockData
+    .filter(r => r.languageCode === tab)
+    .sort((a, b) => a.level - b.level);
 
   return (
     <div style={{ padding: "20px 24px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: "0 0 4px" }}>Lessons Data</h1>
-          <p style={{ fontSize: 13, color: C.muted, margin: 0 }}>LUCY Course Content - 3 Languages (EN / ZH / JA)</p>
+          <p style={{ fontSize: 13, color: C.muted, margin: 0 }}>LUCY Course Content - EN: 11 levels, ZH: 5, JA: 5 (sourced from Word files)</p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <Btn v={tab === "EN" ? "primary" : "outline"} onClick={() => setTab("EN")}>English</Btn>
-          <Btn v={tab === "ZH" ? "primary" : "outline"} onClick={() => setTab("ZH")}>Chinese</Btn>
-          <Btn v={tab === "JA" ? "primary" : "outline"} onClick={() => setTab("JA")}>Japanese</Btn>
+          <Btn v={tab === "EN" ? "primary" : "outline"} onClick={() => setTab("EN")}>English (11)</Btn>
+          <Btn v={tab === "ZH" ? "primary" : "outline"} onClick={() => setTab("ZH")}>Chinese (5)</Btn>
+          <Btn v={tab === "JA" ? "primary" : "outline"} onClick={() => setTab("JA")}>Japanese (5)</Btn>
         </div>
       </div>
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "80px 100px 120px 1fr", padding: "10px 16px", background: "#f9fafb", borderBottom: `1px solid ${C.border}`, fontSize: 11, fontWeight: 700, color: C.muted, gap: 12, textTransform: "uppercase" }}>
-          <span>Lang</span><span>Stage</span><span>Level Name</span><span>Content / Question</span>
+        <div style={{ display: "grid", gridTemplateColumns: "36px 64px 200px 180px 1fr", padding: "10px 16px", background: "#f9fafb", borderBottom: `1px solid ${C.border}`, fontSize: 11, fontWeight: 700, color: C.muted, gap: 12, textTransform: "uppercase" }}>
+          <span>#</span><span>Lang</span><span>Stage</span><span>Level</span><span>Content</span>
         </div>
-        
-        {loading ? (
-          <div style={{ padding: 20, textAlign: "center", color: C.muted }}>Äang táº£i dá»¯ liá»‡u tá»« API...</div>
-        ) : filtered.length === 0 ? (
-          <div style={{ padding: 20, textAlign: "center", color: C.muted }}>KhÃ´ng cÃ³ dá»¯ liá»‡u cho ngÃ´n ngá»¯ nÃ y. HÃ£y cháº¯c cháº¯n NetBeans Ä‘ang cháº¡y.</div>
-        ) : (
-          <div style={{ maxHeight: "calc(100vh - 200px)", overflowY: "auto" }}>
-            {filtered.map((l, i) => (
-              <div key={i} style={{ display: "grid", gridTemplateColumns: "80px 100px 120px 1fr", padding: "11px 16px", borderBottom: i < filtered.length - 1 ? `1px solid ${C.borderLight}` : "none", fontSize: 13, alignItems: "center", gap: 12 }}>
-                <Badge color="#374151" bg="#f3f4f6" style={{ fontSize: 10 }}>{l.languageCode}</Badge>
-                <span style={{ color: C.muted, fontSize: 12 }}>{l.stage}</span>
-                <span style={{ fontWeight: 500, color: C.text, fontSize: 12 }}>{l.levelName}</span>
-                <div style={{ color: C.muted, fontSize: 12 }}>
-                  {tab === "ZH" ? (
-                    <>
-                      <div><strong style={{color: C.purple}}>Q:</strong> {l.questionAi}</div>
-                      <div style={{marginTop: 4}}><strong style={{color: C.green}}>A:</strong> {l.answer}</div>
-                    </>
-                  ) : (
-                    <div>{l.subLevel}</div>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <div style={{ maxHeight: "calc(100vh - 240px)", overflowY: "auto" }}>
+          {filtered.map((l, i) => (
+            <div key={i} style={{ display: "grid", gridTemplateColumns: "36px 64px 200px 180px 1fr", padding: "11px 16px", borderBottom: i < filtered.length - 1 ? `1px solid ${C.borderLight}` : "none", fontSize: 13, alignItems: "center", gap: 12, background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
+              <span style={{ color: C.muted, fontSize: 12, fontWeight: 700 }}>{l.level}</span>
+              <Badge color="#374151" bg="#f3f4f6" style={{ fontSize: 10 }}>{l.languageCode}</Badge>
+              <span style={{ color: C.muted, fontSize: 11 }}>{l.stage}</span>
+              <span style={{ fontWeight: 600, color: C.text, fontSize: 13 }}>{l.levelName}</span>
+              <div style={{ color: C.muted, fontSize: 12 }}>{l.subLevel}</div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
-
-// â”€â”€â”€ Podcasts View â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function PodcastsView() {
   const pods = [
     { title: "Daily English Tips", ep: 12, lang: "English", subs: 234 },
