@@ -924,7 +924,7 @@ function CourseRunsView() {
 function UsersView() {
   const [users, setUsers] = useState([
     { id: 1, name: "Nguyen_An", email: "an@lucy.edu", phone: "0901234567", role: "Anonymous Student", active: true },
-    { id: 2, name: "SenseiMiko", email: "miko@lucy.edu", phone: "0912345678", role: "Teacher", active: true },
+    { id: 2, name: "Mr.John", email: "john@lucy.edu", phone: "0912345678", role: "Teacher", active: true },
     { id: 3, name: "Thao_Reviewer", email: "thao@lucy.edu", phone: "0923456789", role: "Influencer", active: false },
   ]);
   const [editingId, setEditingId] = useState(null);
