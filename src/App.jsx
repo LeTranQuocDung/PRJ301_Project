@@ -441,66 +441,108 @@ function ChaptersView() {
 // --- Lessons View -------------------------------------------------
 function LessonsView() {
   const [tab, setTab] = useState("EN");
+  const [openId, setOpenId] = useState(null);
 
-  const mockData = [
-    // English - 11 levels from LISA Word files
-    { languageCode: "EN", stage: "Stage 1 - Survival Speaking", level: 1, levelName: "SAYING WHO I AM", subLevel: "Vocab: Hello, Name, Nice to meet you | Grammar: I am + [Name]" },
-    { languageCode: "EN", stage: "Stage 1 - Survival Speaking", level: 2, levelName: "WHERE I'M FROM", subLevel: "Vocab: Country, Vietnam, Where | Grammar: I am from + [Country]" },
-    { languageCode: "EN", stage: "Stage 1 - Survival Speaking", level: 3, levelName: "MY FAMILY", subLevel: "Vocab: Father, Mother, Brother, Sister | Grammar: This is my..." },
-    { languageCode: "EN", stage: "Stage 1 - Survival Speaking", level: 4, levelName: "MY DAILY ROUTINE", subLevel: "Vocab: Wake up, Eat, Go to work, Sleep | Grammar: I + verb every day" },
-    { languageCode: "EN", stage: "Stage 1 - Survival Speaking", level: 5, levelName: "COLORS AND NUMBERS", subLevel: "Vocab: Colors, Numbers 1-20 | Grammar: There are [n] [color] things" },
-    { languageCode: "EN", stage: "Stage 1 - Survival Speaking", level: 6, levelName: "AT THE COFFEE SHOP", subLevel: "Vocab: Coffee, Tea, Menu, Bill | Grammar: I would like + [item], please" },
-    { languageCode: "EN", stage: "Stage 1 - Survival Speaking", level: 7, levelName: "ASKING DIRECTIONS", subLevel: "Vocab: Left, Right, Straight, Near | Grammar: Could you tell me how to get to [place]?" },
-    { languageCode: "EN", stage: "Stage 2 - Conversational", level: 8, levelName: "TALKING ABOUT HOBBIES", subLevel: "Vocab: Reading, Cooking, Sports | Grammar: I like/love/enjoy + V-ing" },
-    { languageCode: "EN", stage: "Stage 2 - Conversational", level: 9, levelName: "THE WEATHER", subLevel: "Vocab: Sunny, Rainy, Hot, Cold | Grammar: It is + adjective today" },
-    { languageCode: "EN", stage: "Stage 2 - Conversational", level: 10, levelName: "SHOPPING", subLevel: "Vocab: Price, Cheap, Expensive | Grammar: How much does this cost?" },
-    { languageCode: "EN", stage: "Stage 2 - Conversational", level: 11, levelName: "AT THE DOCTOR", subLevel: "Vocab: Pain, Fever, Medicine | Grammar: I have a [symptom]. I feel + adjective." },
-    // Chinese - 5 levels
-    { languageCode: "ZH", stage: "Stage 1 - Basic", level: 1, levelName: "Xin Chao - Greetings", subLevel: "Pinyin: ni hao, zai jian, xie xie | Vocab: Hello, Goodbye, Thank you" },
-    { languageCode: "ZH", stage: "Stage 1 - Basic", level: 2, levelName: "Jia Ren - Family", subLevel: "Pinyin: ba ba, ma ma, ge ge | Grammar: zhe shi wo de..." },
-    { languageCode: "ZH", stage: "Stage 1 - Basic", level: 3, levelName: "Shu Zi - Numbers", subLevel: "Pinyin: yi er san si wu | 1-10 Mandarin" },
-    { languageCode: "ZH", stage: "Stage 1 - Basic", level: 4, levelName: "Shi Wu - Food", subLevel: "Pinyin: mi fan, mian tiao, ji dan | Rice, Noodles, Egg" },
-    { languageCode: "ZH", stage: "Stage 2 - Intermediate", level: 5, levelName: "Mai Dong Xi - Shopping", subLevel: "Pinyin: duo shao qian, pian yi, gui | How much, Cheap, Expensive" },
-    // Japanese - 5 levels
-    { languageCode: "JA", stage: "Stage 1 - Basic", level: 1, levelName: "Hajimemashite - First Meeting", subLevel: "Vocab: hajimemashite, yoroshiku | Grammar: watashi wa [name] desu" },
-    { languageCode: "JA", stage: "Stage 1 - Basic", level: 2, levelName: "Kazoku - Family", subLevel: "Vocab: otousan, okaasan, oniisan | Grammar: kore wa watashi no..." },
-    { languageCode: "JA", stage: "Stage 1 - Basic", level: 3, levelName: "Suji - Numbers", subLevel: "Vocab: ichi, ni, san, shi, go | 1-10 Japanese" },
-    { languageCode: "JA", stage: "Stage 2 - Intermediate", level: 4, levelName: "Kaimono - Shopping", subLevel: "Vocab: ikura, yasui, takai | Grammar: kore wa ikura desu ka?" },
-    { languageCode: "JA", stage: "Stage 2 - Intermediate", level: 5, levelName: "Tenki - Weather", subLevel: "Vocab: hare, ame, samui, atsui | Grammar: kyou wa [weather] desu" },
-  ];
+  const toggle = (id) => setOpenId(prev => prev === id ? null : id);
 
-  const filtered = mockData
-    .filter(r => r.languageCode === tab)
-    .sort((a, b) => a.level - b.level);
+  const allData = {
+    EN: [
+      { level: 1, title: "SAYING WHO I AM", titleVi: "Tu gioi thieu", stage: "Stage 1", vocab: "Hello, Name, Nice to meet you", grammar: "I am + [Name]: I am Lucy.", question: 'What does "Nice to meet you" mean?', answer: "Rat vui duoc gap ban" },
+      { level: 2, title: "WHERE I'M FROM", titleVi: "Que quan", stage: "Stage 1", vocab: "Country, Vietnam, Where", grammar: "I am from + [Country]: I am from Vietnam.", question: "I am _____ Vietnam.", answer: "from" },
+      { level: 3, title: "MY FAMILY", titleVi: "Gia dinh", stage: "Stage 1", vocab: "Father - Bo, Mother - Me, Brother - Anh em trai", grammar: "This is my [family member].", question: "What is 'mother' in Vietnamese?", answer: "Me" },
+      { level: 4, title: "NUMBERS & TIME", titleVi: "So va Thoi gian", stage: "Stage 1", vocab: "One - Mot, Time - Thoi gian, Clock - Dong ho", grammar: "It is [number] o'clock.", question: "What time is it? (8:00)", answer: "It is eight o'clock." },
+      { level: 5, title: "DAILY ROUTINE", titleVi: "Sinh hoat", stage: "Stage 1", vocab: "Wake up - Thuc day, Sleep - Ngu", grammar: "I + verb + every day.", question: "I _____ at 6AM every day.", answer: "wake up" },
+      { level: 6, title: "FOOD & DRINKS", titleVi: "Do an", stage: "Stage 1", vocab: "Rice - Com, Water - Nuoc", grammar: "I would like + [food/drink], please.", question: "How do you order rice politely?", answer: "I would like rice, please." },
+      { level: 7, title: "SHOPPING", titleVi: "Mua sam", stage: "Stage 1", vocab: "Buy - Mua, Money - Tien", grammar: "How much does this cost?", question: "How do you ask for a price?", answer: "How much does this cost?" },
+      { level: 8, title: "ASKING FOR DIRECTIONS", titleVi: "Hoi duong", stage: "Stage 1", vocab: "Left - Trai, Right - Phai", grammar: "Could you tell me how to get to [place]?", question: "How do you ask for directions to the station?", answer: "Could you tell me how to get to the station?" },
+      { level: 9, title: "AT THE HOTEL", titleVi: "Khach san", stage: "Stage 1", vocab: "Room - Phong, Bed - Giuong", grammar: "I have a reservation.", question: "How do you say you booked a room?", answer: "I have a reservation." },
+      { level: 10, title: "HEALTH & BODY", titleVi: "Suc khoe", stage: "Stage 1", vocab: "Head - Dau, Hand - Tay", grammar: "I have a + [symptom].", question: "How do you say you have a headache?", answer: "I have a headache." },
+      { level: 11, title: "WEATHER & SEASONS", titleVi: "Thoi tiet", stage: "Stage 1", vocab: "Rain - Mua, Sun - Nang", grammar: "It is + adjective + today.", question: "How do you say it is raining?", answer: "It is raining today." },
+    ],
+    ZH: [
+      { level: 1, title: "介绍", titleVi: "Gioi thieu", stage: "Stage 1", vocab: "ni hao, xie xie, zai jian", grammar: "Wo jiao [Name].", question: "Ni jiao shenme mingzi?", answer: "Wo jiao Xiao Ming." },
+      { level: 2, title: "家庭", titleVi: "Gia dinh", stage: "Stage 1", vocab: "ba ba, ma ma, ge ge, mei mei", grammar: "Wo jia you [number] kou ren.", question: "Ni jia you ji kou ren?", answer: "Wo jia you si kou ren." },
+      { level: 3, title: "数字和时间", titleVi: "So va Thoi gian", stage: "Stage 1", vocab: "yi er san si wu liu qi ba jiu shi", grammar: "Xianzai [number] dian.", question: "Xianzai ji dian?", answer: "Xianzai ba dian." },
+      { level: 4, title: "日常生活", titleVi: "Sinh hoat", stage: "Stage 1", vocab: "qi chuang - thuc day, shui jiao - ngu", grammar: "Wo mei tian [number] dian qi chuang.", question: "Ni mei tian ji dian qi chuang?", answer: "Wo liu dian qi chuang." },
+      { level: 5, title: "饮食", titleVi: "An uong", stage: "Stage 1", vocab: "mi fan - com, mian tiao - mi, ji dan - trung", grammar: "Wo xiang chi [food].", question: "Ni xiang chi shenme?", answer: "Wo xiang chi mi fan." },
+      { level: 6, title: "购物", titleVi: "Mua sam", stage: "Stage 1", vocab: "duo shao qian - bao nhieu tien, pian yi - re, gui - dat", grammar: "Zhe ge duo shao qian?", question: "How do you ask for a price in Chinese?", answer: "Zhe ge duo shao qian?" },
+      { level: 7, title: "交通", titleVi: "Giao thong", stage: "Stage 2", vocab: "gong jiao - xe bus, zuo - ngoi, qu - di", grammar: "Wo zuo [transport] qu [place].", question: "Ni zenme qu xuexiao?", answer: "Wo zuo gong jiao che qu." },
+      { level: 8, title: "住宿", titleVi: "Cho o", stage: "Stage 2", vocab: "fang jian - phong, zhu - o, na li - o dau", grammar: "Wo zhu zai [place].", question: "Ni zhu zai nali?", answer: "Wo zhu zai Beijing." },
+      { level: 9, title: "身体健康", titleVi: "Suc khoe", stage: "Stage 2", vocab: "tou - dau, shou - tay, bing - benh", grammar: "Wo [symptom] le.", question: "Ni zenme le?", answer: "Wo ganmao le." },
+      { level: 10, title: "天气", titleVi: "Thoi tiet", stage: "Stage 2", vocab: "xia yu - mua, qing tian - nang, leng - lanh, re - nong", grammar: "Jintian tianqi [adjective].", question: "Jintian tianqi zenmeyang?", answer: "Jintian xia yu." },
+      { level: 11, title: "爱好", titleVi: "So thich", stage: "Stage 2", vocab: "shu - sach, yinyue - am nhac, yundong - the thao", grammar: "Wo xihuan [activity].", question: "Ni de aihao shi shenme?", answer: "Wo xihuan kan shu." },
+    ],
+    JA: [
+      { level: 1, title: "自己紹介", titleVi: "Tu gioi thieu", stage: "Stage 1", vocab: "watashi - toi, namae - ten", grammar: "Watashi wa [Name] desu.", question: "How do you introduce yourself in Japanese?", answer: "Hajimemashite! Watashi wa Lucy desu." },
+      { level: 2, title: "家族", titleVi: "Gia dinh", stage: "Stage 1", vocab: "chichi - bo, haha - me, oniisan - anh trai", grammar: "Kore wa watashi no [family] desu.", question: "How do you say 'This is my mother'?", answer: "Kore wa watashi no haha desu." },
+      { level: 3, title: "数字と時間", titleVi: "So va Thoi gian", stage: "Stage 1", vocab: "ichi ni san shi go - 1 2 3 4 5, ji - gio", grammar: "[number]-ji desu.", question: "How do you say it is 8 o'clock?", answer: "Hachi-ji desu." },
+      { level: 4, title: "毎日の生活", titleVi: "Sinh hoat", stage: "Stage 1", vocab: "okiru - thuc day, neru - ngu, taberu - an", grammar: "Watashi wa mai nichi [time] ni [action].", question: "How do you say you wake up at 6?", answer: "Watashi wa roku-ji ni okimasu." },
+      { level: 5, title: "食べ物と飲み物", titleVi: "Do an", stage: "Stage 1", vocab: "taberu - an, nomu - uong, gohan - com", grammar: "[food] o tabetai desu.", question: "How do you say you want to eat rice?", answer: "Gohan o tabetai desu." },
+      { level: 6, title: "買い物", titleVi: "Mua sam", stage: "Stage 1", vocab: "kau - mua, okane - tien, yasui - re, takai - dat", grammar: "Kore wa ikura desu ka?", question: "How do you ask how much something costs?", answer: "Kore wa ikura desu ka?" },
+      { level: 7, title: "道を聞く", titleVi: "Hoi duong", stage: "Stage 2", vocab: "migi - phai, hidari - trai, massugu - thang", grammar: "[place] wa doko desu ka?", question: "How do you ask where the station is?", answer: "Eki wa doko desu ka?" },
+      { level: 8, title: "ホテルで", titleVi: "Khach san", stage: "Stage 2", vocab: "heya - phong, beddo - giuong, chekku in - check in", grammar: "Yoyaku shite imasu.", question: "How do you say you have a reservation?", answer: "Yoyaku shite imasu." },
+      { level: 9, title: "体と健康", titleVi: "Suc khoe", stage: "Stage 2", vocab: "atama - dau, te - tay, byoki - benh", grammar: "[body part] ga itai desu.", question: "How do you say your head hurts?", answer: "Atama ga itai desu." },
+      { level: 10, title: "天気と季節", titleVi: "Thoi tiet", stage: "Stage 2", vocab: "ame - mua, hare - nang, samui - lanh, atsui - nong", grammar: "Kyou wa [weather] desu.", question: "How do you say it is raining today?", answer: "Kyou wa ame desu." },
+      { level: 11, title: "趣味", titleVi: "So thich", stage: "Stage 2", vocab: "hon - sach, ongaku - am nhac, eiga - phim", grammar: "[activity] ga suki desu.", question: "How do you say you like music?", answer: "Ongaku ga suki desu." },
+    ]
+  };
+
+  const filtered = allData[tab] || [];
+  const stageColors = { "Stage 1": { bg: "#eff6ff", color: "#2563eb" }, "Stage 2": { bg: "#f0fdf4", color: "#16a34a" }, "Stage 3": { bg: "#fdf4ff", color: "#9333ea" } };
 
   return (
     <div style={{ padding: "20px 24px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
         <div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: "0 0 4px" }}>Lessons Data</h1>
-          <p style={{ fontSize: 13, color: C.muted, margin: 0 }}>LUCY Course Content - EN: 11 levels, ZH: 5, JA: 5 (sourced from Word files)</p>
+          <h1 style={{ fontSize: 20, fontWeight: 700, color: C.text, margin: "0 0 4px" }}>Lessons</h1>
+          <p style={{ fontSize: 13, color: C.muted, margin: 0 }}>Click on a lesson to view its content (EN: 11 levels / ZH: 11 / JA: 11 - from SQL data)</p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <Btn v={tab === "EN" ? "primary" : "outline"} onClick={() => setTab("EN")}>English (11)</Btn>
-          <Btn v={tab === "ZH" ? "primary" : "outline"} onClick={() => setTab("ZH")}>Chinese (5)</Btn>
-          <Btn v={tab === "JA" ? "primary" : "outline"} onClick={() => setTab("JA")}>Japanese (5)</Btn>
+          <Btn v={tab === "EN" ? "primary" : "outline"} onClick={() => { setTab("EN"); setOpenId(null); }}>English ({allData.EN.length})</Btn>
+          <Btn v={tab === "ZH" ? "primary" : "outline"} onClick={() => { setTab("ZH"); setOpenId(null); }}>Chinese ({allData.ZH.length})</Btn>
+          <Btn v={tab === "JA" ? "primary" : "outline"} onClick={() => { setTab("JA"); setOpenId(null); }}>Japanese ({allData.JA.length})</Btn>
         </div>
       </div>
       <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "36px 64px 200px 180px 1fr", padding: "10px 16px", background: "#f9fafb", borderBottom: `1px solid ${C.border}`, fontSize: 11, fontWeight: 700, color: C.muted, gap: 12, textTransform: "uppercase" }}>
-          <span>#</span><span>Lang</span><span>Stage</span><span>Level</span><span>Content</span>
-        </div>
-        <div style={{ maxHeight: "calc(100vh - 240px)", overflowY: "auto" }}>
-          {filtered.map((l, i) => (
-            <div key={i} style={{ display: "grid", gridTemplateColumns: "36px 64px 200px 180px 1fr", padding: "11px 16px", borderBottom: i < filtered.length - 1 ? `1px solid ${C.borderLight}` : "none", fontSize: 13, alignItems: "center", gap: 12, background: i % 2 === 0 ? "#fff" : "#fafafa" }}>
-              <span style={{ color: C.muted, fontSize: 12, fontWeight: 700 }}>{l.level}</span>
-              <Badge color="#374151" bg="#f3f4f6" style={{ fontSize: 10 }}>{l.languageCode}</Badge>
-              <span style={{ color: C.muted, fontSize: 11 }}>{l.stage}</span>
-              <span style={{ fontWeight: 600, color: C.text, fontSize: 13 }}>{l.levelName}</span>
-              <div style={{ color: C.muted, fontSize: 12 }}>{l.subLevel}</div>
+        {filtered.map((l, i) => {
+          const isOpen = openId === l.level;
+          const sc = stageColors[l.stage] || { bg: "#f9fafb", color: C.muted };
+          return (
+            <div key={l.level}>
+              <div
+                onClick={() => toggle(l.level)}
+                style={{ display: "flex", alignItems: "center", padding: "12px 16px", borderBottom: `1px solid ${C.borderLight}`, cursor: "pointer", background: isOpen ? "#f0f9ff" : (i % 2 === 0 ? "#fff" : "#fafafa"), transition: "background 0.15s" }}
+              >
+                <span style={{ width: 28, height: 28, borderRadius: "50%", background: isOpen ? C.primary : "#e5e7eb", color: isOpen ? "#fff" : C.muted, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, flexShrink: 0, marginRight: 12 }}>{l.level}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 600, fontSize: 14, color: C.text }}>{l.title}</div>
+                  <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{l.titleVi}</div>
+                </div>
+                <Badge color={sc.color} bg={sc.bg} style={{ marginRight: 12 }}>{l.stage}</Badge>
+                <span style={{ color: C.muted, fontSize: 13, transition: "transform 0.2s", transform: isOpen ? "rotate(90deg)" : "rotate(0deg)", display: "inline-block" }}>›</span>
+              </div>
+              {isOpen && (
+                <div style={{ padding: "16px 20px 20px 56px", background: "#f8fbff", borderBottom: `1px solid ${C.border}` }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+                    <div style={{ background: "#f0fdf4", padding: "10px 14px", borderRadius: 8, border: "1px solid #bbf7d0" }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.green, marginBottom: 6, textTransform: "uppercase" }}>Vocabulary</div>
+                      <div style={{ fontSize: 13, color: C.text }}>{l.vocab}</div>
+                    </div>
+                    <div style={{ background: "#eff6ff", padding: "10px 14px", borderRadius: 8, border: "1px solid #bfdbfe" }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: C.primary, marginBottom: 6, textTransform: "uppercase" }}>Grammar</div>
+                      <div style={{ fontSize: 13, color: C.text }}>{l.grammar}</div>
+                    </div>
+                  </div>
+                  <div style={{ background: "#fefce8", padding: "10px 14px", borderRadius: 8, border: "1px solid #fde68a" }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#a16207", marginBottom: 6, textTransform: "uppercase" }}>Practice Question</div>
+                    <div style={{ fontSize: 13, color: C.text, marginBottom: 6 }}>Q: {l.question}</div>
+                    <div style={{ fontSize: 13, color: C.green, fontWeight: 500 }}>A: {l.answer}</div>
+                  </div>
+                </div>
+              )}
             </div>
-          ))}
-        </div>
+          );
+        })}
       </div>
     </div>
   );
