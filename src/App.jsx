@@ -315,7 +315,7 @@ function LiveRoomsView() {
             <CardHead icon={<Info size={13}/>} title="Thông tin phòng"/>
             <div style={{ padding:14 }}>
               {[
-                ["Host",    "SenseiMiko"],
+                ["Host",    "Mr.John"],
                 ["Khoá học","English Stage 1"],
                 ["App ID",  AGORA_APP_ID.slice(0,8)+"..."],
                 ["Token",   "Temp (24h)"],
@@ -893,10 +893,10 @@ export default function App() {
 
 function CourseRunsView() {
   const runs = [
-    { course: "English Stage 1", host: "SenseiMiko", start: "09:00", students: 12, status: "live" },
+    { course: "English Stage 1", host: "Mr.John", start: "09:00", students: 12, status: "live" },
     { course: "Chinese Stage 1", host: "TeacherLi", start: "10:30", students: 8, status: "scheduled" },
     { course: "Japanese Stage 1", host: "Sensei Tanaka", start: "14:00", students: 15, status: "live" },
-    { course: "English Stage 2", host: "SenseiMiko", start: "16:00", students: 0, status: "scheduled" },
+    { course: "English Stage 2", host: "Mr.John", start: "16:00", students: 0, status: "scheduled" },
   ];
   return (
     <div style={{ padding: "20px 24px" }}>
@@ -1050,4 +1050,4 @@ function UsersView() {
       </div>
     </div>
   );
-}
+}
