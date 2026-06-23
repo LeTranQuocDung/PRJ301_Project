@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import LESSON_DATA from './lessonsData.json'
 import {
   BookOpen, Play, FileText, Headphones, Upload, Eye, Zap,
   MessageSquare, Mic, Users, Radio, Pin, PhoneOff, Phone,
@@ -421,47 +422,7 @@ function ChaptersView() {
 }
 
 // ─── Lessons View ─────────────────────────────────────────────────────────────
-const LESSON_DATA = {
-  EN:[
-    {level:1,title:'SAYING WHO I AM',vi:'Tự giới thiệu',stage:'Stage 1',vocab:'Hello, Name, Nice to meet you',grammar:'I am + [Name]: I am Lucy.',question:'What does "Nice to meet you" mean?',answer:'Rất vui được gặp bạn'},
-    {level:2,title:"WHERE I'M FROM",vi:'Quê quán',stage:'Stage 1',vocab:'Country, Vietnam, Where',grammar:'I am from + [Country]: I am from Vietnam.',question:'I am _____ Vietnam.',answer:'from'},
-    {level:3,title:'MY FAMILY',vi:'Gia đình',stage:'Stage 1',vocab:'Father - Bố, Mother - Mẹ, Brother - Anh em trai',grammar:'This is my [family member].',question:"What is 'mother' in Vietnamese?",answer:'Mẹ'},
-    {level:4,title:'NUMBERS & TIME',vi:'Số và Thời gian',stage:'Stage 1',vocab:'One - Một, Time - Thời gian, Clock - Đồng hồ',grammar:"It is [number] o'clock.",question:'What time is it? (8:00)',answer:"It is eight o'clock."},
-    {level:5,title:'DAILY ROUTINE',vi:'Sinh hoạt',stage:'Stage 1',vocab:'Wake up - Thức dậy, Sleep - Ngủ',grammar:'I + verb + every day.',question:'I _____ at 6AM every day.',answer:'wake up'},
-    {level:6,title:'FOOD & DRINKS',vi:'Đồ ăn',stage:'Stage 1',vocab:'Rice - Cơm, Water - Nước',grammar:'I would like + [food/drink], please.',question:'How do you order rice politely?',answer:'I would like rice, please.'},
-    {level:7,title:'SHOPPING',vi:'Mua sắm',stage:'Stage 1',vocab:'Buy - Mua, Money - Tiền',grammar:'How much does this cost?',question:'How do you ask for a price?',answer:'How much does this cost?'},
-    {level:8,title:'ASKING FOR DIRECTIONS',vi:'Hỏi đường',stage:'Stage 1',vocab:'Left - Trái, Right - Phải',grammar:'Could you tell me how to get to [place]?',question:'How do you ask for directions to the station?',answer:'Could you tell me how to get to the station?'},
-    {level:9,title:'AT THE HOTEL',vi:'Khách sạn',stage:'Stage 1',vocab:'Room - Phòng, Bed - Giường',grammar:'I have a reservation.',question:'How do you say you booked a room?',answer:'I have a reservation.'},
-    {level:10,title:'HEALTH & BODY',vi:'Sức khỏe',stage:'Stage 1',vocab:'Head - Đầu, Hand - Tay',grammar:'I have a + [symptom].',question:'How do you say you have a headache?',answer:'I have a headache.'},
-    {level:11,title:'WEATHER & SEASONS',vi:'Thời tiết',stage:'Stage 1',vocab:'Rain - Mưa, Sun - Nắng',grammar:'It is + adjective + today.',question:'How do you say it is raining?',answer:'It is raining today.'},
-  ],
-  ZH:[
-    {level:1,title:'介绍',vi:'Giới thiệu',stage:'Stage 1',vocab:'ni hao, xie xie, zai jian',grammar:'Wo jiao [Name].',question:'Ni jiao shenme mingzi?',answer:'Wo jiao Xiao Ming.'},
-    {level:2,title:'家庭',vi:'Gia đình',stage:'Stage 1',vocab:'ba ba, ma ma, ge ge, mei mei',grammar:'Wo jia you [number] kou ren.',question:'Ni jia you ji kou ren?',answer:'Wo jia you si kou ren.'},
-    {level:3,title:'数字和时间',vi:'Số và Thời gian',stage:'Stage 1',vocab:'yi er san si wu liu qi ba jiu shi',grammar:'Xianzai [number] dian.',question:'Xianzai ji dian?',answer:'Xianzai ba dian.'},
-    {level:4,title:'日常生活',vi:'Sinh hoạt',stage:'Stage 1',vocab:'qi chuang, shui jiao',grammar:'Wo mei tian [number] dian qi chuang.',question:'Ni mei tian ji dian qi chuang?',answer:'Wo liu dian qi chuang.'},
-    {level:5,title:'饮食',vi:'Ăn uống',stage:'Stage 1',vocab:'mi fan, mian tiao, ji dan',grammar:'Wo xiang chi [food].',question:'Ni xiang chi shenme?',answer:'Wo xiang chi mi fan.'},
-    {level:6,title:'购物',vi:'Mua sắm',stage:'Stage 1',vocab:'duo shao qian, pian yi, gui',grammar:'Zhe ge duo shao qian?',question:'How do you ask for a price in Chinese?',answer:'Zhe ge duo shao qian?'},
-    {level:7,title:'交通',vi:'Giao thông',stage:'Stage 2',vocab:'gong jiao, zuo, qu',grammar:'Wo zuo [transport] qu [place].',question:'Ni zenme qu xuexiao?',answer:'Wo zuo gong jiao che qu.'},
-    {level:8,title:'住宿',vi:'Chỗ ở',stage:'Stage 2',vocab:'fang jian, zhu, na li',grammar:'Wo zhu zai [place].',question:'Ni zhu zai nali?',answer:'Wo zhu zai Beijing.'},
-    {level:9,title:'身体健康',vi:'Sức khỏe',stage:'Stage 2',vocab:'tou, shou, bing',grammar:'Wo [symptom] le.',question:'Ni zenme le?',answer:'Wo ganmao le.'},
-    {level:10,title:'天气',vi:'Thời tiết',stage:'Stage 2',vocab:'xia yu, qing tian, leng, re',grammar:'Jintian tianqi [adjective].',question:'Jintian tianqi zenmeyang?',answer:'Jintian xia yu.'},
-    {level:11,title:'爱好',vi:'Sở thích',stage:'Stage 2',vocab:'shu, yinyue, yundong',grammar:'Wo xihuan [activity].',question:'Ni de aihao shi shenme?',answer:'Wo xihuan kan shu.'},
-  ],
-  JA:[
-    {level:1,title:'自己紹介',vi:'Tự giới thiệu',stage:'Stage 1',vocab:'watashi, namae',grammar:'Watashi wa [Name] desu.',question:'How do you introduce yourself in Japanese?',answer:'Hajimemashite! Watashi wa Lucy desu.'},
-    {level:2,title:'家族',vi:'Gia đình',stage:'Stage 1',vocab:'chichi, haha, oniisan',grammar:'Kore wa watashi no [family] desu.',question:"How do you say 'This is my mother'?",answer:'Kore wa watashi no haha desu.'},
-    {level:3,title:'数字と時間',vi:'Số và Thời gian',stage:'Stage 1',vocab:'ichi ni san, ji',grammar:'[number]-ji desu.',question:'How do you say it is 8 o\'clock?',answer:'Hachi-ji desu.'},
-    {level:4,title:'毎日の生活',vi:'Sinh hoạt',stage:'Stage 1',vocab:'okiru, neru, taberu',grammar:'Watashi wa mai nichi [time] ni [action].',question:'How do you say you wake up at 6?',answer:'Watashi wa roku-ji ni okimasu.'},
-    {level:5,title:'食べ物と飲み物',vi:'Đồ ăn',stage:'Stage 1',vocab:'taberu, nomu, gohan',grammar:'[food] o tabetai desu.',question:'How do you say you want to eat rice?',answer:'Gohan o tabetai desu.'},
-    {level:6,title:'買い物',vi:'Mua sắm',stage:'Stage 1',vocab:'kau, okane, yasui, takai',grammar:'Kore wa ikura desu ka?',question:'How do you ask how much something costs?',answer:'Kore wa ikura desu ka?'},
-    {level:7,title:'道を聞く',vi:'Hỏi đường',stage:'Stage 2',vocab:'migi, hidari, massugu',grammar:'[place] wa doko desu ka?',question:'How do you ask where the station is?',answer:'Eki wa doko desu ka?'},
-    {level:8,title:'ホテルで',vi:'Khách sạn',stage:'Stage 2',vocab:'heya, beddo, chekku in',grammar:'Yoyaku shite imasu.',question:'How do you say you have a reservation?',answer:'Yoyaku shite imasu.'},
-    {level:9,title:'体と健康',vi:'Sức khỏe',stage:'Stage 2',vocab:'atama, te, byoki',grammar:'[body part] ga itai desu.',question:'How do you say your head hurts?',answer:'Atama ga itai desu.'},
-    {level:10,title:'天気と季節',vi:'Thời tiết',stage:'Stage 2',vocab:'ame, hare, samui, atsui',grammar:'Kyou wa [weather] desu.',question:'How do you say it is raining today?',answer:'Kyou wa ame desu.'},
-    {level:11,title:'趣味',vi:'Sở thích',stage:'Stage 2',vocab:'hon, ongaku, eiga',grammar:'[activity] ga suki desu.',question:'How do you say you like music?',answer:'Ongaku ga suki desu.'},
-  ],
-}
+// LESSON_DATA is now imported from JSON
 
 const LANG_CFG = {
   EN:{ flag:'🇬🇧', name:'English',  accent:'blue',   stageColor:{'Stage 1':ACCENTS.blue,'Stage 2':ACCENTS.cyan} },

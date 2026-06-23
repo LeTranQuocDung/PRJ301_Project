@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import lessonsDataRaw from './lessonsData.json'
 
 // ─── Language Config ──────────────────────────────────────────────────────────
 const LANG = {
@@ -8,46 +9,13 @@ const LANG = {
 }
 
 // ─── Lesson Data ──────────────────────────────────────────────────────────────
-const LESSONS = {
-  EN:[
-    {id:'en1',level:1,title:'SAYING WHO I AM',emoji:'👋',vi:'Tự giới thiệu',vocab:'Hello, Name, Nice to meet you',grammar:'I am + [Name]: I am Lucy.',question:'What does "Nice to meet you" mean?',answer:'Rất vui được gặp bạn',stage:'Stage 1'},
-    {id:'en2',level:2,title:"WHERE I'M FROM",emoji:'🌏',vi:'Quê quán',vocab:'Country, Vietnam, Where',grammar:'I am from + [Country]: I am from Vietnam.',question:'I am _____ Vietnam.',answer:'from',stage:'Stage 1'},
-    {id:'en3',level:3,title:'MY FAMILY',emoji:'👨‍👩‍👧',vi:'Gia đình',vocab:'Father, Mother, Brother, Sister',grammar:'This is my [family member].',question:"What is 'mother' in Vietnamese?",answer:'Mẹ',stage:'Stage 1'},
-    {id:'en4',level:4,title:'NUMBERS & TIME',emoji:'🕐',vi:'Số và Thời gian',vocab:'One - Một, Two - Hai, Time - Thời gian',grammar:"It is [number] o'clock.",question:'What time is it? (8:00)',answer:"It is eight o'clock.",stage:'Stage 1'},
-    {id:'en5',level:5,title:'DAILY ROUTINE',emoji:'🌅',vi:'Sinh hoạt hằng ngày',vocab:'Wake up - Thức dậy, Sleep - Ngủ, Eat - Ăn',grammar:'I + verb + every day.',question:'I _____ at 6AM every day.',answer:'wake up',stage:'Stage 1'},
-    {id:'en6',level:6,title:'FOOD & DRINKS',emoji:'🍜',vi:'Đồ ăn & đồ uống',vocab:'Rice - Cơm, Water - Nước, Eat - Ăn',grammar:'I would like + [food/drink], please.',question:'How do you order rice politely?',answer:'I would like rice, please.',stage:'Stage 1'},
-    {id:'en7',level:7,title:'SHOPPING',emoji:'🛍',vi:'Mua sắm',vocab:'Buy - Mua, Money - Tiền, How much - Bao nhiêu',grammar:'How much does this cost?',question:'How do you ask for a price?',answer:'How much does this cost?',stage:'Stage 2'},
-    {id:'en8',level:8,title:'DIRECTIONS',emoji:'🗺',vi:'Hỏi đường',vocab:'Left - Trái, Right - Phải, Straight - Thẳng',grammar:'Could you tell me how to get to [place]?',question:'How do you ask for directions?',answer:'Could you tell me how to get to the station?',stage:'Stage 2'},
-    {id:'en9',level:9,title:'AT THE HOTEL',emoji:'🏨',vi:'Khách sạn',vocab:'Room - Phòng, Check-in, Reservation',grammar:'I have a reservation.',question:'How do you say you booked a room?',answer:'I have a reservation.',stage:'Stage 2'},
-    {id:'en10',level:10,title:'HEALTH',emoji:'🏥',vi:'Sức khỏe',vocab:'Head - Đầu, Doctor - Bác sĩ, Medicine - Thuốc',grammar:'I have a + [symptom].',question:'How do you say you have a headache?',answer:'I have a headache.',stage:'Stage 2'},
-    {id:'en11',level:11,title:'WEATHER',emoji:'⛅',vi:'Thời tiết',vocab:'Rain - Mưa, Sun - Nắng, Cold - Lạnh',grammar:'It is + adjective + today.',question:'How do you say it is raining?',answer:'It is raining today.',stage:'Stage 2'},
-  ],
-  ZH:[
-    {id:'zh1',level:1,title:'介绍',emoji:'🙋',vi:'Giới thiệu bản thân',vocab:'ni hao (你好), xie xie (谢谢), zai jian (再见)',grammar:'Wo jiao [Name]. (我叫...)',question:'Ni jiao shenme mingzi? (你叫什么名字?)',answer:'Wo jiao Xiao Ming. (我叫小明。)',stage:'Stage 1'},
-    {id:'zh2',level:2,title:'家庭',emoji:'👨‍👩‍👧',vi:'Gia đình',vocab:'ba ba (爸爸), ma ma (妈妈), ge ge (哥哥)',grammar:'Wo jia you [number] kou ren.',question:'Ni jia you ji kou ren? (你家有几口人?)',answer:'Wo jia you si kou ren. (我家有四口人。)',stage:'Stage 1'},
-    {id:'zh3',level:3,title:'数字和时间',emoji:'🔢',vi:'Số và Thời gian',vocab:'yi (一) er (二) san (三) si (四) wu (五)',grammar:'Xianzai [number] dian. (现在...点。)',question:'Xianzai ji dian? (现在几点?)',answer:'Xianzai ba dian. (现在八点。)',stage:'Stage 1'},
-    {id:'zh4',level:4,title:'日常生活',emoji:'🌄',vi:'Sinh hoạt',vocab:'qi chuang (起床), shui jiao (睡觉)',grammar:'Wo mei tian liu dian qi chuang.',question:'Ni mei tian ji dian qi chuang?',answer:'Wo liu dian qi chuang.',stage:'Stage 1'},
-    {id:'zh5',level:5,title:'饮食',emoji:'🍱',vi:'Ăn uống',vocab:'mi fan (米饭), mian tiao (面条), shui (水)',grammar:'Wo xiang chi [food]. (我想吃...)',question:'Ni xiang chi shenme? (你想吃什么?)',answer:'Wo xiang chi mi fan. (我想吃米饭。)',stage:'Stage 1'},
-    {id:'zh6',level:6,title:'购物',emoji:'🛒',vi:'Mua sắm',vocab:'duo shao qian (多少钱), pian yi (便宜), gui (贵)',grammar:'Zhe ge duo shao qian? (这个多少钱?)',question:'How do you ask for a price in Chinese?',answer:'Zhe ge duo shao qian? (这个多少钱?)',stage:'Stage 1'},
-    {id:'zh7',level:7,title:'交通',emoji:'🚌',vi:'Giao thông',vocab:'gong jiao (公交), di tie (地铁), qu (去)',grammar:'Wo zuo gong jiao che qu [place].',question:'Ni zenme qu xuexiao? (你怎么去学校?)',answer:'Wo zuo gong jiao che qu. (我坐公交车去。)',stage:'Stage 2'},
-    {id:'zh8',level:8,title:'住宿',emoji:'🏠',vi:'Chỗ ở',vocab:'fang jian (房间), zhu (住), na li (哪里)',grammar:'Wo zhu zai [place]. (我住在...)',question:'Ni zhu zai nali? (你住在哪里?)',answer:'Wo zhu zai Beijing. (我住在北京。)',stage:'Stage 2'},
-    {id:'zh9',level:9,title:'身体健康',emoji:'💊',vi:'Sức khỏe',vocab:'tou (头), shou (手), ganmao (感冒)',grammar:'Wo [symptom] le. (我...了。)',question:'Ni zenme le? (你怎么了?)',answer:'Wo ganmao le. (我感冒了。)',stage:'Stage 2'},
-    {id:'zh10',level:10,title:'天气',emoji:'🌤',vi:'Thời tiết',vocab:'xia yu (下雨), qing tian (晴天), leng (冷)',grammar:'Jintian tianqi [adjective]. (今天天气...)',question:'Jintian tianqi zenmeyang? (今天天气怎么样?)',answer:'Jintian xia yu. (今天下雨。)',stage:'Stage 2'},
-    {id:'zh11',level:11,title:'爱好',emoji:'🎭',vi:'Sở thích',vocab:'shu (书), yinyue (音乐), yundong (运动)',grammar:'Wo xihuan [activity]. (我喜欢...)',question:'Ni de aihao shi shenme? (你的爱好是什么?)',answer:'Wo xihuan kan shu. (我喜欢看书。)',stage:'Stage 2'},
-  ],
-  JA:[
-    {id:'ja1',level:1,title:'自己紹介',emoji:'🤝',vi:'Tự giới thiệu',vocab:'Watashi (私), namae (名前), desu (です)',grammar:'Watashi wa [Name] desu.',question:'How do you introduce yourself in Japanese?',answer:'Hajimemashite! Watashi wa Lucy desu.',stage:'Stage 1'},
-    {id:'ja2',level:2,title:'家族',emoji:'👪',vi:'Gia đình',vocab:'chichi (父), haha (母), oniisan (お兄さん)',grammar:'Kore wa watashi no [family] desu.',question:"How do you say 'This is my mother'?",answer:'Kore wa watashi no haha desu.',stage:'Stage 1'},
-    {id:'ja3',level:3,title:'数字と時間',emoji:'⏱',vi:'Số và Thời gian',vocab:'ichi (一), ni (二), san (三), ji (時)',grammar:'[number]-ji desu.',question:"How do you say it is 8 o'clock?",answer:'Hachi-ji desu.',stage:'Stage 1'},
-    {id:'ja4',level:4,title:'毎日の生活',emoji:'🌸',vi:'Sinh hoạt',vocab:'okiru (起きる), neru (寝る), taberu (食べる)',grammar:'Watashi wa roku-ji ni okimasu.',question:'How do you say you wake up at 6?',answer:'Watashi wa roku-ji ni okimasu.',stage:'Stage 1'},
-    {id:'ja5',level:5,title:'食べ物',emoji:'🍣',vi:'Đồ ăn',vocab:'gohan (ご飯), mizu (水), taberu (食べる)',grammar:'[food] o tabetai desu.',question:'How do you say you want to eat rice?',answer:'Gohan o tabetai desu.',stage:'Stage 1'},
-    {id:'ja6',level:6,title:'買い物',emoji:'🏪',vi:'Mua sắm',vocab:'kau (買う), okane (お金), ikura (いくら)',grammar:'Kore wa ikura desu ka?',question:'How do you ask how much something costs?',answer:'Kore wa ikura desu ka?',stage:'Stage 1'},
-    {id:'ja7',level:7,title:'道を聞く',emoji:'🗾',vi:'Hỏi đường',vocab:'migi (右), hidari (左), massugu (まっすぐ)',grammar:'[place] wa doko desu ka?',question:'How do you ask where the station is?',answer:'Eki wa doko desu ka?',stage:'Stage 2'},
-    {id:'ja8',level:8,title:'ホテル',emoji:'🏯',vi:'Khách sạn',vocab:'heya (部屋), beddo (ベッド), yoyaku (予約)',grammar:'Yoyaku shite imasu.',question:'How do you say you have a reservation?',answer:'Yoyaku shite imasu.',stage:'Stage 2'},
-    {id:'ja9',level:9,title:'体と健康',emoji:'🏥',vi:'Sức khỏe',vocab:'atama (頭), te (手), byoki (病気)',grammar:'[body part] ga itai desu.',question:'How do you say your head hurts?',answer:'Atama ga itai desu.',stage:'Stage 2'},
-    {id:'ja10',level:10,title:'天気と季節',emoji:'🌸',vi:'Thời tiết',vocab:'ame (雨), hare (晴れ), samui (寒い)',grammar:'Kyou wa [weather] desu.',question:'How do you say it is raining today?',answer:'Kyou wa ame desu.',stage:'Stage 2'},
-    {id:'ja11',level:11,title:'趣味',emoji:'🎌',vi:'Sở thích',vocab:'hon (本), ongaku (音楽), eiga (映画)',grammar:'[activity] ga suki desu.',question:'How do you say you like music?',answer:'Ongaku ga suki desu.',stage:'Stage 2'},
-  ],
+const LESSONS = {}
+for (let lang in lessonsDataRaw) {
+  LESSONS[lang] = lessonsDataRaw[lang].map(l => ({
+    ...l,
+    id: lang.toLowerCase() + l.level,
+    emoji: '📖'
+  }))
 }
 
 // ─── XP helpers ───────────────────────────────────────────────────────────────
