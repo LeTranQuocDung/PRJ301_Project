@@ -93,17 +93,17 @@ const mapRealDataToLessons = (realData) => {
 
 const renderFormattedVocab = (text, cfg) => {
   if (!text) return null
-  
+
   // Split the string if it contains inline numbered sub-levels like "2: " or "Sub-level 2: "
   let formatted = text
   formatted = formatted.replace(/\s+(Sub-level \d+:|\d+:)/g, '\n$1')
-  
+
   const lines = formatted.split('\n').map(l => l.trim()).filter(Boolean)
-  
+
   if (lines.length <= 1) {
     return <div style={{ fontSize: 15, color: '#0f172a', lineHeight: 1.6, whiteSpace: 'pre-wrap', fontWeight: 500 }}>{text}</div>
   }
-  
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, margin: '10px 0' }}>
       {lines.map((line, i) => {

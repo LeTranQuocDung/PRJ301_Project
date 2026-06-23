@@ -19,34 +19,34 @@ export const api = {
 
   // ── Courses ──────────────────────────────────────────────────
   courses: {
-    list:   (params = {}) => req('GET', `/courses?${new URLSearchParams(params)}`),
-    get:    (id)           => req('GET', `/courses/${id}`),
-    create: (body)         => req('POST', '/courses', body),
-    update: (id, body)     => req('PUT', `/courses/${id}`, body),
-    delete: (id)           => req('DELETE', `/courses/${id}`),
+    list: (params = {}) => req('GET', `/courses?${new URLSearchParams(params)}`),
+    get: (id) => req('GET', `/courses/${id}`),
+    create: (body) => req('POST', '/courses', body),
+    update: (id, body) => req('PUT', `/courses/${id}`, body),
+    delete: (id) => req('DELETE', `/courses/${id}`),
   },
 
   // ── Chapters ─────────────────────────────────────────────────
   chapters: {
-    list:   (params = {}) => req('GET', `/chapters?${new URLSearchParams(params)}`),
-    create: (body)         => req('POST', '/chapters', body),
-    update: (id, body)     => req('PUT', `/chapters/${id}`, body),
-    delete: (id)           => req('DELETE', `/chapters/${id}`),
+    list: (params = {}) => req('GET', `/chapters?${new URLSearchParams(params)}`),
+    create: (body) => req('POST', '/chapters', body),
+    update: (id, body) => req('PUT', `/chapters/${id}`, body),
+    delete: (id) => req('DELETE', `/chapters/${id}`),
   },
 
   // ── Lessons ──────────────────────────────────────────────────
   lessons: {
-    list:   (params = {}) => req('GET', `/lessons?${new URLSearchParams(params)}`),
-    create: (body)         => req('POST', '/lessons', body),
-    update: (id, body)     => req('PUT', `/lessons/${id}`, body),
-    delete: (id)           => req('DELETE', `/lessons/${id}`),
+    list: (params = {}) => req('GET', `/lessons?${new URLSearchParams(params)}`),
+    create: (body) => req('POST', '/lessons', body),
+    update: (id, body) => req('PUT', `/lessons/${id}`, body),
+    delete: (id) => req('DELETE', `/lessons/${id}`),
     // Call Real Java API
     fetchRealData: (lang, stage, level) => {
       const params = new URLSearchParams()
       if (lang) params.append('language', lang)
       if (stage) params.append('stage', stage)
       if (level) params.append('level', level)
-      return fetch(`/LucyBackendAPI/api/contents?${params}`)
+      return fetch(`http://localhost:8080/LucyBackendAPI/api/contents?${params}`)
         .then(res => {
           if (!res.ok) throw new Error('Failed to fetch from Java Backend')
           return res.json()
@@ -56,22 +56,22 @@ export const api = {
 
   // ── Live Rooms ───────────────────────────────────────────────
   rooms: {
-    list:      ()         => req('GET', '/rooms'),
-    get:       (id)       => req('GET', `/rooms/${id}`),
-    create:    (body)     => req('POST', '/rooms', body),
-    end:       (id)       => req('POST', `/rooms/${id}/end`),
-    audio:     (id)       => req('POST', `/rooms/${id}/audio`),
-    nextTopic: (id)       => req('POST', `/rooms/${id}/next-topic`),
-    join:      (id, name) => req('POST', `/rooms/${id}/join`, { name }),
-    leave:     (id, name) => req('POST', `/rooms/${id}/leave`, { name }),
-    pin:       (id, body) => req('POST', `/rooms/${id}/pin`, body),
-    unpin:     (id, pinId)=> req('DELETE', `/rooms/${id}/pin/${pinId}`),
+    list: () => req('GET', '/rooms'),
+    get: (id) => req('GET', `/rooms/${id}`),
+    create: (body) => req('POST', '/rooms', body),
+    end: (id) => req('POST', `/rooms/${id}/end`),
+    audio: (id) => req('POST', `/rooms/${id}/audio`),
+    nextTopic: (id) => req('POST', `/rooms/${id}/next-topic`),
+    join: (id, name) => req('POST', `/rooms/${id}/join`, { name }),
+    leave: (id, name) => req('POST', `/rooms/${id}/leave`, { name }),
+    pin: (id, body) => req('POST', `/rooms/${id}/pin`, body),
+    unpin: (id, pinId) => req('DELETE', `/rooms/${id}/pin/${pinId}`),
   },
 
   // ── Import ───────────────────────────────────────────────────
   imports: {
-    history: ()           => req('GET', '/import/history'),
-    upload:  (file, courseId) => {
+    history: () => req('GET', '/import/history'),
+    upload: (file, courseId) => {
       const fd = new FormData()
       fd.append('file', file)
       if (courseId) fd.append('courseId', courseId)
@@ -81,10 +81,10 @@ export const api = {
 
   // ── Templates ────────────────────────────────────────────────
   templates: {
-    list:   ()             => req('GET', '/templates'),
-    create: (body)         => req('POST', '/templates', body),
-    update: (id, body)     => req('PUT', `/templates/${id}`, body),
-    delete: (id)           => req('DELETE', `/templates/${id}`),
+    list: () => req('GET', '/templates'),
+    create: (body) => req('POST', '/templates', body),
+    update: (id, body) => req('PUT', `/templates/${id}`, body),
+    delete: (id) => req('DELETE', `/templates/${id}`),
   },
 
   // ── AI ───────────────────────────────────────────────────────
