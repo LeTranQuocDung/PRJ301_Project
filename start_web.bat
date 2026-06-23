@@ -54,10 +54,17 @@ if not exist "%BACKEND_DIR%" (
   )
 )
 
-if not exist "%WAR_FILE%" (
+set "BUILD_REQUIRED="
+if not exist "%WAR_FILE%" set "BUILD_REQUIRED=1"
+
+rem Do not silently deploy a stale prebuilt WAR when the backend source changed.
+if not defined BUILD_REQUIRED powershell -NoProfile -Command "$war = (Get-Item -LiteralPath '%WAR_FILE%').LastWriteTimeUtc; $newest = (Get-ChildItem -LiteralPath '%BACKEND_DIR%\src' -Recurse -File | Measure-Object -Property LastWriteTimeUtc -Maximum).Maximum; exit [int]($newest -gt $war)"
+if errorlevel 1 set "BUILD_REQUIRED=1"
+
+if defined BUILD_REQUIRED (
   where mvn >nul 2>nul
   if errorlevel 1 (
-    echo [ERROR] The prebuilt WAR is missing and Maven is not installed.
+    echo [ERROR] The backend WAR is missing or older than its source, and Maven is not installed.
     echo Install Maven, then run this file again.
     pause
     exit /b 1
@@ -77,6 +84,14 @@ if not exist "%WAR_FILE%" (
 )
 
 echo [3/4] Deploying backend to Tomcat ...
+
+rem An old unpacked directory wins over a same-named WAR in Tomcat.  Remove
+rem only this generated deployment so the WAR below is unpacked afresh.
+call "%TOMCAT_HOME%\bin\shutdown.bat" >nul 2>nul
+timeout /t 2 /nobreak >nul
+if exist "%TOMCAT_HOME%\webapps\LucyBackendAPI" rmdir /S /Q "%TOMCAT_HOME%\webapps\LucyBackendAPI"
+if exist "%TOMCAT_HOME%\work\Catalina\localhost\LucyBackendAPI" rmdir /S /Q "%TOMCAT_HOME%\work\Catalina\localhost\LucyBackendAPI"
+
 copy /Y "%WAR_FILE%" "%TOMCAT_HOME%\webapps\%APP_WAR%" >nul
 if errorlevel 1 (
   echo [ERROR] Could not copy the WAR to Tomcat webapps.
