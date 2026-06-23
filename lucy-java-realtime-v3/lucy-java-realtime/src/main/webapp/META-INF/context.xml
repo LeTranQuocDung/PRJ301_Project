@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<Context path="/LucyRealtimeServer">
-    <!--
-        Cấu hình DB — đồng bộ với LucyBackendAPI
-        Thay đổi giá trị url/username/password cho phù hợp
-    -->
-</Context>
