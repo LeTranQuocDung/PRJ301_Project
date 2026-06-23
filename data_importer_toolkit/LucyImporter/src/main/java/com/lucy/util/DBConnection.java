@@ -11,11 +11,11 @@ import java.sql.SQLException;
 public class DBConnection {
 
     // ⚙️ CHỈ SỬA 3 DÒNG NÀY
-    private static final String USER = "sa";
+    private static final String USER = "lucy_admin";
     private static final String PASSWORD = "123456";
 
     private static final String URL = "jdbc:sqlserver://localhost;"
-            + "databaseName=LUCY_DB;"
+            + "databaseName=LUCY_DBS;"
             + "encrypt=false;"
             + "trustServerCertificate=true;";
 

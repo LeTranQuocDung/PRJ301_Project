@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react'
-import lessonsDataRaw from './lessonsData.json'
 
 // ─── Language Config ──────────────────────────────────────────────────────────
 const LANG = {
@@ -9,14 +8,7 @@ const LANG = {
 }
 
 // ─── Lesson Data ──────────────────────────────────────────────────────────────
-const LESSONS = {}
-for (let lang in lessonsDataRaw) {
-  LESSONS[lang] = lessonsDataRaw[lang].map(l => ({
-    ...l,
-    id: lang.toLowerCase() + l.level,
-    emoji: '📖'
-  }))
-}
+let LESSONS = { EN: [], ZH: [], JA: [] }
 
 // ─── XP helpers ───────────────────────────────────────────────────────────────
 const XP_PER_LESSON = 20
@@ -727,6 +719,43 @@ export default function UserApp({ user, onLogout }) {
   const [active,      setActive]      = useState('home')
   const [learnLang,   setLearnLang]   = useState('EN')
   const [learnLesson, setLearnLesson] = useState(null)
+  
+  const [dataLoaded, setDataLoaded] = useState(false)
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const fetchLang = async (dbLangCode) => {
+          const res = await fetch(`http://localhost:8080/LucyBackendAPI/api/lessons?lang=${dbLangCode}`)
+          const data = await res.json()
+          return data.map((l, idx) => ({
+            id: dbLangCode.toLowerCase() + (idx + 1),
+            level: idx + 1,
+            title: l.title,
+            stage: l.stage,
+            vocab: l.vocab,
+            grammar: l.grammar,
+            emoji: '📖'
+          }))
+        }
+
+        const [en, zh, ja] = await Promise.all([
+          fetchLang('LISA'), // API dùng LISA cho tiếng Anh
+          fetchLang('ZH'),
+          fetchLang('JA')
+        ])
+
+        LESSONS['EN'] = en
+        LESSONS['ZH'] = zh
+        LESSONS['JA'] = ja
+        setDataLoaded(true)
+      } catch (e) {
+        console.error("Lỗi khi fetch API, Backend có thể chưa bật:", e)
+        setDataLoaded(true)
+      }
+    }
+    fetchData()
+  }, [])
 
   const [xp, setXp] = useState(() => {
     try { return parseInt(localStorage.getItem('lucy_xp') || '0') } catch { return 0 }
@@ -738,6 +767,18 @@ export default function UserApp({ user, onLogout }) {
     try { return JSON.parse(localStorage.getItem('lucy_completed') || '{"EN":[],"ZH":[],"JA":[]}') }
     catch { return { EN: [], ZH: [], JA: [] } }
   })
+
+  if (!dataLoaded) {
+    return (
+      <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', background: '#f8fafc', color: '#3b82f6', fontSize: 20, fontWeight: 'bold' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <div style={{ width: 40, height: 40, border: '4px solid #bfdbfe', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+          Đang kết nối Server tải bài học...
+          <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    )
+  }
 
   const handleComplete = (lang, lessonId) => {
     if ((completed[lang] || []).includes(lessonId)) return

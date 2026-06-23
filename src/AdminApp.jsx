@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react'
-import LESSON_DATA from './lessonsData.json'
 import {
   BookOpen, Play, FileText, Headphones, Upload, Eye, Zap,
   MessageSquare, Mic, Users, Radio, Pin, PhoneOff, Phone,
@@ -422,7 +421,7 @@ function ChaptersView() {
 }
 
 // ─── Lessons View ─────────────────────────────────────────────────────────────
-// LESSON_DATA is now imported from JSON
+let LESSON_DATA = { EN: [], ZH: [], JA: [] }
 
 const LANG_CFG = {
   EN:{ flag:'🇬🇧', name:'English',  accent:'blue',   stageColor:{'Stage 1':ACCENTS.blue,'Stage 2':ACCENTS.cyan} },
@@ -1151,6 +1150,54 @@ function CourseRunsView() {
 // ─── Main AdminApp ────────────────────────────────────────────────────────────
 export default function AdminApp({ user, onLogout }) {
   const [active, setActive] = useState('dashboard')
+  const [dataLoaded, setDataLoaded] = useState(false)
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const fetchLang = async (dbLangCode) => {
+          const res = await fetch(`http://localhost:8080/LucyBackendAPI/api/lessons?lang=${dbLangCode}`)
+          const data = await res.json()
+          return data.map((l, idx) => ({
+            id: dbLangCode.toLowerCase() + (idx + 1),
+            level: idx + 1,
+            title: l.title,
+            stage: l.stage,
+            vocab: l.vocab,
+            grammar: l.grammar,
+            emoji: '📖'
+          }))
+        }
+
+        const [en, zh, ja] = await Promise.all([
+          fetchLang('LISA'), // API dùng LISA cho tiếng Anh
+          fetchLang('ZH'),
+          fetchLang('JA')
+        ])
+
+        LESSON_DATA['EN'] = en
+        LESSON_DATA['ZH'] = zh
+        LESSON_DATA['JA'] = ja
+        setDataLoaded(true)
+      } catch (e) {
+        console.error("Lỗi khi fetch API, Backend có thể chưa bật:", e)
+        setDataLoaded(true)
+      }
+    }
+    fetchData()
+  }, [])
+
+  if (!dataLoaded) {
+    return (
+      <div style={{ display: 'flex', height: '100vh', justifyContent: 'center', alignItems: 'center', background: '#f1f5f9', color: '#1e293b', fontSize: 20, fontWeight: 'bold' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          <div style={{ width: 40, height: 40, border: '4px solid #cbd5e1', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+          Đang kết nối Server tải bài học (Admin)...
+          <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    )
+  }
 
   const renderView = () => {
     switch(active) {
