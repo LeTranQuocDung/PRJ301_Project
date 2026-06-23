@@ -1,0 +1,8 @@
+com\lucy\Main.class
+com\lucy\dao\LucyDAO.class
+com\lucy\util\DBConnection.class
+com\lucy\extractor\ChineseExtractor.class
+com\lucy\JSONExporter.class
+com\lucy\extractor\EnglishExtractor.class
+com\lucy\extractor\JapaneseExtractor.class
+com\lucy\model\LucyRow.class
