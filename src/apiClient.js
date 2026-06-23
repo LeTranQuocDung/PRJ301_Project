@@ -46,7 +46,7 @@ export const api = {
       if (lang) params.append('language', lang)
       if (stage) params.append('stage', stage)
       if (level) params.append('level', level)
-      return fetch(`http://localhost:8080/LucyBackendAPI/api/contents?${params}`)
+      return fetch(`/LucyBackendAPI/api/contents?${params}`)
         .then(res => {
           if (!res.ok) throw new Error('Failed to fetch from Java Backend')
           return res.json()
