@@ -475,7 +475,7 @@ function LiveView() {
 
   const AGORA_APP_ID  = 'ca82570aa4a3464aadca4e28ee1d73b9'
   const AGORA_CHANNEL = 'lucy_room_1'
-  const AGORA_TOKEN   = '007eJxTYHh0WeKlQsvRx9ImaTb+uhlVW95oel4pa/rMqCbrmfG6b5kCQ3KihZGpuUFiokmisYmZSWJiSnKiSaqRRWqqYYq5cZLlnmrrrIZARoY7a3WYGBkgEMTnZsgpTa6ML8rPz403ZGAAADtZImk='
+  const AGORA_TOKEN = null; // Will fetch dynamically
 
   useEffect(() => {
     if (typeof AgoraRTC === 'undefined') { setError('Agora SDK chưa tải.'); return }
@@ -498,7 +498,13 @@ function LiveView() {
   const doJoin = async () => {
     setJoining(true); setError(null)
     try {
-      await clientRef.current.join(AGORA_APP_ID, AGORA_CHANNEL, AGORA_TOKEN, uid)
+      // Dynamic Token Fetching
+      console.log('Fetching dynamic token for channel:', AGORA_CHANNEL);
+      const resToken = await fetch(`http://localhost:3000/api/agora/token?channelName=${AGORA_CHANNEL}&uid=${uid}`);
+      const dataToken = await resToken.json();
+      if (!dataToken.token) throw new Error('Không lấy được Token từ Server');
+      
+      await clientRef.current.join(AGORA_APP_ID, AGORA_CHANNEL, dataToken.token, uid)
       const mic = await AgoraRTC.createMicrophoneAudioTrack()
       micRef.current = mic
       await clientRef.current.publish([mic])
