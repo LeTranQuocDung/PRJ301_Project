@@ -112,7 +112,7 @@ public class UserServlet extends HttpServlet {
         user.setEmail(email);
         user.setPasswordHash(PasswordUtil.hashPassword(password));
         user.setDisplayName(json.has("displayName") ? json.get("displayName").getAsString() : username);
-        user.setAvatarUrl("");
+        user.setAvatarUrl(json.has("avatarUrl") ? json.get("avatarUrl").getAsString() : "");
         user.setRole("student"); // FORCE role to student for public registration
 
         if (userDAO.insertUser(user)) {
@@ -214,7 +214,7 @@ public class UserServlet extends HttpServlet {
         user.setEmail(email);
         user.setPasswordHash(PasswordUtil.hashPassword(password));
         user.setDisplayName(json.has("displayName") ? json.get("displayName").getAsString() : username);
-        user.setAvatarUrl("");
+        user.setAvatarUrl(json.has("avatarUrl") ? json.get("avatarUrl").getAsString() : "");
         user.setRole(role); // Allow admin to set role
 
         if (userDAO.insertUser(user)) {

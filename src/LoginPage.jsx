@@ -65,6 +65,20 @@ function AuthInput({ label, type = 'text', value, onChange, placeholder, icon })
 }
 
 // ─── LoginPage ─────────────────────────────────────────────────────────────────
+
+const AVATARS = [
+  'https://api.dicebear.com/9.x/adventurer/svg?seed=Felix',
+  'https://api.dicebear.com/9.x/adventurer/svg?seed=Aneka',
+  'https://api.dicebear.com/9.x/adventurer/svg?seed=Jack',
+  'https://api.dicebear.com/9.x/adventurer/svg?seed=Lucy',
+  'https://api.dicebear.com/9.x/adventurer/svg?seed=Max',
+  'https://api.dicebear.com/9.x/adventurer/svg?seed=Bella',
+  'https://api.dicebear.com/9.x/adventurer/svg?seed=Luna',
+  'https://api.dicebear.com/9.x/adventurer/svg?seed=Leo',
+  'https://api.dicebear.com/9.x/adventurer/svg?seed=Zoe',
+  'https://cdn-icons-png.flaticon.com/512/826/826963.png' // Cánh cụt
+];
+
 export default function LoginPage({ onLogin }) {
   const [tab, setTab]           = useState('login')   // 'login' | 'register'
   const [email, setEmail]       = useState('')
@@ -90,7 +104,7 @@ export default function LoginPage({ onLogin }) {
       })
       if (res.ok) {
         const user = await res.json()
-        onLogin({ id: user.id, name: user.username, email: user.email, role: user.role, roleId: user.role })
+        onLogin({ id: user.id, name: user.username, email: user.email, role: user.role, roleId: user.role, avatarUrl: user.avatarUrl })
       } else {
         setError('Sai tên đăng nhập hoặc mật khẩu.')
         setLoading(false)
@@ -264,6 +278,31 @@ export default function LoginPage({ onLogin }) {
             <AuthInput label="Email đăng ký (*)"        value={email}    onChange={setEmail}    placeholder="Ví dụ: hocvien@lucy.edu"     icon="✉️" />
             <AuthInput label="Mật khẩu (*)"             value={password} onChange={setPassword} placeholder="Tối thiểu 6 ký tự..."       icon="🔒" type="password" />
             <AuthInput label="Xác nhận mật khẩu (*)"   value={confirm}  onChange={setConfirm}  placeholder="Nhập lại mật khẩu..."        icon="🛡" type="password" />
+
+            
+            {/* AVATAR SELECTOR */}
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#94a3b8', marginBottom: 8 }}>Chọn Avatar của bạn</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 }}>
+                {AVATARS.map((url, idx) => (
+                  <img 
+                    key={idx} 
+                    src={url} 
+                    alt="avatar" 
+                    onClick={() => setSelectedAvatar(url)}
+                    style={{ 
+                      width: '100%', aspectRatio: '1/1', borderRadius: '50%', cursor: 'pointer',
+                      border: selectedAvatar === url ? '3px solid #8b5cf6' : '3px solid transparent',
+                      background: '#1e293b', padding: 2, transition: 'all 0.2s',
+                      boxShadow: selectedAvatar === url ? '0 0 15px rgba(139,92,246,0.5)' : 'none',
+                      opacity: selectedAvatar === url ? 1 : 0.6
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = 1}
+                    onMouseLeave={e => { if (selectedAvatar !== url) e.currentTarget.style.opacity = 0.6 }}
+                  />
+                ))}
+              </div>
+            </div>
 
             <button onClick={handleRegister} disabled={loading} style={{
               width:'100%', padding:'13px 0', borderRadius:13, border:'none',
