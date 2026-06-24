@@ -234,11 +234,11 @@ export default function LoginPage({ onLogin }) {
                 {loading ? 'Đang đăng nhập...' : '🔑 Đăng nhập'}
               </button>
 
-              <div style={{ background:'#f8fafc', padding:'12px 16px', borderRadius:12, border:'1px solid #e2e8f0', fontSize:12, color:'#64748b', lineHeight:1.6 }}>
-                <strong style={{ color:'#334155' }}>💡 Tài khoản mẫu:</strong><br/>
-                👨‍🏫 <span style={{ color:'#4f46e5', fontWeight:600 }}>Admin / Pass:123456</span> — Admin Panel<br/>
-                🧑‍💻 <span style={{ color:'#ea580c', fontWeight:600 }}>Mentor / Pass:123456</span> — Quản lý phòng Live<br/>
-                🎓 <span style={{ color:'#10b981', fontWeight:600 }}>Student / Pass:123456</span> — Học viên
+              <div style={{ background:'#f8fafc', padding:'16px 20px', borderRadius:12, border:'1px solid #e2e8f0', fontSize:13, color:'#64748b', display:'flex', flexDirection:'column', gap:10 }}>
+                <strong style={{ color:'#334155', marginBottom:2 }}>💡 Tài khoản mẫu:</strong>
+                <div>👨‍🏫 <span style={{ color:'#4f46e5', fontWeight:600 }}>Admin / Pass:123456</span></div>
+                <div>🧑‍💻 <span style={{ color:'#ea580c', fontWeight:600 }}>Mentor / Pass:123456</span></div>
+                <div>🎓 <span style={{ color:'#10b981', fontWeight:600 }}>Student / Pass:123456</span></div>
               </div>
             </div>
           )}
