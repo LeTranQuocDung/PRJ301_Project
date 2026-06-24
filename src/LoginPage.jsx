@@ -233,6 +233,13 @@ export default function LoginPage({ onLogin }) {
               }}>
                 {loading ? 'Đang đăng nhập...' : '🔑 Đăng nhập'}
               </button>
+
+              <div style={{ background:'#f8fafc', padding:'12px 16px', borderRadius:12, border:'1px solid #e2e8f0', fontSize:12, color:'#64748b', lineHeight:1.6 }}>
+                <strong style={{ color:'#334155' }}>💡 Tài khoản mẫu (Mật khẩu: 123456)</strong><br/>
+                👨‍🏫 <span style={{ color:'#4f46e5', fontWeight:600 }}>admin</span> — Bảng điều khiển Admin<br/>
+                🧑‍💻 <span style={{ color:'#ea580c', fontWeight:600 }}>mentor</span> — Quản lý phòng Live (Hạn chế quyền)<br/>
+                🎓 <span style={{ color:'#10b981', fontWeight:600 }}>student</span> — Giao diện Học viên
+              </div>
             </div>
           )}
 
