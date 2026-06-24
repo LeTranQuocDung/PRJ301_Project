@@ -234,11 +234,11 @@ export default function LoginPage({ onLogin }) {
                 {loading ? 'Đang đăng nhập...' : '🔑 Đăng nhập'}
               </button>
 
-              <div style={{ background:'#f8fafc', padding:'16px 20px', borderRadius:12, border:'1px solid #e2e8f0', fontSize:13, color:'#64748b', display:'flex', flexDirection:'column', gap:10 }}>
-                <strong style={{ color:'#334155', marginBottom:2 }}>💡 Tài khoản mẫu:</strong>
-                <div>👨‍🏫 <span style={{ color:'#4f46e5', fontWeight:600 }}>Admin / Pass:123456</span></div>
-                <div>🧑‍💻 <span style={{ color:'#ea580c', fontWeight:600 }}>Mentor / Pass:123456</span></div>
-                <div>🎓 <span style={{ color:'#10b981', fontWeight:600 }}>Student / Pass:123456</span></div>
+              <div style={{ background:'#f8fafc', padding:'16px 20px', borderRadius:12, border:'1px solid #e2e8f0', fontSize:14, color:'#64748b', display:'flex', flexDirection:'column', gap:14 }}>
+                <strong style={{ color:'#334155', marginBottom:4, display:'flex', alignItems:'center', gap:8 }}>💡 Tài khoản mẫu:</strong>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>👨‍🏫 <span style={{ color:'#6366f1', fontWeight:700 }}>Admin / Pass:123456</span></div>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>🧑‍💻 <span style={{ color:'#f97316', fontWeight:700 }}>Mentor / Pass:123456</span></div>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>🎓 <span style={{ color:'#10b981', fontWeight:700 }}>Student / Pass:123456</span></div>
               </div>
             </div>
           )}
