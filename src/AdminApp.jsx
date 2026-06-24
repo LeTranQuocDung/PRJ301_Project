@@ -30,6 +30,7 @@ const ACCENTS = {
   cyan:   { c: '#06b6d4', l: '#ecfeff', b: '#a5f3fc', g: 'linear-gradient(135deg,#06b6d4,#3b82f6)' },
   pink:   { c: '#ec4899', l: '#fdf2f8', b: '#f9a8d4', g: 'linear-gradient(135deg,#ec4899,#8b5cf6)' },
   indigo: { c: '#6366f1', l: '#eef2ff', b: '#c7d2fe', g: 'linear-gradient(135deg,#6366f1,#8b5cf6)' },
+  gray:   { c: '#64748b', l: '#f1f5f9', b: '#e2e8f0', g: 'linear-gradient(135deg,#64748b,#94a3b8)' },
 }
 
 // ─── Shared primitives ──────────────────────────────────────────────────────
@@ -1046,8 +1047,8 @@ function UsersView() {
     const [editId, setEditId] = useState(null)
     const [form,   setForm]   = useState({ name:'', email:'', role:'student' })
   
-    const roleAccent = { 'student':'blue', 'mentor':'purple', 'influencer':'amber', 'admin':'green' }
-    const roleIcon   = { 'student':'👤', 'mentor':'👨‍🏫', 'influencer':'🌟', 'admin':'👑' }
+    const roleAccent = { 'student':'blue', 'mentor':'purple', 'teacher':'purple', 'influencer':'amber', 'admin':'green' }
+    const roleIcon   = { 'student':'🎓', 'mentor':'👨‍🏫', 'teacher':'🧑‍💻', 'influencer':'🌟', 'admin':'👑' }
 
     useEffect(() => {
       fetchUsers()
