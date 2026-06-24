@@ -92,3 +92,17 @@ GO
 
 PRINT N'âœ… Seed data inserted successfully!';
 GO
+
+
+-- ============================================================
+-- Seed Test Accounts (Admin and Student)
+-- Note: Password for both is '123456', hashed using SHA-256 + Salt
+-- ============================================================
+IF NOT EXISTS (SELECT * FROM Users WHERE email = 'admin@lucy.edu')
+BEGIN
+    INSERT INTO Users (username, email, password_hash, display_name, role, total_xp, is_active, is_deleted)
+    VALUES 
+    ('admin', 'admin@lucy.edu', 'faudq84gGjgvjeYGqNRMtsxu49iFmicKzWBp143P/4k=', 'Gi?ng viên', 'admin', 0, 1, 0),
+    ('student', 'student@lucy.edu', 'faudq84gGjgvjeYGqNRMtsxu49iFmicKzWBp143P/4k=', 'H?c viên Test', 'student', 150, 1, 0);
+END
+GO
