@@ -239,6 +239,7 @@ export default function LoginPage({ onLogin }) {
           {tab === 'register' && (
             <div className="fade-in">
               <AuthInput value={name}     onChange={setName}     placeholder="Tên đăng nhập..."      icon="👤" />
+              <AuthInput value={email}    onChange={setEmail}    placeholder="Email đăng ký..."      icon="✉️" />
               <AuthInput value={password} onChange={setPassword} placeholder="Tạo mật khẩu..."       icon="🔒" type="password" />
               <AuthInput value={confirm}  onChange={setConfirm}  placeholder="Nhập lại mật khẩu..."  icon="🛡" type="password" />
 
