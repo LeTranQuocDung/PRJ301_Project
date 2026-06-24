@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { LayoutDashboard, BookOpen, FileText, TrendingUp, Mic, Zap, MessageSquare, Users, Volume2, Radio, Phone, PhoneOff, AlertCircle } from 'lucide-react'
 
 // ─── Language Config ──────────────────────────────────────────────────────────
 const LANG = {
@@ -24,87 +25,111 @@ const xpToNextLevel = xp => {
 }
 
 // ─── Navbar ───────────────────────────────────────────────────────────────────
-const NAV = [
-  { id:'home',    icon:'🏠', label:'Trang chủ' },
-  { id:'explore', icon:'📚', label:'Khám phá'  },
-  { id:'learn',   icon:'🎓', label:'Học bài'   },
-  { id:'live',    icon:'🎙', label:'Live'       },
-  { id:'progress',icon:'📈', label:'Tiến độ'   },
-  { id:'profile', icon:'👤', label:'Hồ sơ'     },
+const NAV_GROUPS = [
+  { items: [{ id:'home', icon:<LayoutDashboard size={15}/>, label:'Home' }] },
+  { label:'LEARNING', color:'#3b82f6', items:[
+    { id:'explore', icon:<BookOpen size={15}/>, label:'Explore' },
+    { id:'learn', icon:<FileText size={15}/>, label:'Learn' },
+    { id:'progress', icon:<TrendingUp size={15}/>, label:'Progress' },
+  ]},
+  { label:'ROOMS', color:'#10b981', items:[
+    { id:'live', icon:<Mic size={15}/>, label:'Live Rooms' },
+  ]},
+  { label:'AI', color:'#ec4899', items:[
+    { id:'templates', icon:<Zap size={15}/>, label:'AI Templates' },
+    { id:'questions', icon:<MessageSquare size={15}/>, label:'AI Questions' },
+  ]},
+  { label:'ACCOUNT', color:'#06b6d4', items:[
+    { id:'profile', icon:<Users size={15}/>, label:'Profile' },
+  ]},
 ]
 
-function Navbar({ active, setActive, user, xp, streak }) {
+function Navbar({ active, setActive, user, xp, streak, onLogout }) {
+  const sidebarBg = '#0f172a';
+  const sidebarBorder = 'rgba(255,255,255,0.07)';
+
   return (
     <nav style={{
-      width: 220, minWidth: 220, flexShrink: 0,
-      background: '#fff',
-      borderRight: '1px solid #e2e8f0',
+      width: 230, minWidth: 230, flexShrink: 0,
+      background: sidebarBg,
+      borderRight: `1px solid ${sidebarBorder}`,
       display: 'flex', flexDirection: 'column',
       height: '100vh', overflowY: 'auto',
     }}>
-      <div style={{ padding: '20px 18px 14px', borderBottom: '1px solid #e2e8f0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+      <div style={{ padding: '24px 20px 20px', borderBottom: `1px solid ${sidebarBorder}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
           <div style={{
-            width: 40, height: 40, borderRadius: 12,
-            background: 'linear-gradient(135deg,#6366f1,#06b6d4)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
-            boxShadow: '0 0 16px rgba(99,102,241,0.4)',
+            width: 36, height: 36, borderRadius: 10,
+            background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+            boxShadow: '0 4px 16px rgba(99,102,241,0.4)',
           }}>🎵</div>
           <div>
-            <div style={{ fontWeight: 900, fontSize: 18, color: '#0f172a', fontFamily: "'Outfit',sans-serif", letterSpacing: '-0.03em' }}>LUCY</div>
-            <div style={{ fontSize: 10, color: '#94a3b8', letterSpacing: '0.06em' }}>STUDENT PORTAL</div>
+            <div style={{ fontWeight: 900, fontSize: 18, color: '#fff', fontFamily: "'Outfit',sans-serif", letterSpacing: '-0.03em', lineHeight: 1 }}>LUCY</div>
+            <div style={{ fontSize: 9, color: '#94a3b8', letterSpacing: '0.08em', fontWeight: 600, marginTop: 4 }}>STUDENT PORTAL</div>
           </div>
         </div>
 
-        {/* User + XP */}
-        <div style={{ background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', borderRadius: 12, padding: '12px 14px', color: '#fff' }}>
+        <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: '12px 14px', border: `1px solid ${sidebarBorder}`, color: '#fff' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700 }}>{user.name}</div>
-              <div style={{ fontSize: 10, opacity: 0.8 }}>Level {getLevel(xp)} · {getLevelName(getLevel(xp))}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</div>
+              <div style={{ fontSize: 10, opacity: 0.6 }}>Level {getLevel(xp)}</div>
             </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 18, fontWeight: 800 }}>⚡ {xp}</div>
-              <div style={{ fontSize: 10, opacity: 0.8 }}>XP</div>
+            <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 8 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#38bdf8' }}>⚡ {xp}</div>
             </div>
           </div>
-          <div style={{ height: 5, borderRadius: 3, background: 'rgba(255,255,255,0.2)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', borderRadius: 3, background: '#fff', width: `${xpToNextLevel(xp).pct}%`, transition: 'width 0.6s ease' }} />
+          <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
+            <div style={{ height: '100%', borderRadius: 2, background: 'linear-gradient(90deg,#38bdf8,#818cf8)', width: `${xpToNextLevel(xp).pct}%`, transition: 'width 0.6s ease' }} />
           </div>
-          <div style={{ fontSize: 10, opacity: 0.7, marginTop: 4 }}>{xpToNextLevel(xp).toNext > 0 ? `${xpToNextLevel(xp).toNext} XP nữa lên level` : 'Level tối đa! 🎉'}</div>
         </div>
       </div>
 
-      <div style={{ flex: 1, padding: '10px 0' }}>
-        {NAV.map(n => {
-          const on = active === n.id
-          return (
-            <button key={n.id} onClick={() => setActive(n.id)} style={{
-              display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-              padding: '11px 18px 11px 15px',
-              background: on ? '#eff6ff' : 'transparent',
-              color: on ? '#3b82f6' : '#64748b',
-              border: 'none', borderLeft: on ? '3px solid #3b82f6' : '3px solid transparent',
-              cursor: 'pointer', textAlign: 'left', fontSize: 13.5, fontWeight: on ? 700 : 500,
-              transition: 'all 0.15s', fontFamily: 'inherit',
-            }}
-              onMouseEnter={e => { if (!on) { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.color = '#0f172a' }}}
-              onMouseLeave={e => { if (!on) { e.currentTarget.style.background = ''; e.currentTarget.style.color = '#64748b' }}}
-            >
-              <span style={{ fontSize: 18 }}>{n.icon}</span> {n.label}
-            </button>
-          )
-        })}
+            <div style={{ flex: 1, padding: '8px 0' }}>
+        {NAV_GROUPS.map((g, gi) => (
+          <div key={gi} style={{ marginBottom: 2 }}>
+            {g.label && (
+              <div style={{ padding: '10px 18px 4px', fontSize: 10, fontWeight: 700, color: g.color || 'rgba(255,255,255,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                {g.label}
+              </div>
+            )}
+            {g.items.map(item => {
+              const on = active === item.id
+              return (
+                <button key={item.id} onClick={() => setActive(item.id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                    padding: '9px 18px 9px 15px',
+                    background: on ? 'rgba(99,102,241,0.18)' : 'transparent',
+                    color: on ? '#a5b4fc' : 'rgba(255,255,255,0.5)',
+                    border: 'none', borderLeft: on ? '3px solid #6366f1' : '3px solid transparent',
+                    cursor: 'pointer', textAlign: 'left', fontSize: 13, fontWeight: on ? 600 : 400,
+                    transition: 'all 0.15s', fontFamily: 'inherit',
+                  }}
+                  onMouseEnter={e => { if(!on) { e.currentTarget.style.color = 'rgba(255,255,255,0.8)'; e.currentTarget.style.background = 'rgba(255,255,255,0.04)' } }}
+                  onMouseLeave={e => { if(!on) { e.currentTarget.style.color = 'rgba(255,255,255,0.5)'; e.currentTarget.style.background = 'transparent' } }}
+                >
+                  <span style={{ opacity: on ? 1 : 0.7 }}>{item.icon}</span>
+                  {item.label}
+                  {on && <div style={{ marginLeft: 'auto', width: 6, height: 6, borderRadius: '50%', background: '#6366f1' }} />}
+                </button>
+              )
+            })}
+          </div>
+        ))}
       </div>
 
-      <div style={{ padding: '12px 14px 16px', borderTop: '1px solid #e2e8f0' }}>
-        <div style={{ background: '#fff7ed', borderRadius: 10, padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{ fontSize: 24 }}>🔥</div>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#ea580c' }}>{streak} ngày</div>
-            <div style={{ fontSize: 11, color: '#94a3b8' }}>Streak học liên tiếp</div>
-          </div>
-        </div>
+<div style={{ padding: '20px 16px', borderTop: `1px solid ${sidebarBorder}` }}>
+        <button onClick={onLogout} style={{
+          width: '100%', padding: '12px 0', borderRadius: 10,
+          background: 'transparent', color: '#f87171', border: `1px solid rgba(248,113,113,0.3)`,
+          fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+          transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
+        }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = '' }}
+        >🚪 Đăng xuất</button>
       </div>
     </nav>
   )
@@ -457,8 +482,9 @@ function LiveView() {
     const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' })
     client.on('user-published', async (user, type) => {
       await client.subscribe(user, type)
-      if (type === 'audio') { user.audioTrack.play(); setRemotes(p => [...p, { uid: user.uid }]) }
+      if (type === 'audio') { user.audioTrack.play(); setRemotes(p => p.find(u=>u.uid===user.uid)?p:[...p, { uid: user.uid }]) }
     })
+    client.on('user-unpublished', user=>setRemotes(p=>p.filter(u=>u.uid!==user.uid)))
     client.on('user-left', user => setRemotes(p => p.filter(u => u.uid !== user.uid)))
     clientRef.current = client
     return () => doLeave()
@@ -482,72 +508,111 @@ function LiveView() {
   }
   const doToggleMute = async () => { if (micRef.current) { await micRef.current.setMuted(!muted); setMuted(m => !m) } }
 
-  const rooms = [
-    { name:'English Beginner – Daily Conversation', host:'Mr.John',       live:true,  participants:8,  lang:'🇬🇧', color:'#3b82f6' },
-    { name:'Chinese HSK1 Preparation',              host:'TeacherLi',     live:true,  participants:5,  lang:'🇨🇳', color:'#ef4444' },
-    { name:'Japanese N5 Speaking Practice',          host:'Sensei Tanaka', live:false, participants:0,  lang:'🇯🇵', color:'#ec4899' },
-  ]
-
   return (
-    <div className="fade-up" style={{ padding: '28px 28px 40px' }}>
-      <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', fontFamily: "'Outfit',sans-serif", margin: '0 0 4px' }}>Live Rooms 🎙</h1>
-      <p style={{ color: '#64748b', fontSize: 13.5, margin: '0 0 22px' }}>Tham gia phòng học trực tiếp với giáo viên và học viên khác</p>
-
-      {error && <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 10, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#991b1b' }}>⚠️ {error}</div>}
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 24 }}>
-        {rooms.map((r, i) => (
-          <div key={i} style={{
-            background: '#fff', border: `1.5px solid ${r.live ? r.color + '44' : '#e2e8f0'}`,
-            borderRadius: 16, padding: '18px 22px', display: 'flex', alignItems: 'center', gap: 16,
-            borderLeft: `5px solid ${r.live ? r.color : '#e2e8f0'}`,
-          }}>
-            <div style={{ fontSize: 32 }}>{r.lang}</div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a', marginBottom: 4 }}>{r.name}</div>
-              <div style={{ fontSize: 12, color: '#64748b' }}>Host: {r.host} · {r.participants} người đang tham gia</div>
-            </div>
-            {r.live && <span style={{ background: '#fef2f2', color: '#ef4444', fontWeight: 700, fontSize: 12, padding: '4px 10px', borderRadius: 20, animation: 'pulse 2s infinite' }}>🔴 LIVE</span>}
-            <button
-              onClick={r.live ? (joined ? doLeave : doJoin) : undefined}
-              disabled={!r.live || joining}
-              style={{
-                padding: '10px 20px', borderRadius: 10, border: 'none',
-                background: !r.live ? '#f1f5f9' : joined ? '#fef2f2' : `linear-gradient(135deg, ${r.color}, ${r.color}dd)`,
-                color: !r.live ? '#94a3b8' : joined ? '#ef4444' : '#fff',
-                fontWeight: 700, fontSize: 13, cursor: r.live && !joining ? 'pointer' : 'not-allowed',
-                fontFamily: 'inherit', transition: 'all 0.2s',
-                boxShadow: r.live && !joined ? `0 4px 14px ${r.color}44` : 'none',
-              }}
-            >
-              {!r.live ? '🔔 Sắp diễn ra' : joining ? '⏳ Đang vào...' : joined ? '📵 Rời phòng' : '🎙 Tham gia'}
-            </button>
+    <div className="fade-up" style={{ padding: '28px 28px 40px', maxWidth: 1000 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 22 }}>
+        <div>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', fontFamily: "'Outfit',sans-serif", margin: '0 0 4px' }}>Live Room</h1>
+          <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+            <span style={{ padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: joined ? '#f0fdf4' : '#f1f5f9', color: joined ? '#10b981' : '#64748b' }}>{joined ? '🔴 LIVE' : '⚪ Offline'}</span>
+            <span style={{ padding: '4px 10px', borderRadius: 8, fontSize: 11, fontWeight: 700, background: '#eff6ff', color: '#3b82f6' }}>🇬🇧 English Beginner</span>
           </div>
-        ))}
+        </div>
+        {joined && <button onClick={doLeave} style={{ padding: '8px 14px', borderRadius: 8, background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', fontWeight: 700, cursor: 'pointer', display: 'flex', gap: 6, alignItems: 'center' }}><PhoneOff size={14}/> Rời phòng</button>}
       </div>
 
-      {joined && (
-        <div className="fade-up" style={{ background: '#fff', border: '1.5px solid #6ee7b7', borderRadius: 16, padding: '20px 24px' }}>
-          <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a', marginBottom: 14 }}>🔴 Đang trong phòng · UID #{uid}</div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={doToggleMute} style={{
-              flex: 1, padding: '12px 0', borderRadius: 10, border: '1.5px solid',
-              borderColor: muted ? '#fca5a5' : '#6ee7b7', background: muted ? '#fef2f2' : '#ecfdf5',
-              color: muted ? '#ef4444' : '#10b981', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.2s',
-            }}>🎤 {muted ? 'Bật mic' : 'Tắt mic'}</button>
-            <button onClick={doLeave} style={{
-              flex: 1, padding: '12px 0', borderRadius: 10, border: '1.5px solid #fca5a5',
-              background: '#fef2f2', color: '#ef4444', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-            }}>📵 Rời phòng</button>
+      {error && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#991b1b', display: 'flex', gap: 8, alignItems: 'center' }}><AlertCircle size={15}/> {error}</div>}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        {/* Left Column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* Voice Chat Card */}
+          <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+            <div style={{ padding: '14px 18px', background: 'linear-gradient(90deg, rgba(59,130,246,0.1), transparent)', borderBottom: '1px solid #bfdbfe', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#3b82f6' }}><Volume2 size={16}/> Voice Chat (Agora RTC)</div>
+              {joined ? <span style={{ fontSize: 12, fontWeight: 700, color: '#3b82f6' }}>🔴 LIVE - {remotes.length + 1} người</span> : <span style={{ fontSize: 12, color: '#94a3b8' }}>Chưa kết nối</span>}
+            </div>
+            <div style={{ padding: 18 }}>
+              <div style={{ fontSize: 12, color: '#64748b', marginBottom: 14, display: 'flex', gap: 20 }}>
+                <span>Channel: <code style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: 6, fontSize: 11 }}>{AGORA_CHANNEL}</code></span>
+                <span>UID: <code style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: 6, fontSize: 11 }}>{uid}</code></span>
+              </div>
+              {!joined ? (
+                <button onClick={doJoin} disabled={joining} style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%', padding: '14px 0',
+                  background: joining ? '#94a3b8' : 'linear-gradient(135deg,#3b82f6,#6366f1)',
+                  color: '#fff', border: 'none', borderRadius: 12, fontSize: 14.5, fontWeight: 700, cursor: joining ? 'not-allowed' : 'pointer', fontFamily: 'inherit',
+                  boxShadow: joining ? 'none' : '0 6px 24px rgba(99,102,241,0.4)', transition: 'all 0.2s',
+                }}>
+                  {joining ? 'Đang kết nối...' : <><Phone size={16}/> Tham gia Voice Chat</>}
+                </button>
+              ) : (
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={doToggleMute} style={{
+                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px 0',
+                    background: muted ? '#fef2f2' : '#f0fdf4', color: muted ? '#ef4444' : '#10b981',
+                    border: `1.5px solid ${muted ? '#fecaca' : '#bbf7d0'}`, borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'
+                  }}><Mic size={15}/>{muted ? 'Bật mic' : 'Tắt mic'}</button>
+                  <button onClick={doLeave} style={{
+                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px 0',
+                    background: '#fef2f2', color: '#ef4444', border: '1.5px solid #fecaca', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'
+                  }}><PhoneOff size={15}/> Rời phòng</button>
+                </div>
+              )}
+              {joined && (
+                 <div style={{ marginTop: 16, borderTop: '1px solid #e2e8f0', paddingTop: 14 }}>
+                   <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Trong phòng</div>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: '#f0fdf4', borderRadius: 8, marginBottom: 6, fontSize: 13 }}>
+                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', display: 'inline-block' }}/>
+                     <span style={{ fontWeight: 700 }}>Bạn</span>
+                     {muted && <span style={{ background: '#fef2f2', color: '#ef4444', padding: '2px 6px', borderRadius: 4, fontSize: 10, fontWeight: 700 }}>Muted</span>}
+                   </div>
+                   {remotes.map(u => (
+                     <div key={u.uid} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: '#eff6ff', borderRadius: 8, marginBottom: 6, fontSize: 13 }}>
+                       <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#3b82f6', display: 'inline-block' }}/>
+                       <span>User #{u.uid}</span>
+                       <span style={{ background: '#f0fdf4', color: '#10b981', padding: '2px 6px', borderRadius: 4, fontSize: 10, fontWeight: 700 }}>Đang nói</span>
+                     </div>
+                   ))}
+                   {remotes.length === 0 && <p style={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic', margin: 0 }}>Chờ người khác vào phòng...</p>}
+                 </div>
+              )}
+            </div>
           </div>
-          {remotes.length === 0 && <p style={{ fontSize: 12, color: '#94a3b8', fontStyle: 'italic', marginTop: 10, marginBottom: 0 }}>Chờ người khác vào phòng...</p>}
+
+          {/* Current Lesson Card */}
+          <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+            <div style={{ padding: '14px 18px', background: 'rgba(16,185,129,0.06)', borderBottom: '1px solid #bbf7d0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#10b981' }}><Radio size={16}/> Bài học đang học</div>
+            </div>
+            <div style={{ padding: 16 }}>
+              <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '12px 16px' }}>
+                <div style={{ fontSize: 10, color: '#64748b', marginBottom: 4, textTransform: 'uppercase', fontWeight: 700 }}>Chủ đề hiện tại</div>
+                <div style={{ fontWeight: 700, color: '#0f172a' }}>Topic 1: Introducing Yourself</div>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
+
+        {/* Right Column: Xem Tài Liệu instead of Thong tin phong & Ghi tai lieu */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e2e8f0', overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 300 }}>
+            <div style={{ padding: '14px 18px', background: 'rgba(245,158,11,0.06)', borderBottom: '1px solid #fed7aa', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 700, color: '#f59e0b' }}><FileText size={16}/> Xem tài liệu</div>
+            </div>
+            <div style={{ padding: 16, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', margin: 16, borderRadius: 12, border: '2px dashed #e2e8f0' }}>
+              <FileText size={32} color="#cbd5e1" style={{ marginBottom: 12 }}/>
+              <div style={{ fontSize: 14, fontWeight: 600, color: '#64748b' }}>Chưa có tài liệu nào được ghim</div>
+              <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4, textAlign: 'center' }}>Khi giáo viên chia sẻ bài giảng,<br/>tài liệu sẽ hiển thị ở đây</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
 
-// ─── Progress View ────────────────────────────────────────────────────────────
+// 🎓 Progress View 🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓🎓
 function ProgressView({ xp, streak, completed }) {
   const level = getLevel(xp)
   const levelInfo = xpToNextLevel(xp)
@@ -807,7 +872,7 @@ export default function UserApp({ user, onLogout }) {
 
   return (
     <div style={{ display: 'flex', height: '100vh', fontFamily: "'Inter','Segoe UI',sans-serif", fontSize: 14, color: '#0f172a', overflow: 'hidden' }}>
-      <Navbar active={active} setActive={setActive} user={user} xp={xp} streak={streak} />
+      <Navbar active={active} setActive={setActive} user={user} xp={xp} streak={streak} onLogout={onLogout} />
       <main style={{ flex: 1, overflowY: 'auto', background: '#f8fafc' }}>
         {renderView()}
       </main>

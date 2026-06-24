@@ -67,6 +67,7 @@ function AuthInput({ label, type = 'text', value, onChange, placeholder, icon })
 // ─── LoginPage ─────────────────────────────────────────────────────────────────
 export default function LoginPage({ onLogin }) {
   const [tab, setTab]           = useState('login')   // 'login' | 'register'
+  const [email, setEmail]       = useState('')
   const [name, setName]         = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm]   = useState('')
@@ -77,35 +78,66 @@ export default function LoginPage({ onLogin }) {
 
   const reset = () => { setName(''); setPassword(''); setConfirm(''); setError(''); setSuccess('') }
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setError('')
     if (!name.trim() || !password) return setError('Vui lòng nhập tên và mật khẩu.')
-    const accounts = getAccounts()
-    const acc = accounts.find(a => a.name.toLowerCase() === name.trim().toLowerCase() && a.password === password)
-    if (!acc) return setError('Tên đăng nhập hoặc mật khẩu không đúng.')
     setLoading(true)
-    setTimeout(() => {
-      onLogin({ name: acc.name, role: acc.role, roleId: acc.roleId })
-    }, 500)
+    try {
+      const res = await fetch('http://localhost:8080/LucyBackendAPI/api/users/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: name.trim(), password })
+      })
+      if (res.ok) {
+        const user = await res.json()
+        onLogin({ id: user.id, name: user.username, email: user.email, role: user.role, roleId: user.role })
+      } else {
+        setError('Sai tên đăng nhập hoặc mật khẩu.')
+        setLoading(false)
+      }
+    } catch (e) {
+      setError('Lỗi kết nối Server.')
+      setLoading(false)
+    }
   }
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     setError('')
     if (!name.trim())       return setError('Vui lòng nhập tên đăng nhập.')
     if (name.trim().length < 3) return setError('Tên phải có ít nhất 3 ký tự.')
     if (!password)          return setError('Vui lòng nhập mật khẩu.')
     if (password.length < 6)   return setError('Mật khẩu phải có ít nhất 6 ký tự.')
     if (password !== confirm)   return setError('Mật khẩu xác nhận không khớp.')
-    const accounts = getAccounts()
-    if (accounts.find(a => a.name.toLowerCase() === name.trim().toLowerCase())) {
-      return setError('Tên đăng nhập đã tồn tại. Vui lòng chọn tên khác.')
-    }
-    const role = roleId === 'admin' ? 'admin' : 'user'
-    const newAcc = { id: `user-${Date.now()}`, name: name.trim(), password, roleId, role, createdAt: new Date().toISOString() }
-    saveAccount(newAcc)
-    setSuccess('Đăng ký thành công! Đang đăng nhập...')
+    
     setLoading(true)
-    setTimeout(() => onLogin({ name: newAcc.name, role, roleId }), 800)
+    try {
+      // Create user object. Email is set to username@lucy.edu for now if not provided
+      const reqBody = {
+        username: name.trim(),
+        email: email.trim() || (name.trim() + '@lucy.edu'),
+        password: password,
+        role: 'student' // Always force student
+      }
+      
+      const res = await fetch('http://localhost:8080/LucyBackendAPI/api/users/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reqBody)
+      })
+      
+      if (res.ok) {
+        setSuccess('Đăng ký thành công! Đang đăng nhập...')
+        const user = await res.json()
+        setTimeout(() => onLogin({ id: user.id, name: user.username, email: user.email, role: user.role, roleId: user.role }), 800)
+      } else {
+        const err = await res.text()
+        setError(err.includes('exists') ? 'Tên đăng nhập đã tồn tại.' : 'Lỗi đăng ký.')
+        setLoading(false)
+      }
+    } catch (e) {
+      setError('Lỗi kết nối Server.')
+      setLoading(false)
+    }
   }
 
   return (
@@ -197,7 +229,7 @@ export default function LoginPage({ onLogin }) {
         {/* LOGIN FORM */}
         {tab === 'login' && (
           <div className="fade-in">
-            <AuthInput label="Tên đăng nhập" value={name}     onChange={setName}     placeholder="Nhập tên đăng nhập..." icon="👤" />
+            <AuthInput label="Tên đăng nhập / Email" value={name}     onChange={setName}     placeholder="Nhập admin hoặc admin@lucy.edu..." icon="👤" />
             <AuthInput label="Mật khẩu"      value={password} onChange={setPassword} placeholder="Nhập mật khẩu..."     icon="🔒" type="password" />
 
             <button onClick={handleLogin} disabled={loading} style={{
@@ -228,32 +260,10 @@ export default function LoginPage({ onLogin }) {
         {/* REGISTER FORM */}
         {tab === 'register' && (
           <div className="fade-in">
-            <AuthInput label="Tên đăng nhập (*)"        value={name}     onChange={setName}     placeholder="Tối thiểu 3 ký tự..."      icon="👤" />
+            <AuthInput label="Họ và Tên (*)"        value={name}     onChange={setName}     placeholder="Ví dụ: Nguyễn Văn A..."      icon="👤" />
+            <AuthInput label="Email đăng ký (*)"        value={email}    onChange={setEmail}    placeholder="Ví dụ: hocvien@lucy.edu"     icon="✉️" />
             <AuthInput label="Mật khẩu (*)"             value={password} onChange={setPassword} placeholder="Tối thiểu 6 ký tự..."       icon="🔒" type="password" />
             <AuthInput label="Xác nhận mật khẩu (*)"   value={confirm}  onChange={setConfirm}  placeholder="Nhập lại mật khẩu..."        icon="🛡" type="password" />
-
-            {/* Role selection */}
-            <div style={{ marginBottom:16 }}>
-              <label style={{ display:'block', fontSize:12, fontWeight:700, color:'#475569', marginBottom:8, letterSpacing:'0.04em' }}>VAI TRÒ CỦA BẠN</label>
-              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                {ROLES.map(r => {
-                  const on = roleId === r.id
-                  return (
-                    <button key={r.id} onClick={()=>setRoleId(r.id)} style={{
-                      display:'flex', alignItems:'center', gap:12, padding:'11px 14px', borderRadius:12,
-                      background: on ? r.color + '12' : '#f8fafc',
-                      border:`2px solid ${on ? r.color + '60' : '#e2e8f0'}`,
-                      cursor:'pointer', textAlign:'left', fontFamily:'inherit', transition:'all 0.2s',
-                      boxShadow: on ? `0 2px 16px ${r.color}22` : 'none',
-                    }}>
-                      <div style={{ width:36,height:36,borderRadius:10,background:on?r.gradient:'#e2e8f0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0,transition:'all 0.2s' }}>{r.icon}</div>
-                      <span style={{ fontSize:13.5,fontWeight:on?700:500,color:on?r.color:'#475569',transition:'color 0.2s' }}>{r.label}</span>
-                      {on && <div style={{ marginLeft:'auto',width:20,height:20,borderRadius:'50%',background:r.gradient,display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,color:'#fff',fontWeight:700 }}>✓</div>}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
 
             <button onClick={handleRegister} disabled={loading} style={{
               width:'100%', padding:'13px 0', borderRadius:13, border:'none',

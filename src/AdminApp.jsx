@@ -1041,99 +1041,152 @@ function GeneratedQuestionsView() {
 
 // ─── Users View ──────────────────────────────────────────────────────────────
 function UsersView() {
-  const [users, setUsers] = useState([
-    { id:1, name:'Nguyen_An',      email:'an@lucy.edu',    phone:'0901234567', role:'Anonymous Student', active:true },
-    { id:2, name:'Mr.John',        email:'john@lucy.edu',  phone:'0912345678', role:'Teacher',           active:true },
-    { id:3, name:'Thao_Reviewer',  email:'thao@lucy.edu',  phone:'0923456789', role:'Influencer',        active:false },
-    { id:4, name:'Tran_Linh',      email:'linh@lucy.edu',  phone:'0934567890', role:'Anonymous Student', active:true },
-    { id:5, name:'Sensei_Tanaka',  email:'tanaka@lucy.edu',phone:'0945678901', role:'Teacher',           active:true },
-  ])
-  const [editId, setEditId] = useState(null)
-  const [form,   setForm]   = useState({ name:'', email:'', phone:'', role:'Anonymous Student' })
+    const [users, setUsers] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [editId, setEditId] = useState(null)
+    const [form,   setForm]   = useState({ name:'', email:'', role:'student' })
+  
+    const roleAccent = { 'student':'blue', 'mentor':'purple', 'influencer':'amber', 'admin':'green' }
+    const roleIcon   = { 'student':'👤', 'mentor':'👨‍🏫', 'influencer':'🌟', 'admin':'👑' }
 
-  const roleAccent = { 'Anonymous Student':'blue', Teacher:'purple', Influencer:'amber' }
-  const roleIcon   = { 'Anonymous Student':'🎓', Teacher:'👨‍🏫', Influencer:'👑' }
+    useEffect(() => {
+      fetchUsers()
+    }, [])
 
-  const submit = e => {
-    e.preventDefault(); if(!form.name) return
-    if(editId) { setUsers(u=>u.map(x=>x.id===editId?{...x,...form}:x)); setEditId(null) }
-    else       { setUsers(u=>[...u,{id:Date.now(),...form,active:true}]) }
-    setForm({name:'',email:'',phone:'',role:'Anonymous Student'})
-  }
-  const startEdit = u => { setEditId(u.id); setForm({name:u.name,email:u.email||'',phone:u.phone||'',role:u.role}) }
-  const del = id => { if(window.confirm('Xóa người dùng này?')) setUsers(u=>u.filter(x=>x.id!==id)) }
+    const fetchUsers = async () => {
+      setLoading(true)
+      try {
+        const res = await fetch('http://localhost:8080/LucyBackendAPI/api/users')
+        if (res.ok) {
+          const data = await res.json()
+          setUsers(data)
+        }
+      } catch (e) {
+        console.error("Failed to fetch users", e)
+      }
+      setLoading(false)
+    }
+  
+    const submit = async e => {
+      e.preventDefault(); if(!form.name || !form.email) return
+      
+      try {
+        const res = await fetch('http://localhost:8080/LucyBackendAPI/api/users/admin/create-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            username: form.email.split('@')[0] + Math.floor(Math.random() * 1000),
+            email: form.email,
+            displayName: form.name,
+            role: form.role,
+            password: '123456' // Mặc định như sếp yêu cầu
+          })
+        })
+        if (res.ok) {
+          alert('Thêm mới thành công! Mật khẩu mặc định là: 123456')
+          fetchUsers()
+          setForm({name:'',email:'',role:'student'})
+        } else {
+          const err = await res.json()
+          alert('Lỗi: ' + err.error)
+        }
+      } catch (e) {
+        alert('Lỗi kết nối Server')
+      }
+    }
 
-  return (
-    <div className="fade-up" style={{ padding:'28px 28px 40px' }}>
-      <h1 style={{ fontSize:24,fontWeight:800,color:S.text,fontFamily:"'Outfit',sans-serif",margin:'0 0 4px' }}>User Management</h1>
-      <p style={{ color:S.muted,fontSize:13.5,margin:'0 0 24px' }}>Quản lý học viên, giảng viên và influencer trên nền tảng LUCY</p>
-      <div style={{ display:'grid',gridTemplateColumns:'300px 1fr',gap:20 }}>
-        <ACard style={{ alignSelf:'start' }}>
-          <ACardHead icon={editId?<Settings size={13}/>:<Plus size={13}/>} title={editId?'Sửa người dùng':'Thêm người dùng'} accent="cyan" gradient />
-          <form onSubmit={submit} style={{ padding:16,display:'flex',flexDirection:'column',gap:12 }}>
-            {[['Tên (*)','name','text','Nhập tên...'],['Email','email','email','Nhập email...'],['SĐT','phone','tel','Nhập SĐT...']].map(([lbl,key,type,ph])=>(
-              <div key={key}>
-                <label style={{ fontSize:12,fontWeight:600,color:S.muted,display:'block',marginBottom:4 }}>{lbl}</label>
-                <input type={type} value={form[key]} placeholder={ph} required={lbl.includes('*')} onChange={e=>setForm(f=>({...f,[key]:e.target.value}))}
-                  style={{ width:'100%',padding:'9px 12px',borderRadius:8,border:`1px solid ${S.border}`,fontSize:13,outline:'none',boxSizing:'border-box' }}/>
+    const resetPass = async (id) => {
+      if(!window.confirm('Reset mật khẩu của người này về 123456?')) return;
+      try {
+        const res = await fetch('http://localhost:8080/LucyBackendAPI/api/users/admin/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: id })
+        })
+        if (res.ok) {
+          alert('Đã reset mật khẩu về 123456 thành công!')
+        } else {
+          alert('Lỗi khi reset mật khẩu')
+        }
+      } catch (e) {
+        alert('Lỗi kết nối Server')
+      }
+    }
+  
+    return (
+      <div className="fade-up" style={{ padding:'28px 28px 40px' }}>
+        <h1 style={{ fontSize:24,fontWeight:800,color:S.text,fontFamily:"'Outfit',sans-serif",margin:'0 0 4px' }}>Quản lý User</h1>
+        <p style={{ color:S.muted,fontSize:13.5,margin:'0 0 24px' }}>Thêm mới và cấp lại mật khẩu cho hệ thống LUCY</p>
+        <div style={{ display:'grid',gridTemplateColumns:'300px 1fr',gap:20 }}>
+          <ACard style={{ alignSelf:'start' }}>
+            <ACardHead icon={<Plus size={13}/>} title="Thêm tài khoản mới" accent="cyan" gradient />
+            <form onSubmit={submit} style={{ padding:16,display:'flex',flexDirection:'column',gap:12 }}>
+              <div>
+                <label style={{ fontSize:12,fontWeight:600,color:S.muted,display:'block',marginBottom:4 }}>Tên hiển thị (*)</label>
+                <input type="text" value={form.name} placeholder="Nhập tên..." required onChange={e=>setForm(f=>({...f,name:e.target.value}))} style={{ width:'100%',padding:'9px 12px',borderRadius:8,border:`1px solid ${S.border}`,fontSize:13,outline:'none',boxSizing:'border-box' }}/>
               </div>
-            ))}
-            <div>
-              <label style={{ fontSize:12,fontWeight:600,color:S.muted,display:'block',marginBottom:4 }}>Vai trò</label>
-              <select value={form.role} onChange={e=>setForm(f=>({...f,role:e.target.value}))} style={{ width:'100%',padding:'9px 12px',borderRadius:8,border:`1px solid ${S.border}`,fontSize:13,outline:'none',boxSizing:'border-box' }}>
-                <option>Anonymous Student</option><option>Teacher</option><option>Influencer</option>
-              </select>
-            </div>
-            <div style={{ display:'flex',gap:8,marginTop:4 }}>
-              <ABtn fullWidth accent="cyan">{editId?'Cập nhật':'Thêm mới'}</ABtn>
-              {editId && <ABtn variant="ghost" onClick={()=>{setEditId(null);setForm({name:'',email:'',phone:'',role:'Anonymous Student'})}}>Hủy</ABtn>}
-            </div>
-          </form>
-        </ACard>
-        <ACard>
-          <ACardHead icon={<Users size={13}/>} title={`Danh sách (${users.length})`} accent="cyan" gradient />
-          <div style={{ overflowX:'auto' }}>
-            <table style={{ width:'100%',borderCollapse:'collapse',fontSize:13 }}>
-              <thead>
-                <tr style={{ borderBottom:`1px solid ${S.border}`,background:'#f8fafc' }}>
-                  {['Tên','Liên hệ','Vai trò','Trạng thái',''].map(h=>(
-                    <th key={h} style={{ padding:'12px 16px',textAlign:'left',fontSize:11,fontWeight:700,color:S.light,textTransform:'uppercase',letterSpacing:'0.05em' }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {users.map(u=>(
-                  <tr key={u.id} style={{ borderBottom:`1px solid ${S.borderLight}` }}
-                    onMouseEnter={e=>e.currentTarget.style.background='#f8fafc'}
-                    onMouseLeave={e=>e.currentTarget.style.background=''}
-                  >
-                    <td style={{ padding:'12px 16px',fontWeight:600,color:S.text }}>{roleIcon[u.role]} {u.name}</td>
-                    <td style={{ padding:'12px 16px',color:S.muted,fontSize:12 }}>
-                      <div>{u.email||<i style={{color:S.light}}>Chưa có</i>}</div>
-                      <div>{u.phone||<i style={{color:S.light}}>Chưa có</i>}</div>
-                    </td>
-                    <td style={{ padding:'12px 16px' }}><ABadge accent={roleAccent[u.role]}>{u.role}</ABadge></td>
-                    <td style={{ padding:'12px 16px' }}>
-                      {u.active?<span style={{ color:ACCENTS.green.c,display:'flex',alignItems:'center',gap:4,fontSize:12 }}><CheckCircle size={13}/>Active</span>
-                               :<span style={{ color:S.light,display:'flex',alignItems:'center',gap:4,fontSize:12 }}><AlertCircle size={13}/>Inactive</span>}
-                    </td>
-                    <td style={{ padding:'12px 16px',textAlign:'right' }}>
-                      <button onClick={()=>startEdit(u)} style={{ background:'none',border:'none',color:ACCENTS.blue.c,cursor:'pointer',padding:4,marginRight:4 }}><Settings size={14}/></button>
-                      <button onClick={()=>del(u.id)}    style={{ background:'none',border:'none',color:ACCENTS.red.c,cursor:'pointer',padding:4 }}><Trash2 size={14}/></button>
-                    </td>
+              <div>
+                <label style={{ fontSize:12,fontWeight:600,color:S.muted,display:'block',marginBottom:4 }}>Email đăng nhập (*)</label>
+                <input type="email" value={form.email} placeholder="Nhập email..." required onChange={e=>setForm(f=>({...f,email:e.target.value}))} style={{ width:'100%',padding:'9px 12px',borderRadius:8,border:`1px solid ${S.border}`,fontSize:13,outline:'none',boxSizing:'border-box' }}/>
+              </div>
+              <div>
+                <label style={{ fontSize:12,fontWeight:600,color:S.muted,display:'block',marginBottom:4 }}>Cấp Quyền (Role)</label>
+                <select value={form.role} onChange={e=>setForm(f=>({...f,role:e.target.value}))} style={{ width:'100%',padding:'9px 12px',borderRadius:8,border:`1px solid ${S.border}`,fontSize:13,outline:'none',boxSizing:'border-box' }}>
+                  <option value="student">Student (Học viên)</option>
+                  <option value="mentor">Mentor (Giảng viên)</option>
+                  <option value="influencer">Influencer</option>
+                  <option value="admin">Admin (Quản trị)</option>
+                </select>
+              </div>
+              <div style={{ fontSize:11, color:S.muted, marginTop:4 }}>Mật khẩu mặc định sẽ là: <strong>123456</strong></div>
+              <div style={{ display:'flex',gap:8,marginTop:4 }}>
+                <ABtn fullWidth accent="cyan">Tạo tài khoản</ABtn>
+              </div>
+            </form>
+          </ACard>
+          <ACard>
+            <ACardHead icon={<Users size={13}/>} title={`Danh sách Users (${users.length})`} accent="cyan" gradient />
+            <div style={{ overflowX:'auto' }}>
+              <table style={{ width:'100%',borderCollapse:'collapse',fontSize:13 }}>
+                <thead>
+                  <tr style={{ borderBottom:`1px solid ${S.border}`,background:'#f8fafc' }}>
+                    {['Tên & Email','Vai trò (Role)','Trạng thái','Thao tác'].map(h=>(
+                      <th key={h} style={{ padding:'12px 16px',textAlign:'left',fontSize:11,fontWeight:700,color:S.light,textTransform:'uppercase',letterSpacing:'0.05em' }}>{h}</th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </ACard>
+                </thead>
+                <tbody>
+                  {loading ? (
+                    <tr><td colSpan="4" style={{padding:20,textAlign:'center'}}>Đang tải dữ liệu...</td></tr>
+                  ) : users.map(u=>(
+                    <tr key={u.id} style={{ borderBottom:`1px solid ${S.borderLight}` }}
+                      onMouseEnter={e=>e.currentTarget.style.background='#f8fafc'}
+                      onMouseLeave={e=>e.currentTarget.style.background=''}
+                    >
+                      <td style={{ padding:'12px 16px' }}>
+                        <div style={{fontWeight:600,color:S.text}}>{roleIcon[u.role] || '👤'} {u.displayName || u.username}</div>
+                        <div style={{color:S.muted,fontSize:12,marginTop:2}}>{u.email}</div>
+                      </td>
+                      <td style={{ padding:'12px 16px' }}><ABadge accent={roleAccent[u.role] || 'gray'}>{u.role}</ABadge></td>
+                      <td style={{ padding:'12px 16px' }}>
+                        <span style={{ color:ACCENTS.green.c,display:'flex',alignItems:'center',gap:4,fontSize:12 }}><CheckCircle size={13}/>Hoạt động</span>
+                      </td>
+                      <td style={{ padding:'12px 16px' }}>
+                        <button onClick={()=>resetPass(u.id)} style={{ border:'none',color:ACCENTS.blue.c,cursor:'pointer',padding:'6px 12px', borderRadius:6, background:'#eff6ff', fontWeight:600, fontSize:12 }}>Reset Pass (123456)</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </ACard>
+        </div>
       </div>
-    </div>
-  )
-}
+    )
+  }
 
-// ─── Podcasts View ───────────────────────────────────────────────────────────
-function PodcastsView() {
+  // --------------------------------------------------
+  function PodcastsView() {
   const pods = [
     { title:'Daily English Tips',       ep:12, lang:'English',  subs:234, accent:'blue',  flag:'🇬🇧' },
     { title:'Chinese for Beginners',    ep:8,  lang:'Chinese',  subs:145, accent:'red',   flag:'🇨🇳' },
