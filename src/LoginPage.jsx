@@ -1,6 +1,6 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 
-// ─── Seed default accounts ────────────────────────────────────────────────────
+// â”€â”€â”€ Seed default accounts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const SEED_ACCOUNTS = [
   { id: 'admin-default', name: 'Admin',   password: '123456', roleId: 'admin',    role: 'admin' },
   { id: 'user-default',  name: 'Student', password: '123456', roleId: 'student',  role: 'user'  },
@@ -23,14 +23,14 @@ const saveAccount = (acc) => {
   localStorage.setItem('lucy_accounts', JSON.stringify(existing))
 }
 
-// ─── Role options ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Role options â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const ROLES = [
-  { id: 'admin',      icon: '👨‍🏫', label: 'Giảng viên / Admin', color: '#6366f1', gradient: 'linear-gradient(135deg,#6366f1,#8b5cf6)' },
-  { id: 'student',    icon: '🎓', label: 'Học viên',              color: '#0ea5e9', gradient: 'linear-gradient(135deg,#0ea5e9,#6366f1)' },
-  { id: 'influencer', icon: '👑', label: 'Influencer',            color: '#f59e0b', gradient: 'linear-gradient(135deg,#f59e0b,#ef4444)' },
+  { id: 'admin',      icon: 'ðŸ‘¨â€ðŸ«', label: 'Giáº£ng viÃªn / Admin', color: '#6366f1', gradient: 'linear-gradient(135deg,#6366f1,#8b5cf6)' },
+  { id: 'student',    icon: 'ðŸŽ“', label: 'Há»c viÃªn',              color: '#0ea5e9', gradient: 'linear-gradient(135deg,#0ea5e9,#6366f1)' },
+  { id: 'influencer', icon: 'ðŸ‘‘', label: 'Influencer',            color: '#f59e0b', gradient: 'linear-gradient(135deg,#f59e0b,#ef4444)' },
 ]
 
-// ─── Input component ──────────────────────────────────────────────────────────
+// â”€â”€â”€ Input component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function AuthInput({ label, type = 'text', value, onChange, placeholder, icon }) {
   const [focus, setFocus] = useState(false)
   return (
@@ -64,7 +64,7 @@ function AuthInput({ label, type = 'text', value, onChange, placeholder, icon })
   )
 }
 
-// ─── LoginPage ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ LoginPage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const AVATARS = [
   'https://api.dicebear.com/9.x/adventurer/svg?seed=Felix',
@@ -76,7 +76,7 @@ const AVATARS = [
   'https://api.dicebear.com/9.x/adventurer/svg?seed=Luna',
   'https://api.dicebear.com/9.x/adventurer/svg?seed=Leo',
   'https://api.dicebear.com/9.x/adventurer/svg?seed=Zoe',
-  'https://cdn-icons-png.flaticon.com/512/826/826963.png' // Cánh cụt
+  'https://cdn-icons-png.flaticon.com/512/826/826963.png' // CÃ¡nh cá»¥t
 ];
 
 export default function LoginPage({ onLogin }) {
@@ -89,12 +89,13 @@ export default function LoginPage({ onLogin }) {
   const [error, setError]       = useState('')
   const [success, setSuccess]   = useState('')
   const [loading, setLoading]   = useState(false)
+  const [selectedAvatar, setSelectedAvatar] = useState('')
 
   const reset = () => { setName(''); setPassword(''); setConfirm(''); setError(''); setSuccess('') }
 
   const handleLogin = async () => {
     setError('')
-    if (!name.trim() || !password) return setError('Vui lòng nhập tên và mật khẩu.')
+    if (!name.trim() || !password) return setError('Vui lÃ²ng nháº­p tÃªn vÃ  máº­t kháº©u.')
     setLoading(true)
     try {
       const res = await fetch('http://localhost:8080/LucyBackendAPI/api/users/login', {
@@ -106,22 +107,22 @@ export default function LoginPage({ onLogin }) {
         const user = await res.json()
         onLogin({ id: user.id, name: user.username, email: user.email, role: user.role, roleId: user.role, avatarUrl: user.avatarUrl })
       } else {
-        setError('Sai tên đăng nhập hoặc mật khẩu.')
+        setError('Sai tÃªn Ä‘Äƒng nháº­p hoáº·c máº­t kháº©u.')
         setLoading(false)
       }
     } catch (e) {
-      setError('Lỗi kết nối Server.')
+      setError('Lá»—i káº¿t ná»‘i Server.')
       setLoading(false)
     }
   }
 
   const handleRegister = async () => {
     setError('')
-    if (!name.trim())       return setError('Vui lòng nhập tên đăng nhập.')
-    if (name.trim().length < 3) return setError('Tên phải có ít nhất 3 ký tự.')
-    if (!password)          return setError('Vui lòng nhập mật khẩu.')
-    if (password.length < 6)   return setError('Mật khẩu phải có ít nhất 6 ký tự.')
-    if (password !== confirm)   return setError('Mật khẩu xác nhận không khớp.')
+    if (!name.trim())       return setError('Vui lÃ²ng nháº­p tÃªn Ä‘Äƒng nháº­p.')
+    if (name.trim().length < 3) return setError('TÃªn pháº£i cÃ³ Ã­t nháº¥t 3 kÃ½ tá»±.')
+    if (!password)          return setError('Vui lÃ²ng nháº­p máº­t kháº©u.')
+    if (password.length < 6)   return setError('Máº­t kháº©u pháº£i cÃ³ Ã­t nháº¥t 6 kÃ½ tá»±.')
+    if (password !== confirm)   return setError('Máº­t kháº©u xÃ¡c nháº­n khÃ´ng khá»›p.')
     
     setLoading(true)
     try {
@@ -140,16 +141,16 @@ export default function LoginPage({ onLogin }) {
       })
       
       if (res.ok) {
-        setSuccess('Đăng ký thành công! Đang đăng nhập...')
+        setSuccess('ÄÄƒng kÃ½ thÃ nh cÃ´ng! Äang Ä‘Äƒng nháº­p...')
         const user = await res.json()
         setTimeout(() => onLogin({ id: user.id, name: user.username, email: user.email, role: user.role, roleId: user.role }), 800)
       } else {
         const err = await res.text()
-        setError(err.includes('exists') ? 'Tên đăng nhập đã tồn tại.' : 'Lỗi đăng ký.')
+        setError(err.includes('exists') ? 'TÃªn Ä‘Äƒng nháº­p Ä‘Ã£ tá»“n táº¡i.' : 'Lá»—i Ä‘Äƒng kÃ½.')
         setLoading(false)
       }
     } catch (e) {
-      setError('Lỗi kết nối Server.')
+      setError('Lá»—i káº¿t ná»‘i Server.')
       setLoading(false)
     }
   }
@@ -187,12 +188,12 @@ export default function LoginPage({ onLogin }) {
         '@media(max-width:900px)':{display:'none'},
       }}>
         <div style={{ marginBottom:32 }}>
-          <div style={{ width:72, height:72, borderRadius:22, background:'rgba(255,255,255,0.2)', backdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:38, marginBottom:20, boxShadow:'0 8px 32px rgba(0,0,0,0.15)', border:'1px solid rgba(255,255,255,0.3)' }}>🎵</div>
+          <div style={{ width:72, height:72, borderRadius:22, background:'rgba(255,255,255,0.2)', backdropFilter:'blur(8px)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:38, marginBottom:20, boxShadow:'0 8px 32px rgba(0,0,0,0.15)', border:'1px solid rgba(255,255,255,0.3)' }}>ðŸŽµ</div>
           <div style={{ fontSize:52, fontWeight:900, color:'#fff', letterSpacing:'-0.05em', lineHeight:1, fontFamily:"'Outfit',sans-serif", textShadow:'0 4px 24px rgba(0,0,0,0.2)' }}>LUCY</div>
-          <div style={{ fontSize:18, color:'rgba(255,255,255,0.75)', marginTop:10, fontWeight:400, lineHeight:1.5 }}>Nền tảng học ngôn ngữ<br/>thông minh với AI</div>
+          <div style={{ fontSize:18, color:'rgba(255,255,255,0.75)', marginTop:10, fontWeight:400, lineHeight:1.5 }}>Ná»n táº£ng há»c ngÃ´n ngá»¯<br/>thÃ´ng minh vá»›i AI</div>
         </div>
         <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
-          {['🌍  Học English, 中文 & 日本語','⚡  Tích XP, lên level mỗi ngày','🎙  Phòng học trực tuyến Live','🤖  Câu hỏi AI do Claude tạo','🔥  Streak & hệ thống huy hiệu'].map((t,i)=>(
+          {['ðŸŒ  Há»c English, ä¸­æ–‡ & æ—¥æœ¬èªž','âš¡  TÃ­ch XP, lÃªn level má»—i ngÃ y','ðŸŽ™  PhÃ²ng há»c trá»±c tuyáº¿n Live','ðŸ¤–  CÃ¢u há»i AI do Claude táº¡o','ðŸ”¥  Streak & há»‡ thá»‘ng huy hiá»‡u'].map((t,i)=>(
             <div key={i} style={{ display:'flex', alignItems:'center', gap:12, background:'rgba(255,255,255,0.12)', backdropFilter:'blur(8px)', borderRadius:12, padding:'12px 16px', border:'1px solid rgba(255,255,255,0.2)', color:'#fff', fontSize:13.5, fontWeight:500 }}>{t}</div>
           ))}
         </div>
@@ -210,14 +211,14 @@ export default function LoginPage({ onLogin }) {
         {/* Logo (compact) */}
         <div style={{ textAlign:'center', marginBottom:24 }}>
           <div style={{ display:'inline-flex', alignItems:'center', gap:10, background:'linear-gradient(135deg,#4f46e5,#7c3aed)', borderRadius:16, padding:'10px 20px', boxShadow:'0 4px 20px rgba(79,70,229,0.35)' }}>
-            <span style={{ fontSize:22 }}>🎵</span>
+            <span style={{ fontSize:22 }}>ðŸŽµ</span>
             <span style={{ fontSize:20, fontWeight:900, color:'#fff', letterSpacing:'-0.03em', fontFamily:"'Outfit',sans-serif" }}>LUCY</span>
           </div>
         </div>
 
         {/* Tabs */}
         <div style={{ display:'flex', background:'#f1f5f9', borderRadius:14, padding:4, marginBottom:24, gap:4 }}>
-          {[['login','🔑 Đăng nhập'],['register','✨ Đăng ký']].map(([t,l])=>(
+          {[['login','ðŸ”‘ ÄÄƒng nháº­p'],['register','âœ¨ ÄÄƒng kÃ½']].map(([t,l])=>(
             <button key={t} onClick={()=>{setTab(t);reset()}} style={{
               flex:1, padding:'10px 0', borderRadius:11, border:'none', cursor:'pointer',
               background: tab===t ? 'linear-gradient(135deg,#4f46e5,#7c3aed)' : 'transparent',
@@ -231,20 +232,20 @@ export default function LoginPage({ onLogin }) {
         {/* Error / Success messages */}
         {error && (
           <div style={{ background:'#fef2f2', border:'1.5px solid #fca5a5', borderRadius:10, padding:'10px 14px', marginBottom:16, fontSize:13, color:'#dc2626', display:'flex', gap:8, alignItems:'center' }}>
-            ⚠️ {error}
+            âš ï¸ {error}
           </div>
         )}
         {success && (
           <div style={{ background:'#f0fdf4', border:'1.5px solid #86efac', borderRadius:10, padding:'10px 14px', marginBottom:16, fontSize:13, color:'#16a34a', display:'flex', gap:8, alignItems:'center' }}>
-            ✅ {success}
+            âœ… {success}
           </div>
         )}
 
         {/* LOGIN FORM */}
         {tab === 'login' && (
           <div className="fade-in">
-            <AuthInput label="Tên đăng nhập / Email" value={name}     onChange={setName}     placeholder="Nhập admin hoặc admin@lucy.edu..." icon="👤" />
-            <AuthInput label="Mật khẩu"      value={password} onChange={setPassword} placeholder="Nhập mật khẩu..."     icon="🔒" type="password" />
+            <AuthInput label="TÃªn Ä‘Äƒng nháº­p / Email" value={name}     onChange={setName}     placeholder="Nháº­p admin hoáº·c admin@lucy.edu..." icon="ðŸ‘¤" />
+            <AuthInput label="Máº­t kháº©u"      value={password} onChange={setPassword} placeholder="Nháº­p máº­t kháº©u..."     icon="ðŸ”’" type="password" />
 
             <button onClick={handleLogin} disabled={loading} style={{
               width:'100%', padding:'13px 0', borderRadius:13, border:'none',
@@ -258,15 +259,15 @@ export default function LoginPage({ onLogin }) {
               onMouseEnter={e=>{ if(!loading){e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 10px 32px rgba(79,70,229,0.5)'}}}
               onMouseLeave={e=>{ e.currentTarget.style.transform='';e.currentTarget.style.boxShadow=loading?'none':'0 6px 24px rgba(79,70,229,0.4)' }}
             >
-              {loading ? <><div className="spin" style={{ width:18,height:18,borderRadius:'50%',border:'2.5px solid rgba(148,163,184,0.5)',borderTopColor:'#94a3b8' }}/> Đang đăng nhập...</>
-                       : '🔑 Đăng nhập'}
+              {loading ? <><div className="spin" style={{ width:18,height:18,borderRadius:'50%',border:'2.5px solid rgba(148,163,184,0.5)',borderTopColor:'#94a3b8' }}/> Äang Ä‘Äƒng nháº­p...</>
+                       : 'ðŸ”‘ ÄÄƒng nháº­p'}
             </button>
 
             {/* Demo hint */}
             <div style={{ background:'#f8fafc', border:'1px solid #e2e8f0', borderRadius:10, padding:'11px 14px', fontSize:12, color:'#64748b', lineHeight:1.7 }}>
-              <div style={{ fontWeight:700, color:'#475569', marginBottom:4 }}>💡 Tài khoản mẫu:</div>
-              <div>👨‍🏫 <strong>Admin</strong> / <strong>123456</strong> — Admin Panel</div>
-              <div>🎓 <strong>Student</strong> / <strong>123456</strong> — Học viên</div>
+              <div style={{ fontWeight:700, color:'#475569', marginBottom:4 }}>ðŸ’¡ TÃ i khoáº£n máº«u:</div>
+              <div>ðŸ‘¨â€ðŸ« <strong>Admin</strong> / <strong>123456</strong> â€” Admin Panel</div>
+              <div>ðŸŽ“ <strong>Student</strong> / <strong>123456</strong> â€” Há»c viÃªn</div>
             </div>
           </div>
         )}
@@ -274,15 +275,15 @@ export default function LoginPage({ onLogin }) {
         {/* REGISTER FORM */}
         {tab === 'register' && (
           <div className="fade-in">
-            <AuthInput label="Họ và Tên (*)"        value={name}     onChange={setName}     placeholder="Ví dụ: Nguyễn Văn A..."      icon="👤" />
-            <AuthInput label="Email đăng ký (*)"        value={email}    onChange={setEmail}    placeholder="Ví dụ: hocvien@lucy.edu"     icon="✉️" />
-            <AuthInput label="Mật khẩu (*)"             value={password} onChange={setPassword} placeholder="Tối thiểu 6 ký tự..."       icon="🔒" type="password" />
-            <AuthInput label="Xác nhận mật khẩu (*)"   value={confirm}  onChange={setConfirm}  placeholder="Nhập lại mật khẩu..."        icon="🛡" type="password" />
+            <AuthInput label="Há» vÃ  TÃªn (*)"        value={name}     onChange={setName}     placeholder="VÃ­ dá»¥: Nguyá»…n VÄƒn A..."      icon="ðŸ‘¤" />
+            <AuthInput label="Email Ä‘Äƒng kÃ½ (*)"        value={email}    onChange={setEmail}    placeholder="VÃ­ dá»¥: hocvien@lucy.edu"     icon="âœ‰ï¸" />
+            <AuthInput label="Máº­t kháº©u (*)"             value={password} onChange={setPassword} placeholder="Tá»‘i thiá»ƒu 6 kÃ½ tá»±..."       icon="ðŸ”’" type="password" />
+            <AuthInput label="XÃ¡c nháº­n máº­t kháº©u (*)"   value={confirm}  onChange={setConfirm}  placeholder="Nháº­p láº¡i máº­t kháº©u..."        icon="ðŸ›¡" type="password" />
 
             
             {/* AVATAR SELECTOR */}
             <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#94a3b8', marginBottom: 8 }}>Chọn Avatar của bạn</div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#94a3b8', marginBottom: 8 }}>Chá»n Avatar cá»§a báº¡n</div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 }}>
                 {AVATARS.map((url, idx) => (
                   <img 
@@ -315,16 +316,17 @@ export default function LoginPage({ onLogin }) {
               onMouseEnter={e=>{ if(!loading){e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 10px 32px rgba(79,70,229,0.5)'}}}
               onMouseLeave={e=>{ e.currentTarget.style.transform='';e.currentTarget.style.boxShadow=loading?'none':'0 6px 24px rgba(79,70,229,0.4)' }}
             >
-              {loading ? <><div className="spin" style={{ width:18,height:18,borderRadius:'50%',border:'2.5px solid rgba(148,163,184,0.5)',borderTopColor:'#94a3b8' }}/> Đang tạo tài khoản...</>
-                       : '✨ Tạo tài khoản'}
+              {loading ? <><div className="spin" style={{ width:18,height:18,borderRadius:'50%',border:'2.5px solid rgba(148,163,184,0.5)',borderTopColor:'#94a3b8' }}/> Äang táº¡o tÃ i khoáº£n...</>
+                       : 'âœ¨ Táº¡o tÃ i khoáº£n'}
             </button>
           </div>
         )}
 
         <div style={{ textAlign:'center', marginTop:18, fontSize:11.5, color:'#94a3b8' }}>
-          🌍 English · 中文 · 日本語 — LUCY Platform
+          ðŸŒ English Â· ä¸­æ–‡ Â· æ—¥æœ¬èªž â€” LUCY Platform
         </div>
       </div>
     </div>
   )
 }
+
