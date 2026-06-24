@@ -131,6 +131,7 @@ const NAV_GROUPS = [
   { label:'IMPORT', color:'#f59e0b', items:[
     { id:'import', icon:<Upload size={15}/>, label:'Import Files', emoji:'📤' },
     { id:'preview', icon:<Eye size={15}/>, label:'DOCX Preview', emoji:'👁' },
+    { id:'imported-data', icon:<Database size={15}/>, label:'Imported Data', emoji:'🗄️' },
   ]},
   { label:'AI', color:'#ec4899', items:[
     { id:'templates', icon:<Zap size={15}/>, label:'AI Templates', emoji:'⚡' },
@@ -692,6 +693,84 @@ function LiveRoomsView() {
   )
 }
 
+// ─── Imported Data View ───────────────────────────────────────────────────────
+function ImportedDataView() {
+  const [data, setData] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [lang, setLang] = useState('LISA')
+
+  useEffect(() => {
+    async function fetchRaw() {
+      setLoading(true)
+      try {
+        const res = await fetch(`http://localhost:8080/LucyBackendAPI/api/lessons?lang=${lang}`)
+        const json = await res.json()
+        setData(json)
+      } catch (e) {
+        console.error(e)
+        setData([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchRaw()
+  }, [lang])
+
+  return (
+    <div className="fade-in">
+      <div style={{ display:'flex',alignItems:'flex-end',justifyContent:'space-between',marginBottom:24 }}>
+        <div>
+          <h2 style={{ fontSize:22,fontWeight:800,color:S.text,marginBottom:6,letterSpacing:'-0.02em' }}>Dữ liệu thô từ SQL (Imported Data)</h2>
+          <p style={{ fontSize:13.5,color:S.muted }}>Dữ liệu gốc được API truy xuất trực tiếp từ bảng Lessons.</p>
+        </div>
+        <div style={{ display:'flex',gap:10 }}>
+          {[['LISA','🇬🇧 Tiếng Anh'],['ZH','🇨🇳 Tiếng Trung'],['JA','🇯🇵 Tiếng Nhật']].map(([k,v])=>(
+            <button key={k} onClick={()=>setLang(k)} style={{
+              padding:'8px 16px',borderRadius:10,border:`1.5px solid ${lang===k?'#3b82f6':S.border}`,
+              background:lang===k?'#eff6ff':'#fff',color:lang===k?'#2563eb':S.muted,
+              fontWeight:600,fontSize:13,cursor:'pointer',transition:'all 0.2s',
+            }}>{v}</button>
+          ))}
+        </div>
+      </div>
+
+      <ACard>
+        <div style={{ padding:16,borderBottom:`1px solid ${S.borderLight}`,display:'flex',justifyContent:'space-between' }}>
+          <span style={{ fontSize:13,fontWeight:600,color:S.muted }}>Tổng cộng: {data.length} dòng</span>
+          {loading && <span style={{ fontSize:13,fontWeight:600,color:'#3b82f6' }}>Đang tải...</span>}
+        </div>
+        <div style={{ overflowX:'auto', maxHeight: '600px' }}>
+          <table style={{ width:'100%',borderCollapse:'collapse',fontSize:13,textAlign:'left' }}>
+            <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
+              <tr style={{ background:'#f8fafc',borderBottom:`2px solid ${S.borderLight}`,color:S.muted }}>
+                <th style={{ padding:'12px 16px',fontWeight:700 }}>ID</th>
+                <th style={{ padding:'12px 16px',fontWeight:700 }}>Level</th>
+                <th style={{ padding:'12px 16px',fontWeight:700,width:200 }}>Title</th>
+                <th style={{ padding:'12px 16px',fontWeight:700 }}>Stage</th>
+                <th style={{ padding:'12px 16px',fontWeight:700,width:300 }}>Vocab</th>
+                <th style={{ padding:'12px 16px',fontWeight:700,width:300 }}>Grammar</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.map(r => (
+                <tr key={r.id} style={{ borderBottom:`1px solid ${S.borderLight}` }}>
+                  <td style={{ padding:'12px 16px',color:S.muted }}>{r.id}</td>
+                  <td style={{ padding:'12px 16px',fontWeight:600 }}>{r.levelNum}</td>
+                  <td style={{ padding:'12px 16px',fontWeight:600,color:S.text }}>{r.title}</td>
+                  <td style={{ padding:'12px 16px' }}><ABadge accent="blue">{r.stage}</ABadge></td>
+                  <td style={{ padding:'12px 16px',color:S.muted,whiteSpace:'pre-wrap' }}>{r.vocab}</td>
+                  <td style={{ padding:'12px 16px',color:S.muted,whiteSpace:'pre-wrap' }}>{r.grammar}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {data.length === 0 && !loading && <div style={{ padding:40,textAlign:'center',color:S.muted,fontSize:14 }}>Không có dữ liệu.</div>}
+        </div>
+      </ACard>
+    </div>
+  )
+}
+
 // ─── Import Files View ───────────────────────────────────────────────────────
 function ImportFilesView() {
   const [drag, setDrag] = useState(false)
@@ -1211,6 +1290,7 @@ export default function AdminApp({ user, onLogout }) {
       case 'premium':     return <PremiumView/>
       case 'import':      return <ImportFilesView/>
       case 'preview':     return <DocxPreviewView/>
+      case 'imported-data': return <ImportedDataView/>
       case 'templates':   return <PromptTemplatesView/>
       case 'questions':   return <GeneratedQuestionsView/>
       case 'users':       return <UsersView/>
