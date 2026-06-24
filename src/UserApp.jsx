@@ -450,7 +450,7 @@ function LiveView() {
 
   const AGORA_APP_ID  = 'ca82570aa4a3464aadca4e28ee1d73b9'
   const AGORA_CHANNEL = 'lucy_room_1'
-  const AGORA_TOKEN   = '006ca82570aa4a3464aadca4e28ee1d73b9IACc5s3b/IwXIquJv0NUyYgLxo3PXKy0esWGIFIZ5GaFrJrnejAAAAAAIgCzgFZ7Vp06agQAAQBWnTpqAgBWnTpqAwBWnTpqBABWnTpq'
+  const AGORA_TOKEN   = '007eJxTYHh0WeKlQsvRx9ImaTb+uhlVW95oel4pa/rMqCbrmfG6b5kCQ3KihZGpuUFiokmisYmZSWJiSnKiSaqRRWqqYYq5cZLlnmrrrIZARoY7a3WYGBkgEMTnZsgpTa6ML8rPz403ZGAAADtZImk='
 
   useEffect(() => {
     if (typeof AgoraRTC === 'undefined') { setError('Agora SDK chưa tải.'); return }
