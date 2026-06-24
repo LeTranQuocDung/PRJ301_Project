@@ -169,7 +169,7 @@ function Sidebar({ active, setActive, user, onLogout }) {
 
       {/* Nav */}
       <div style={{ flex: 1, padding: '8px 0' }}>
-        {NAV_GROUPS.map((g, gi) => (
+        {NAV_GROUPS.filter(g => !(user?.role === 'teacher' && g.label === 'IMPORT')).map((g, gi) => (
           <div key={gi} style={{ marginBottom: 2 }}>
             {g.label && (
               <div style={{ padding: '10px 18px 4px', fontSize: 10, fontWeight: 700, color: g.color || 'rgba(255,255,255,0.3)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
@@ -1338,7 +1338,7 @@ export default function AdminApp({ user, onLogout }) {
       case 'course-runs': return <CourseRunsView/>
       case 'chapters':    return <ChaptersView/>
       case 'lessons':     return <LessonsView/>
-      case 'live-rooms':  return <LiveRoomsView role={role}/>
+      case 'live-rooms':  return <LiveRoomsView role={user?.role}/>
       case 'podcasts':    return <PodcastsView/>
       case 'premium':     return <PremiumView/>
       case 'import':      return <ImportFilesView/>
