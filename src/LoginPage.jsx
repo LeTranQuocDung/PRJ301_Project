@@ -236,9 +236,9 @@ export default function LoginPage({ onLogin }) {
 
               <div style={{ background:'#f8fafc', padding:'12px 16px', borderRadius:12, border:'1px solid #e2e8f0', fontSize:12, color:'#64748b', lineHeight:1.6 }}>
                 <strong style={{ color:'#334155' }}>💡 Tài khoản mẫu:</strong><br/>
-                👨‍🏫 <span style={{ color:'#4f46e5', fontWeight:600 }}>admin / 123456</span> — Admin Panel<br/>
-                🧑‍💻 <span style={{ color:'#ea580c', fontWeight:600 }}>mentor / 123456</span> — Quản lý phòng Live<br/>
-                🎓 <span style={{ color:'#10b981', fontWeight:600 }}>student / 123456</span> — Học viên
+                👨‍🏫 <span style={{ color:'#4f46e5', fontWeight:600 }}>Admin / Pass:123456</span> — Admin Panel<br/>
+                🧑‍💻 <span style={{ color:'#ea580c', fontWeight:600 }}>Mentor / Pass:123456</span> — Quản lý phòng Live<br/>
+                🎓 <span style={{ color:'#10b981', fontWeight:600 }}>Student / Pass:123456</span> — Học viên
               </div>
             </div>
           )}
