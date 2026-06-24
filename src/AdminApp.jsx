@@ -514,7 +514,7 @@ const AGORA_APP_ID   = 'ca82570aa4a3464aadca4e28ee1d73b9'
 const AGORA_CHANNEL  = 'lucy_room_1'
 const AGORA_TOKEN    = '007eJxTYHh0WeKlQsvRx9ImaTb+uhlVW95oel4pa/rMqCbrmfG6b5kCQ3KihZGpuUFiokmisYmZSWJiSnKiSaqRRWqqYYq5cZLlnmrrrIZARoY7a3WYGBkgEMTnZsgpTa6ML8rPz403ZGAAADtZImk='
 
-function LiveRoomsView() {
+function LiveRoomsView({ role }) {
   const [uid]           = useState(() => Math.floor(Math.random()*99999)+1)
   const [joining,  setJoining]  = useState(false)
   const [joined,   setJoined]   = useState(false)
@@ -1338,7 +1338,7 @@ export default function AdminApp({ user, onLogout }) {
       case 'course-runs': return <CourseRunsView/>
       case 'chapters':    return <ChaptersView/>
       case 'lessons':     return <LessonsView/>
-      case 'live-rooms':  return <LiveRoomsView/>
+      case 'live-rooms':  return <LiveRoomsView role={role}/>
       case 'podcasts':    return <PodcastsView/>
       case 'premium':     return <PremiumView/>
       case 'import':      return <ImportFilesView/>

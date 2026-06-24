@@ -3,6 +3,7 @@ import { useState } from 'react'
 // ─── Seed default accounts ────────────────────────────────────────────────────
 const SEED_ACCOUNTS = [
   { id: 'admin-default', name: 'Admin',   password: '123456', roleId: 'admin',    role: 'admin' },
+  { id: 'mentor-default', name: 'Mentor', password: '123456', roleId: 'teacher',  role: 'teacher' },
   { id: 'user-default',  name: 'Student', password: '123456', roleId: 'student',  role: 'user'  },
 ]
 

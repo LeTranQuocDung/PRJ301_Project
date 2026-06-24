@@ -19,6 +19,6 @@ export default function App() {
   }
 
   if (!user) return <LoginPage onLogin={handleLogin} />
-  if (user.role === 'admin') return <AdminApp user={user} onLogout={handleLogout} />
+  if (user.role === 'admin' || user.role === 'teacher') return <AdminApp user={user} onLogout={handleLogout} />
   return <UserApp user={user} onLogout={handleLogout} />
 }
