@@ -2,6 +2,7 @@ package com.lucy.controller;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.lucy.dao.UserDAO;
 import com.lucy.model.User;
 import com.lucy.util.PasswordUtil;
@@ -223,6 +224,57 @@ public class UserServlet extends HttpServlet {
             resp.getWriter().write(gson.toJson(created));
         } else {
             sendError(resp, 500, "Failed to create user");
+        }
+    }
+
+    @Override
+    protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String path = req.getPathInfo();
+        if (path == null) {
+            sendError(resp, 400, "Invalid action");
+            return;
+        }
+
+        try {
+            JsonObject json = JsonParser.parseReader(req.getReader()).getAsJsonObject();
+            int userId = json.get("id").getAsInt();
+
+            if (path.equals("/admin/update-role")) {
+                String newRole = json.get("role").getAsString();
+                boolean success = userDAO.updateUserRole(userId, newRole);
+                if (success) {
+                    resp.getWriter().write("{\"status\":\"success\"}");
+                } else {
+                    sendError(resp, 500, "Failed to update role");
+                }
+            } else {
+                sendError(resp, 404, "Endpoint not found");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            sendError(resp, 400, "Invalid request format");
+        }
+    }
+
+    @Override
+    protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        String idParam = req.getParameter("id");
+        if (idParam == null) {
+            sendError(resp, 400, "Missing user id");
+            return;
+        }
+
+        try {
+            int userId = Integer.parseInt(idParam);
+            boolean success = userDAO.deleteUser(userId);
+            if (success) {
+                resp.getWriter().write("{\"status\":\"success\"}");
+            } else {
+                sendError(resp, 500, "Failed to delete user");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            sendError(resp, 400, "Invalid user id");
         }
     }
 

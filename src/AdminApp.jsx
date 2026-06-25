@@ -1051,6 +1051,8 @@ function UsersView() {
     const [users, setUsers] = useState([])
     const [loading, setLoading] = useState(true)
     const [editId, setEditId] = useState(null)
+    const [editingRole, setEditingRole] = useState(null)
+    const [tempRole, setTempRole] = useState('')
     const [form,   setForm]   = useState({ name:'', email:'', role:'student' })
   
     const roleAccent = { 'student':'blue', 'mentor':'purple', 'teacher':'purple', 'influencer':'amber', 'admin':'green' }
@@ -1102,6 +1104,29 @@ function UsersView() {
       }
     }
 
+    
+    const saveRole = async (id) => {
+      if (!tempRole) return setEditingRole(null);
+      try {
+        const res = await fetch('http://localhost:8080/LucyBackendAPI/api/users/admin/update-role', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, role: tempRole })
+        });
+        if (res.ok) { fetchUsers(); setEditingRole(null); }
+        else alert('Lỗi sửa Role');
+      } catch(e) { alert('Lỗi kết nối Server'); }
+    }
+
+    const deleteUser = async (id) => {
+      if (!window.confirm('Bạn có chắc muốn xóa người dùng này?')) return;
+      try {
+        const res = await fetch('http://localhost:8080/LucyBackendAPI/api/users?id=' + id, { method: 'DELETE' });
+        if (res.ok) fetchUsers();
+        else alert('Lỗi xóa người dùng');
+      } catch(e) { alert('Lỗi kết nối Server'); }
+    }
+  
     const resetPass = async (id) => {
       if(!window.confirm('Reset mật khẩu của người này về 123456?')) return;
       try {
@@ -1174,12 +1199,28 @@ function UsersView() {
                         <div style={{fontWeight:600,color:S.text}}>{roleIcon[u.role] || '👤'} {u.displayName || u.username}</div>
                         <div style={{color:S.muted,fontSize:12,marginTop:2}}>{u.email}</div>
                       </td>
-                      <td style={{ padding:'12px 16px' }}><ABadge accent={roleAccent[u.role] || 'gray'}>{u.role}</ABadge></td>
+                      <td style={{ padding:'12px 16px' }}>
+                        {editingRole === u.id ? (
+                          <div style={{ display:'flex', gap:6 }}>
+                            <select value={tempRole} onChange={e=>setTempRole(e.target.value)} style={{ padding:'4px', borderRadius:6, border:'1px solid #cbd5e1' }}>
+                              <option value="student">student</option>
+                              <option value="mentor">mentor</option>
+                              <option value="admin">admin</option>
+                            </select>
+                            <button onClick={()=>saveRole(u.id)} style={{ padding:'4px 8px', borderRadius:6, border:'none', background:ACCENTS.green.c, color:'#fff', cursor:'pointer' }}>Lưu</button>
+                            <button onClick={()=>setEditingRole(null)} style={{ padding:'4px 8px', borderRadius:6, border:'none', background:'#e2e8f0', cursor:'pointer' }}>Hủy</button>
+                          </div>
+                        ) : (
+                          <ABadge accent={roleAccent[u.role] || 'gray'}>{u.role}</ABadge>
+                        )}
+                      </td>
                       <td style={{ padding:'12px 16px' }}>
                         <span style={{ color:ACCENTS.green.c,display:'flex',alignItems:'center',gap:4,fontSize:12 }}><CheckCircle size={13}/>Hoạt động</span>
                       </td>
-                      <td style={{ padding:'12px 16px' }}>
-                        <button onClick={()=>resetPass(u.id)} style={{ border:'none',color:ACCENTS.blue.c,cursor:'pointer',padding:'6px 12px', borderRadius:6, background:'#eff6ff', fontWeight:600, fontSize:12 }}>Reset Pass (123456)</button>
+                      <td style={{ padding:'12px 16px', display:'flex', gap:8 }}>
+                        <button onClick={()=>{setEditingRole(u.id); setTempRole(u.role)}} style={{ border:'none',color:'#fff',cursor:'pointer',padding:'6px 12px', borderRadius:6, background:'#8b5cf6', fontWeight:600, fontSize:12 }}>Sửa Role</button>
+                        <button onClick={()=>resetPass(u.id)} style={{ border:'none',color:ACCENTS.blue.c,cursor:'pointer',padding:'6px 12px', borderRadius:6, background:'#eff6ff', fontWeight:600, fontSize:12 }}>Reset Pass</button>
+                        <button onClick={()=>deleteUser(u.id)} style={{ border:'none',color:'#fff',cursor:'pointer',padding:'6px 12px', borderRadius:6, background:'#ef4444', fontWeight:600, fontSize:12 }}>Xóa</button>
                       </td>
                     </tr>
                   ))}

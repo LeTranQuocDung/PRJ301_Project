@@ -59,6 +59,31 @@ public class UserDAO {
         }
     }
 
+    public boolean updateUserRole(int userId, String newRole) {
+        String sql = "UPDATE Users SET role = ? WHERE id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, newRole);
+            ps.setInt(2, userId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean deleteUser(int userId) {
+        String sql = "UPDATE Users SET is_deleted = 1, is_active = 0 WHERE id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            return ps.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public boolean updatePassword(int userId, String newPasswordHash) {
         String sql = "UPDATE Users SET password_hash = ? WHERE id = ?";
         try (Connection conn = DBConnection.getConnection();
