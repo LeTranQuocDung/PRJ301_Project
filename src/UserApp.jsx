@@ -121,28 +121,7 @@ function Navbar({ active, setActive, user, xp, streak, onLogout }) {
       </div>
 
 <div style={{ padding: '20px 16px', borderTop: `1px solid ${sidebarBorder}` }}>
-        
-      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: '20px 24px', marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a' }}>🔒 Bảo mật tài khoản</div>
-          <button onClick={() => setIsChangingPass(!isChangingPass)} style={{ background: 'none', border: 'none', color: '#3b82f6', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>Đổi mật khẩu</button>
-        </div>
-        
-        {isChangingPass && (
-          <form onSubmit={doChangePass} style={{ marginTop: 16, borderTop: '1px solid #e2e8f0', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Mật khẩu cũ</div>
-              <input type="password" value={oldPass} onChange={e=>setOldPass(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} placeholder="Nhập mật khẩu hiện tại..." />
-            </div>
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Mật khẩu mới</div>
-              <input type="password" value={newPass} onChange={e=>setNewPass(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} placeholder="Nhập mật khẩu mới..." />
-            </div>
-            <button type="submit" style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '10px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', marginTop: 4 }}>Lưu mật khẩu</button>
-          </form>
-        )}
-      </div>
-      <button onClick={onLogout} style={{
+        <button onClick={onLogout} style={{
           width: '100%', padding: '12px 0', borderRadius: 10,
           background: 'transparent', color: '#f87171', border: `1px solid rgba(248,113,113,0.3)`,
           fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
@@ -816,6 +795,27 @@ function ProfileView({ user, xp, streak, completed, onLogout }) {
             </div>
           )
         })}
+      </div>
+
+      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: '20px 24px', marginBottom: 16 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a' }}>🔒 Bảo mật tài khoản</div>
+          <button onClick={() => setIsChangingPass(!isChangingPass)} style={{ background: 'none', border: 'none', color: '#3b82f6', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>Đổi mật khẩu</button>
+        </div>
+        
+        {isChangingPass && (
+          <form onSubmit={doChangePass} style={{ marginTop: 16, borderTop: '1px solid #e2e8f0', paddingTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Mật khẩu cũ</div>
+              <input type="password" value={oldPass} onChange={e=>setOldPass(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} placeholder="Nhập mật khẩu hiện tại..." />
+            </div>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#64748b', marginBottom: 4 }}>Mật khẩu mới</div>
+              <input type="password" value={newPass} onChange={e=>setNewPass(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 14 }} placeholder="Nhập mật khẩu mới..." />
+            </div>
+            <button type="submit" style={{ background: '#3b82f6', color: '#fff', border: 'none', padding: '10px', borderRadius: 8, fontWeight: 700, cursor: 'pointer', marginTop: 4 }}>Lưu mật khẩu</button>
+          </form>
+        )}
       </div>
 
       <button onClick={onLogout} style={{
