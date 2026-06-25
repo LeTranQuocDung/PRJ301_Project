@@ -129,18 +129,24 @@ const NAV_GROUPS = [
     { id:'podcasts', icon:<Headphones size={15}/>, label:'Podcasts', emoji:'🎧' },
     { id:'premium', icon:<Star size={15}/>, label:'Premium', emoji:'⭐' },
   ]},
-  { label:'IMPORT', color:'#f59e0b', items:[
+  { label:'IMPORT', hideFor: ['teacher', 'mentor'], color:'#f59e0b', items:[
     { id:'import', icon:<Upload size={15}/>, label:'Import Files', emoji:'📤' },
     { id:'preview', icon:<Eye size={15}/>, label:'DOCX Preview', emoji:'👁' },
     { id:'imported-data', icon:<Database size={15}/>, label:'Imported Data', emoji:'🗄️' },
   ]},
-  { label:'AI', color:'#ec4899', items:[
+  { label:'AI', hideFor: ['teacher', 'mentor'], color:'#ec4899', items:[
     { id:'templates', icon:<Zap size={15}/>, label:'AI Templates', emoji:'⚡' },
     { id:'questions', icon:<MessageSquare size={15}/>, label:'AI Questions', emoji:'🤖' },
   ]},
-  { label:'USERS', color:'#06b6d4', items:[
+  { label:'USERS', hideFor: ['teacher', 'mentor'], color:'#06b6d4', items:[
     { id:'users', icon:<Users size={15}/>, label:'Users', emoji:'👥' },
   ]},
+  { label:'TEACHER WORKSPACE', showOnlyFor: ['teacher', 'mentor'], color:'#8b5cf6', items:[
+    { id:'teacher-profile', icon:<Users size={15}/>, label:'Profile', emoji:'👤' },
+    { id:'teacher-classrooms', icon:<BookOpen size={15}/>, label:'Classrooms', emoji:'👨‍🏫' },
+    { id:'teacher-materials', icon:<FileText size={15}/>, label:'Materials', emoji:'📚' },
+  ]},
+]},
 ]
 
 function Sidebar({ active, setActive, user, onLogout }) {
