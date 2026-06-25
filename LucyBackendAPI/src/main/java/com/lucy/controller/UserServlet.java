@@ -229,6 +229,7 @@ public class UserServlet extends HttpServlet {
 
     @Override
     protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        setCorsHeaders(resp);
         String path = req.getPathInfo();
         if (path == null) {
             sendError(resp, 400, "Invalid action");
@@ -258,6 +259,7 @@ public class UserServlet extends HttpServlet {
 
     @Override
     protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        setCorsHeaders(resp);
         String idParam = req.getParameter("id");
         if (idParam == null) {
             sendError(resp, 400, "Missing user id");
