@@ -206,10 +206,10 @@ function Sidebar({ active, setActive, user, onLogout }) {
       {/* Footer */}
       <div style={{ padding: '12px 14px 16px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', marginBottom: 8 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>👨‍🏫</div>
+          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>{user.role === 'teacher' ? '👨‍🏫' : '👑'}</div>
           <div style={{ flex: 1, overflow: 'hidden' }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>Admin</div>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>{user.role === 'teacher' ? 'Giảng viên' : 'Admin'}</div>
           </div>
         </div>
         <button onClick={onLogout} style={{
