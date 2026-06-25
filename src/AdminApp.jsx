@@ -146,7 +146,6 @@ const NAV_GROUPS = [
     { id:'teacher-classrooms', icon:<BookOpen size={15}/>, label:'Classrooms', emoji:'👨‍🏫' },
     { id:'teacher-materials', icon:<FileText size={15}/>, label:'Materials', emoji:'📚' },
   ]},
-]},
 ]
 
 function Sidebar({ active, setActive, user, onLogout }) {
