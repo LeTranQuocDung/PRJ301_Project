@@ -84,7 +84,7 @@ BEGIN
     INSERT INTO Users (username, email, password_hash, display_name, role, total_xp, is_active, is_deleted)
     VALUES 
     ('admin', 'admin@lucy.edu', 'faudq84gGjgvjeYGqNRMtsxu49iFmicKzWBp143P/4k=', 'Quản trị viên', 'admin', 0, 1, 0),
-    ('mentor', 'mentor@lucy.edu', 'faudq84gGjgvjeYGqNRMtsxu49iFmicKzWBp143P/4k=', 'Giảng viên Mentor', 'teacher', 0, 1, 0),
+    ('mentor', 'mentor@lucy.edu', 'faudq84gGjgvjeYGqNRMtsxu49iFmicKzWBp143P/4k=', 'Giảng viên Mentor', 'mentor', 0, 1, 0),
     ('student', 'student@lucy.edu', 'faudq84gGjgvjeYGqNRMtsxu49iFmicKzWBp143P/4k=', 'Học viên Test', 'student', 150, 1, 0);
 END
 GO
