@@ -29,11 +29,23 @@ public class UserServlet extends HttpServlet {
     }
 
     private void setCorsHeaders(HttpServletResponse resp) {
-        resp.setHeader("Access-Control-Allow-Origin", "*");
-        resp.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-        resp.setHeader("Access-Control-Allow-Headers", "Content-Type");
-        resp.setContentType("application/json");
-        resp.setCharacterEncoding("UTF-8");
+        com.lucy.util.CorsUtil.setCorsHeaders(resp);
+    }
+
+    private boolean isAdmin(HttpServletRequest req) {
+        String role = req.getHeader("X-LUCY-ROLE");
+        return "admin".equalsIgnoreCase(role);
+    }
+
+    private String sanitizeAndValidateRole(String role) {
+        if (role == null) return "student";
+        String r = role.trim().toLowerCase();
+        if ("mentor".equals(r)) r = "teacher";
+        if ("influencer".equals(r)) r = "student";
+        if ("admin".equals(r) || "teacher".equals(r) || "student".equals(r)) {
+            return r;
+        }
+        return "student";
     }
 
     @Override
@@ -48,7 +60,11 @@ public class UserServlet extends HttpServlet {
         String pathInfo = req.getPathInfo();
 
         if (pathInfo == null || pathInfo.equals("/")) {
-            // GET /api/users - List all users
+            // GET /api/users - List all users (Admin only)
+            if (!isAdmin(req)) {
+                sendError(resp, 403, "Access denied. Admin role required.");
+                return;
+            }
             List<User> users = userDAO.getAllUsers();
             // Don't send password hashes to frontend
             for (User u : users) { u.setPasswordHash(null); }
@@ -69,6 +85,9 @@ public class UserServlet extends HttpServlet {
             while ((line = reader.readLine()) != null) {
                 sb.append(line);
             }
+        } catch (Exception e) {
+            sendError(resp, 400, "Invalid request body");
+            return;
         }
         
         if (sb.length() == 0) {
@@ -76,7 +95,13 @@ public class UserServlet extends HttpServlet {
             return;
         }
 
-        JsonObject json = gson.fromJson(sb.toString(), JsonObject.class);
+        JsonObject json;
+        try {
+            json = gson.fromJson(sb.toString(), JsonObject.class);
+        } catch (Exception e) {
+            sendError(resp, 400, "Invalid JSON format");
+            return;
+        }
 
         if ("/register".equals(pathInfo)) {
             handleRegister(json, resp);
@@ -85,8 +110,16 @@ public class UserServlet extends HttpServlet {
         } else if ("/change-password".equals(pathInfo)) {
             handleChangePassword(json, resp);
         } else if ("/admin/reset-password".equals(pathInfo)) {
+            if (!isAdmin(req)) {
+                sendError(resp, 403, "Access denied. Admin role required.");
+                return;
+            }
             handleAdminResetPassword(json, resp);
         } else if ("/admin/create-user".equals(pathInfo)) {
+            if (!isAdmin(req)) {
+                sendError(resp, 403, "Access denied. Admin role required.");
+                return;
+            }
             handleAdminCreateUser(json, resp);
         } else {
             resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
@@ -94,15 +127,25 @@ public class UserServlet extends HttpServlet {
     }
 
     private void handleRegister(JsonObject json, HttpServletResponse resp) throws IOException {
-        String username = json.has("username") ? json.get("username").getAsString() : "";
-        String email = json.has("email") ? json.get("email").getAsString() : "";
-        String password = json.has("password") ? json.get("password").getAsString() : "";
+        String username = json.has("username") ? json.get("username").getAsString().trim() : "";
+        String email = json.has("email") ? json.get("email").getAsString().trim() : "";
+        String password = json.has("password") ? json.get("password").getAsString().trim() : "";
         
         if (username.isEmpty() || email.isEmpty() || password.isEmpty()) {
             sendError(resp, 400, "Missing required fields");
             return;
         }
         
+        if (!email.contains("@") || !email.contains(".")) {
+            sendError(resp, 400, "Invalid email format");
+            return;
+        }
+
+        if (password.length() < 6) {
+            sendError(resp, 400, "Password must be at least 6 characters");
+            return;
+        }
+
         if (userDAO.getUserByEmail(email) != null || userDAO.getUserByUsername(username) != null) {
             sendError(resp, 400, "Username or email already exists");
             return;
@@ -112,23 +155,32 @@ public class UserServlet extends HttpServlet {
         user.setUsername(username);
         user.setEmail(email);
         user.setPasswordHash(PasswordUtil.hashPassword(password));
-        user.setDisplayName(json.has("displayName") ? json.get("displayName").getAsString() : username);
-        user.setAvatarUrl(json.has("avatarUrl") ? json.get("avatarUrl").getAsString() : "");
+        user.setDisplayName(json.has("displayName") ? json.get("displayName").getAsString().trim() : username);
+        user.setAvatarUrl(json.has("avatarUrl") ? json.get("avatarUrl").getAsString().trim() : "");
         user.setRole("student"); // FORCE role to student for public registration
 
         if (userDAO.insertUser(user)) {
             User created = userDAO.getUserByEmail(email);
-            created.setPasswordHash(null);
-            resp.getWriter().write(gson.toJson(created));
+            if (created != null) {
+                created.setPasswordHash(null);
+                resp.getWriter().write(gson.toJson(created));
+            } else {
+                sendError(resp, 500, "Failed to retrieve created user");
+            }
         } else {
             sendError(resp, 500, "Failed to create user");
         }
     }
 
     private void handleLogin(JsonObject json, HttpServletResponse resp) throws IOException {
-        String identifier = json.has("email") ? json.get("email").getAsString() : "";
-        String password = json.has("password") ? json.get("password").getAsString() : "";
+        String identifier = json.has("email") ? json.get("email").getAsString().trim() : "";
+        String password = json.has("password") ? json.get("password").getAsString().trim() : "";
         
+        if (identifier.isEmpty() || password.isEmpty()) {
+            sendError(resp, 400, "Missing required fields");
+            return;
+        }
+
         User user = userDAO.getUserByEmail(identifier);
         if (user == null) {
             user = userDAO.getUserByUsername(identifier);
@@ -150,14 +202,20 @@ public class UserServlet extends HttpServlet {
 
     private void handleChangePassword(JsonObject json, HttpServletResponse resp) throws IOException {
         int userId = json.has("userId") ? json.get("userId").getAsInt() : 0;
-        String oldPass = json.has("oldPassword") ? json.get("oldPassword").getAsString() : "";
-        String newPass = json.has("newPassword") ? json.get("newPassword").getAsString() : "";
+        String oldPass = json.has("oldPassword") ? json.get("oldPassword").getAsString().trim() : "";
+        String newPass = json.has("newPassword") ? json.get("newPassword").getAsString().trim() : "";
         
-        // Need to fetch user to verify old password
-        // Since we don't have session based auth in this simple app, we trust the userId 
-        // provided but we MUST verify old password
-        // Actually we need to get user by ID. Let's add that to DAO later or just verify email.
-        String email = json.has("email") ? json.get("email").getAsString() : "";
+        if (userId <= 0 || oldPass.isEmpty() || newPass.isEmpty()) {
+            sendError(resp, 400, "Missing required fields");
+            return;
+        }
+
+        if (newPass.length() < 6) {
+            sendError(resp, 400, "New password must be at least 6 characters");
+            return;
+        }
+
+        String email = json.has("email") ? json.get("email").getAsString().trim() : "";
         User user = userDAO.getUserByEmail(email);
         
         if (user == null || user.getId() != userId) {
@@ -179,32 +237,46 @@ public class UserServlet extends HttpServlet {
 
     private void handleAdminResetPassword(JsonObject json, HttpServletResponse resp) throws IOException {
         int userId = json.has("userId") ? json.get("userId").getAsInt() : 0;
-        // Default password as requested by user
-        String defaultPass = "123456"; 
+        String newPassword = json.has("newPassword") ? json.get("newPassword").getAsString().trim() : "";
         
         if (userId <= 0) {
             sendError(resp, 400, "Missing user ID");
             return;
         }
+
+        if (newPassword.isEmpty() || newPassword.length() < 8) {
+            sendError(resp, 400, "Password must be at least 8 characters");
+            return;
+        }
         
-        if (userDAO.updatePassword(userId, PasswordUtil.hashPassword(defaultPass))) {
-            resp.getWriter().write("{\"status\":\"success\",\"message\":\"Password reset to 123456\"}");
+        if (userDAO.updatePassword(userId, PasswordUtil.hashPassword(newPassword))) {
+            resp.getWriter().write("{\"status\":\"success\",\"message\":\"Password reset successfully\"}");
         } else {
             sendError(resp, 500, "Failed to reset password");
         }
     }
 
     private void handleAdminCreateUser(JsonObject json, HttpServletResponse resp) throws IOException {
-        String username = json.has("username") ? json.get("username").getAsString() : "";
-        String email = json.has("email") ? json.get("email").getAsString() : "";
-        String password = json.has("password") ? json.get("password").getAsString() : "123456"; // Default pass
-        String role = json.has("role") ? json.get("role").getAsString() : "student";
+        String username = json.has("username") ? json.get("username").getAsString().trim() : "";
+        String email = json.has("email") ? json.get("email").getAsString().trim() : "";
+        String password = json.has("password") ? json.get("password").getAsString().trim() : "";
+        String role = json.has("role") ? json.get("role").getAsString().trim() : "student";
         
         if (username.isEmpty() || email.isEmpty()) {
             sendError(resp, 400, "Missing required fields");
             return;
         }
-        
+
+        if (password.isEmpty() || password.length() < 8) {
+            sendError(resp, 400, "Password must be at least 8 characters");
+            return;
+        }
+
+        if (!email.contains("@") || !email.contains(".")) {
+            sendError(resp, 400, "Invalid email format");
+            return;
+        }
+
         if (userDAO.getUserByEmail(email) != null || userDAO.getUserByUsername(username) != null) {
             sendError(resp, 400, "Username or email already exists");
             return;
@@ -214,14 +286,18 @@ public class UserServlet extends HttpServlet {
         user.setUsername(username);
         user.setEmail(email);
         user.setPasswordHash(PasswordUtil.hashPassword(password));
-        user.setDisplayName(json.has("displayName") ? json.get("displayName").getAsString() : username);
-        user.setAvatarUrl(json.has("avatarUrl") ? json.get("avatarUrl").getAsString() : "");
-        user.setRole(role); // Allow admin to set role
+        user.setDisplayName(json.has("displayName") ? json.get("displayName").getAsString().trim() : username);
+        user.setAvatarUrl(json.has("avatarUrl") ? json.get("avatarUrl").getAsString().trim() : "");
+        user.setRole(sanitizeAndValidateRole(role));
 
         if (userDAO.insertUser(user)) {
             User created = userDAO.getUserByEmail(email);
-            created.setPasswordHash(null);
-            resp.getWriter().write(gson.toJson(created));
+            if (created != null) {
+                created.setPasswordHash(null);
+                resp.getWriter().write(gson.toJson(created));
+            } else {
+                sendError(resp, 500, "Failed to retrieve created user");
+            }
         } else {
             sendError(resp, 500, "Failed to create user");
         }
@@ -236,12 +312,20 @@ public class UserServlet extends HttpServlet {
             return;
         }
 
+        if (path.startsWith("/admin")) {
+            if (!isAdmin(req)) {
+                sendError(resp, 403, "Access denied. Admin role required.");
+                return;
+            }
+        }
+
         try {
             JsonObject json = JsonParser.parseReader(req.getReader()).getAsJsonObject();
             int userId = json.get("id").getAsInt();
 
             if (path.equals("/admin/update-role")) {
-                String newRole = json.get("role").getAsString();
+                String newRole = json.get("role").getAsString().trim();
+                newRole = sanitizeAndValidateRole(newRole);
                 boolean success = userDAO.updateUserRole(userId, newRole);
                 if (success) {
                     resp.getWriter().write("{\"status\":\"success\"}");
@@ -252,7 +336,6 @@ public class UserServlet extends HttpServlet {
                 sendError(resp, 404, "Endpoint not found");
             }
         } catch (Exception e) {
-            e.printStackTrace();
             sendError(resp, 400, "Invalid request format");
         }
     }
@@ -260,6 +343,11 @@ public class UserServlet extends HttpServlet {
     @Override
     protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         setCorsHeaders(resp);
+        if (!isAdmin(req)) {
+            sendError(resp, 403, "Access denied. Admin role required.");
+            return;
+        }
+
         String idParam = req.getParameter("id");
         if (idParam == null) {
             sendError(resp, 400, "Missing user id");
@@ -275,7 +363,6 @@ public class UserServlet extends HttpServlet {
                 sendError(resp, 500, "Failed to delete user");
             }
         } catch (Exception e) {
-            e.printStackTrace();
             sendError(resp, 400, "Invalid user id");
         }
     }

@@ -7,3 +7,4 @@ dist/
 */target/
 LucyBackendAPI/target/
 data_importer_toolkit/LucyImporter/target/
+/nbproject/private/

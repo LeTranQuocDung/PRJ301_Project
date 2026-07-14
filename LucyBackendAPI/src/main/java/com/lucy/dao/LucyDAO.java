@@ -78,4 +78,27 @@ public class LucyDAO {
         }
         return list;
     }
+
+    public List<Lesson> getAllLessons() {
+        List<Lesson> list = new ArrayList<>();
+        String sql = "SELECT * FROM Lessons ORDER BY level_num ASC";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Lesson l = new Lesson();
+                l.setId(rs.getInt("id"));
+                l.setLangCode(rs.getString("lang_code"));
+                l.setLevelNum(rs.getInt("level_num"));
+                l.setTitle(rs.getString("title"));
+                l.setStage(rs.getString("stage"));
+                l.setVocab(rs.getString("vocab"));
+                l.setGrammar(rs.getString("grammar"));
+                list.add(l);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return list;
+    }
 }

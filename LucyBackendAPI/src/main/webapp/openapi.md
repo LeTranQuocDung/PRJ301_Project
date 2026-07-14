@@ -1,150 +1,182 @@
-# REST API Endpoints
+# LUCY OpenAPI v3 Documentation
+
+This document describes all API endpoints accessible under the `/api/*` root path for the LUCY application.
 
 ---
 
-# 1. Get All Contents
-
-## Endpoint
-
-```http
-GET /api/contents
-```
-
-## Description
-
-Returns all learning contents from database.
+## Servers
+- Development Local: `http://localhost:8080/LucyBackendAPI`
 
 ---
 
-## Request Example
+## 1. Paths
 
-```http
-GET http://localhost:8080/LucyBackendAPI/api/contents
-```
+### `/api/users/login` (POST)
+- **Summary**: User login.
+- **Request Body** (application/json):
+  - `email` (string, required)
+  - `password` (string, required)
+- **Responses**:
+  - `200 OK`: Returns logged in user info.
+  - `401 Unauthorized`: Bad credentials.
 
----
+### `/api/users/register` (POST)
+- **Summary**: Student user self-registration.
+- **Request Body** (application/json):
+  - `username` (string, required)
+  - `email` (string, required)
+  - `password` (string, required)
+  - `avatarUrl` (string, optional)
+- **Responses**:
+  - `200 OK`: Returns registered user details.
+  - `400 Bad Request`: Validation failure.
 
-## Response Example
+### `/api/users/change-password` (POST)
+- **Summary**: Change user credentials.
+- **Request Body** (application/json):
+  - `userId` (integer, required)
+  - `email` (string, required)
+  - `oldPassword` (string, required)
+  - `newPassword` (string, required)
+- **Responses**:
+  - `200 OK`: Success message.
+  - `400 Bad Request`: Password mismatch.
 
-```json
-[
-  {
-    "languageCode": "LISA",
-    "stage": "Sơ cấp",
-    "levelName": "SAYING WHO I AM",
-    "subLevel": "Sub-level 1: My name\nMy full name\nMy nickname\nHow people call me\nSub-level 2: Where I’m from\nCountry\nCity\nOne simple fact\nSub-level 3: Me now\nStudent / worker\nSimple sentence: “I am…”\nSub-level 4: One thing about me\nI like…\nI don’t like…\nSub-level 5: Repeat \u0026 swap\nAsk and answer with partners\nSub-level 6: Mini story\n“My name is… I’m from… I am…”"
-  }
-]
-```
+### `/api/lessons` (GET)
+- **Summary**: Fetch lessons list.
+- **Parameters**:
+  - `lang` (query, string): `LISA` | `ZH` | `JA`
+- **Responses**:
+  - `200 OK`: Returns JSON array of lessons.
 
----
+### `/api/contents` (GET)
+- **Summary**: Fetch content with language, stage and level filters.
+- **Parameters**:
+  - `language` (query, string): Filter language
+  - `stage` (query, string): Filter stage
+  - `level` (query, integer): Filter level
+- **Responses**:
+  - `200 OK`: Returns JSON array of matching content.
 
-# 2. Get Contents By Language
+### `/api/progress` (GET)
+- **Summary**: Retrieve learning progress and total XP for a user.
+- **Parameters**:
+  - `userId` (query, integer, required): ID of the user.
+- **Responses**:
+  - `200 OK`: Returns total XP and array of completed lessons.
 
-## Endpoint
+### `/api/progress/complete` (POST)
+- **Summary**: Log a completed lesson and add XP.
+- **Request Body** (application/json):
+  - `userId` (integer, required)
+  - `languageCode` (string, required)
+  - `lessonId` (string, required)
+  - `levelNum` (integer, required)
+  - `xp` (integer, required)
+- **Responses**:
+  - `200 OK`: Completion confirmation and XP addition status.
 
-```http
-GET /api/contents?language={LANGUAGE_CODE}
-```
+### `/api/progress/redeem` (POST)
+- **Summary**: Deduct XP or adjust balance for redeeming reward gifts.
+- **Request Body** (application/json):
+  - `userId` (integer, required)
+  - `xpDelta` (integer, required)
+  - `reason` (string, required)
+- **Responses**:
+  - `200 OK`: Redemption success confirmation.
+  - `400 Bad Request`: Insufficient balance or invalid input data.
 
----
+### `/api/ai/generate-questions` (POST)
+- **Summary**: Generate local deterministic MCQ questions.
+- **Request Body** (application/json):
+  - `prompt` (string, required)
+  - `level` (string, optional)
+  - `count` (integer, optional)
+- **Responses**:
+  - `200 OK`: Returns JSON array of practice questions.
 
-## Supported Languages
+### `/api/engagement/podcasts` (GET)
+- **Summary**: Fetch audio podcasts.
+- **Responses**:
+  - `200 OK`: Returns JSON array of podcasts.
 
-| Code | Language |
-|---|---|
-| LISA | English |
-| ZH | Chinese |
-| JA | Japanese |
+### `/api/engagement/premium` (GET)
+- **Summary**: Fetch premium course content perks.
+- **Responses**:
+  - `200 OK`: Returns JSON array of premium courses.
 
----
+### `/api/engagement/gifts` (GET)
+- **Summary**: Fetch redeemable store rewards.
+- **Responses**:
+  - `200 OK`: Returns JSON array of exchangeable gifts.
 
-## Request Example
+### `/api/teacher/classrooms` (GET)
+- **Summary**: Fetch teacher's classrooms and student lists.
+- **Responses**:
+  - `200 OK`: Returns JSON object of classroom details and student arrays.
 
-```http
-GET http://localhost:8080/LucyBackendAPI/api/contents?language=ZH
-```
+### `/api/teacher/materials` (GET)
+- **Summary**: Fetch teaching materials for teacher.
+- **Responses**:
+  - `200 OK`: Returns JSON array of subjects and lessons.
 
----
+### `/api/import/history` (GET)
+- **Summary**: Fetch document import history and status.
+- **Responses**:
+  - `200 OK`: Returns JSON array of imported files.
 
-## Response Example
+### `/api/import/reprocess` (POST)
+- **Summary**: Reprocess an imported document file.
+- **Request Body** (application/json):
+  - `fileName` (string, required)
+- **Responses**:
+  - `200 OK`: Reprocess success confirmation.
+  - `400 Bad Request`: Unknown file name or validation failure.
 
-```json
-[
-  {
-    "languageCode": "ZH",
-    "stage": "Sơ cấp",
-    "levelName": "我的朋友",
-    "questionAi": "你有好朋友吗？",
-    "answer": "我有一个好朋友。"
-  
-]
-```
+### `/api/wallet/balance` (GET)
+- **Summary**: Retrieve student wallet balance.
+- **Parameters**:
+  - `userId` (query, integer, optional): ID of the user.
+- **Responses**:
+  - `200 OK`: Returns wallet balance object.
 
----
+### `/api/wallet/topup` (POST)
+- **Summary**: Sandbox top up for wallet balance.
+- **Request Body** (application/json):
+  - `userId` (integer, required)
+  - `amount` (number, required)
+  - `method` (string, required)
+- **Responses**:
+  - `200 OK`: Sandbox payment success transaction object.
 
-# 3. Get Contents By Stage
+### `/api/wallet/send-gift` (POST)
+- **Summary**: Gifting transaction to transfer wallet balance to mentor.
+- **Request Body** (application/json):
+  - `fromUserId` (integer, required)
+  - `toMentorId` (integer, required)
+  - `giftCode` (string, required)
+  - `amount` (number, required)
+- **Responses**:
+  - `200 OK`: Transaction confirmation object.
+  - `400 Bad Request`: Insufficient balance or invalid input.
 
-## Endpoint
+### `/api/podcasts/recordings` (GET)
+- **Summary**: Retrieve recorded podcast sessions.
+- **Responses**:
+  - `200 OK`: Returns JSON array of recordings.
 
-```http
-GET /api/contents?stage={STAGE_NAME}
-```
+### `/api/podcasts/record/start` (POST)
+- **Summary**: Start live room recording.
+- **Request Body** (application/json):
+  - `roomId` (string, required)
+  - `creatorId` (integer, required)
+  - `title` (string, required)
+- **Responses**:
+  - `200 OK`: Session started info.
 
----
-
-## Request Example
-
-```http
-GET http://localhost:8080/LucyBackendAPI/api/contents?stage=SƠ CẤP
-```
-
----
-
-## Response Example
-
-```json
-[
-  {
-    "languageCode": "JA",
-    "stage": "Sơ cấp",
-    "levelName": "私の1週間",
-    "subLevel": "平日のルーティン\n週末との比較\n忙しい日 vs 暇な日\n勉強／仕事と休息のバランス\n最近の変化 ``\n1週間のストーリー"
-  }
-]
-```
-
----
-
-# 4. Get Contents By Level
-
-## Endpoint
-
-```http
-GET /api/contents?level={LEVEL_NAME}
-```
-
----
-
-## Request Example
-
-```http
-GET http://localhost:8080/LucyBackendAPI/api/contents?level=YESTERDAY
-```
-
----
-
-## Response Example
-
-```json
-[
-  {
-    "languageCode": "LISA",
-    "stage": "Sơ cấp",
-    "levelName": "YESTERDAY",
-    "subLevel": "1: Yesterday morning\n2: Yesterday afternoon\n3: Yesterday evening\n4: One thing I did\n5: Ask about yesterday\n6: Yesterday story\nLEVEL 11–15: FUNCTIONAL COMMUNICATION (A1 → A2)"
-  }
-]
-```
-
----
+### `/api/podcasts/record/stop` (POST)
+- **Summary**: Stop live room recording and process audio.
+- **Request Body** (application/json):
+  - `sessionId` (string, required)
+- **Responses**:
+  - `200 OK`: Session stopped status and generated recording metadata.

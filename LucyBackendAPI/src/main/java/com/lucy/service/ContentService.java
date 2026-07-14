@@ -16,4 +16,8 @@ public class ContentService {
     public List<Lesson> getByLanguage(String langCode) {
         return dao.getLessonsByLang(langCode);
     }
+
+    public List<Lesson> getAll() {
+        return dao.getAllLessons();
+    }
 }

@@ -42,11 +42,12 @@ export const api = {
     delete: (id)           => req('DELETE', `/lessons/${id}`),
     // Call Real Java API
     fetchRealData: (lang, stage, level) => {
+      const API_BASE = import.meta.env.VITE_LUCY_API_BASE || 'http://localhost:8080/LucyBackendAPI';
       const params = new URLSearchParams()
       if (lang) params.append('language', lang)
       if (stage) params.append('stage', stage)
       if (level) params.append('level', level)
-      return fetch(`http://localhost:8080/LucyBackendAPI/api/contents?${params}`)
+      return fetch(`${API_BASE}/api/contents?${params}`)
         .then(res => {
           if (!res.ok) throw new Error('Failed to fetch from Java Backend')
           return res.json()

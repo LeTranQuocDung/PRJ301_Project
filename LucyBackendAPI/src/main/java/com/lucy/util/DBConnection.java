@@ -5,49 +5,61 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 
 /**
- * Kết nối SQL Server cho LUCY_DB
- * ⚙️ Sửa HOST / USER / PASSWORD bên dưới
+ * SQL Server connection utility for LUCY_DBS
  */
 public class DBConnection {
 
-    // ⚙️ CHỈ SỬA 3 DÒNG NÀY
-    private static final String USER = "lucy_admin";
-    private static final String PASSWORD = "123456";
+    private static String getEnvOrProperty(String key, String defaultValue) {
+        String val = System.getenv(key);
+        if (val == null) {
+            val = System.getProperty(key);
+        }
+        return val != null ? val : defaultValue;
+    }
 
+    private static String requireEnvOrProperty(String key) throws SQLException {
+        String val = System.getenv(key);
+        if (val == null) {
+            val = System.getProperty(key);
+        }
+        if (val == null || val.trim().isEmpty()) {
+            throw new SQLException("Required database environment variable or property '" + key + "' is missing. Connection cannot be established.");
+        }
+        return val;
+    }
 
-private static final String URL = "jdbc:sqlserver://localhost:1433;"
-        + "databaseName=LUCY_DBS;"
-        + "encrypt=false;"
-
-        + "trustServerCertificate=true;";
+    private static final String USER = getEnvOrProperty("LUCY_DB_USER", "lucy_admin");
+    private static final String URL = getEnvOrProperty("LUCY_DB_URL", "jdbc:sqlserver://localhost;instanceName=SQLEXPRESS;databaseName=LUCY_DBS;encrypt=false;trustServerCertificate=true;");
 
     public static Connection getConnection() throws SQLException {
         try {
             Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
         } catch (ClassNotFoundException e) {
-            throw new SQLException("Khong tim thay JDBC driver!", e);
+            throw new SQLException("Microsoft SQL Server JDBC Driver class not found", e);
         }
-        return DriverManager.getConnection(URL, USER, PASSWORD);
+        String dbPassword = requireEnvOrProperty("LUCY_DB_PASSWORD");
+        return DriverManager.getConnection(URL, USER, dbPassword);
     }
 
     public static void close(Connection c) {
-        if (c != null)
+        if (c != null) {
             try {
                 c.close();
             } catch (SQLException ignored) {
             }
+        }
     }
 
-    /** Chạy hàm main() này để test kết nối trước */
+    /** Run main() to test connection */
     public static void main(String[] args) {
-        System.out.println("Testing connection to LUCY_DB...");
+        System.out.println("Testing connection to LUCY_DBS...");
         System.out.println("URL: " + URL);
         try (Connection conn = getConnection()) {
-            System.out.println("✅ Kết nối thành công: "
+            System.out.println("Connection successful: "
                     + conn.getMetaData().getDatabaseProductVersion());
         } catch (SQLException e) {
-            System.err.println("❌ Lỗi: " + e.getMessage());
-            System.err.println("Kiểm tra lại HOST / INSTANCE / USER / PASSWORD");
+            System.err.println("Connection failed: " + e.getMessage());
+            System.err.println("Please check your configuration: HOST / INSTANCE / USER / PASSWORD env settings.");
         }
     }
 }

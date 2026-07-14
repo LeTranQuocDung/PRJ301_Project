@@ -37,6 +37,8 @@ const AVATARS = [
   { id: 'lion', icon: '🦁', label: 'Sư tử', desc: 'Sư Tử Dũng Mãnh' },
 ]
 
+const API_BASE = import.meta.env.VITE_LUCY_API_BASE || 'http://localhost:8080/LucyBackendAPI';
+
 // ─── Input component ──────────────────────────────────────────────────────────
 function AuthInput({ label, type = 'text', value, onChange, placeholder, icon }) {
   const [focus, setFocus] = useState(false)
@@ -90,7 +92,7 @@ export default function LoginPage({ onLogin }) {
     if (!name.trim() || !password) return setError('Vui lòng nhập tên và mật khẩu.')
     setLoading(true)
     try {
-      const res = await fetch('http://localhost:8080/LucyBackendAPI/api/users/login', {
+      const res = await fetch(`${API_BASE}/api/users/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: name.trim(), password })
@@ -126,7 +128,7 @@ export default function LoginPage({ onLogin }) {
         role: 'student' // Mặc định chỉ đăng ký học viên
       }
       
-      const res = await fetch('http://localhost:8080/LucyBackendAPI/api/users/register', {
+      const res = await fetch(`${API_BASE}/api/users/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(reqBody)
