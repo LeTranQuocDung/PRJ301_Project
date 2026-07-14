@@ -136,11 +136,12 @@ function Navbar({ active, setActive, user, xp, streak, onLogout }) {
 }
 
 // ─── Home View ────────────────────────────────────────────────────────────────
-function HomeView({ user, xp, streak, completed, setActive, setLearnLang }) {
+function HomeView({ user, xp, streak, completed, setActive, setLearnLang, lastLesson, onOpenLesson }) {
   const total = Object.values(completed).flat().length
   const langStats = Object.entries(LESSONS).map(([lang,ls]) => ({
     lang, done: completed[lang]?.length || 0, total: ls.length, cfg: LANG[lang],
   }))
+  const resumeLesson = lastLesson ? (LESSONS[lastLesson.lang] || []).find(l => l.id === lastLesson.lessonId) : null
 
   return (
     <div className="fade-up" style={{ padding: '28px 28px 40px' }}>
@@ -161,6 +162,22 @@ function HomeView({ user, xp, streak, completed, setActive, setLearnLang }) {
         </div>
       </div>
 
+      {resumeLesson && (
+        <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: '20px 24px', marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#6366f1', marginBottom: 6 }}>▶ Tiếp tục học</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a' }}>{resumeLesson.title}</div>
+            <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>{resumeLesson.vi} · Level {resumeLesson.level}</div>
+          </div>
+          <button onClick={() => onOpenLesson(lastLesson.lang, resumeLesson)} style={{
+            padding: '10px 16px', borderRadius: 12, background: 'linear-gradient(135deg,#6366f1,#06b6d4)', color: '#fff', border: 'none',
+            fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: 'inherit'
+          }}>
+            Học tiếp
+          </button>
+        </div>
+      )}
+
       {/* Language Progress Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16, marginBottom: 24 }}>
         {langStats.map(({ lang, done, total: tot, cfg }) => {
@@ -171,7 +188,7 @@ function HomeView({ user, xp, streak, completed, setActive, setLearnLang }) {
               padding: '20px', cursor: 'pointer', transition: 'all 0.2s',
               borderTop: `4px solid ${cfg.primary}`,
             }}
-              onClick={() => { setLearnLang(lang); setActive('learn') }}
+              onClick={() => onOpenLesson(lang, null)}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${cfg.primary}22` }}
               onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}
             >
@@ -202,7 +219,7 @@ function HomeView({ user, xp, streak, completed, setActive, setLearnLang }) {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           {['EN','ZH','JA'].map(l => (
-            <button key={l} onClick={() => { setLearnLang(l); setActive('learn') }} style={{
+            <button key={l} onClick={() => onOpenLesson(l, null)} style={{
               flex: 1, padding: '12px 0', borderRadius: 12,
               background: LANG[l].gradient, color: '#fff', border: 'none',
               fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
@@ -222,7 +239,7 @@ function HomeView({ user, xp, streak, completed, setActive, setLearnLang }) {
 }
 
 // ─── Explore View ─────────────────────────────────────────────────────────────
-function ExploreView({ completed, setActive, setLearnLang, setLearnLesson }) {
+function ExploreView({ completed, setActive, setLearnLang, setLearnLesson, onOpenLesson }) {
   const [tab, setTab] = useState('EN')
   const cfg = LANG[tab]
   const lessons = LESSONS[tab]
@@ -259,7 +276,7 @@ function ExploreView({ completed, setActive, setLearnLang, setLearnLesson }) {
               transition: 'all 0.2s', position: 'relative',
               boxShadow: isDone ? `0 4px 16px ${cfg.primary}18` : 'none',
             }}
-              onClick={() => { setLearnLang(tab); setLearnLesson(l); setActive('learn') }}
+              onClick={() => onOpenLesson(tab, l)}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${cfg.primary}22` }}
               onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = isDone ? `0 4px 16px ${cfg.primary}18` : '' }}
             >
@@ -285,7 +302,7 @@ function ExploreView({ completed, setActive, setLearnLang, setLearnLesson }) {
 }
 
 // ─── Learn View (3-step Lesson) ───────────────────────────────────────────────
-function LearnView({ learnLang, setLearnLang, learnLesson, setLearnLesson, completed, onComplete }) {
+function LearnView({ learnLang, setLearnLang, learnLesson, setLearnLesson, completed, onComplete, onOpenLesson }) {
   const [step, setStep]       = useState(0) // 0=vocab, 1=grammar, 2=practice
   const [showAns, setShowAns] = useState(false)
   const [xpAnim, setXpAnim]  = useState(false)
@@ -446,7 +463,7 @@ function LearnView({ learnLang, setLearnLang, learnLesson, setLearnLesson, compl
         <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 14 }}>Bài học khác — {cfg.flag} {cfg.name}</div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {lessons.slice(0, 8).map(l => (
-            <button key={l.id} onClick={() => { setLearnLesson(l); setStep(0); setShowAns(false) }} style={{
+            <button key={l.id} onClick={() => { setLearnLesson(l); setStep(0); setShowAns(false); onOpenLesson(learnLang, l) }} style={{
               padding: '6px 14px', borderRadius: 20,
               background: l.id === lesson.id ? cfg.gradient : '#f8fafc',
               color: l.id === lesson.id ? '#fff' : '#64748b',
@@ -884,6 +901,14 @@ export default function UserApp({ user, onLogout }) {
     try { return JSON.parse(localStorage.getItem('lucy_completed') || '{"EN":[],"ZH":[],"JA":[]}') }
     catch { return { EN: [], ZH: [], JA: [] } }
   })
+  const [lastLesson, setLastLesson] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('lucy_last_lesson') || 'null') } catch { return null }
+  })
+
+  useEffect(() => {
+    if (lastLesson) localStorage.setItem('lucy_last_lesson', JSON.stringify(lastLesson))
+    else localStorage.removeItem('lucy_last_lesson')
+  }, [lastLesson])
 
   if (!dataLoaded) {
     return (
@@ -910,15 +935,24 @@ export default function UserApp({ user, onLogout }) {
     localStorage.setItem('lucy_streak', String(newStreak))
   }
 
+  const handleOpenLesson = (lang, lesson) => {
+    setLearnLang(lang)
+    setLearnLesson(lesson || null)
+    setActive('learn')
+    if (lesson) {
+      setLastLesson({ lang, lessonId: lesson.id })
+    }
+  }
+
   const renderView = () => {
     switch (active) {
-      case 'home':    return <HomeView user={user} xp={xp} streak={streak} completed={completed} setActive={setActive} setLearnLang={setLearnLang} />
-      case 'explore': return <ExploreView completed={completed} setActive={setActive} setLearnLang={setLearnLang} setLearnLesson={setLearnLesson} />
-      case 'learn':   return <LearnView learnLang={learnLang} setLearnLang={setLearnLang} learnLesson={learnLesson} setLearnLesson={setLearnLesson} completed={completed} onComplete={handleComplete} />
+      case 'home':    return <HomeView user={user} xp={xp} streak={streak} completed={completed} setActive={setActive} setLearnLang={setLearnLang} lastLesson={lastLesson} onOpenLesson={handleOpenLesson} />
+      case 'explore': return <ExploreView completed={completed} setActive={setActive} setLearnLang={setLearnLang} setLearnLesson={setLearnLesson} onOpenLesson={handleOpenLesson} />
+      case 'learn':   return <LearnView learnLang={learnLang} setLearnLang={setLearnLang} learnLesson={learnLesson} setLearnLesson={setLearnLesson} completed={completed} onComplete={handleComplete} onOpenLesson={handleOpenLesson} />
       case 'live':    return <LiveView />
       case 'progress':return <ProgressView xp={xp} streak={streak} completed={completed} />
       case 'profile': return <ProfileView user={user} xp={xp} streak={streak} completed={completed} onLogout={onLogout} />
-      default:        return <HomeView user={user} xp={xp} streak={streak} completed={completed} setActive={setActive} setLearnLang={setLearnLang} />
+      default:        return <HomeView user={user} xp={xp} streak={streak} completed={completed} setActive={setActive} setLearnLang={setLearnLang} lastLesson={lastLesson} onOpenLesson={handleOpenLesson} />
     }
   }
 
