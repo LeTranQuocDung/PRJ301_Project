@@ -1992,6 +1992,237 @@ function AIQuestionsView() {
   )
 }
 
+const EN_RICH_DATA = {
+  "SAYING WHO I AM": {
+    vocab: "• full name (n): tên đầy đủ\n  Example: My full name is John Doe.\n• nickname (n): biệt danh\n  Example: My nickname is Johnny.\n• student (n): học sinh, sinh viên\n  Example: I am a university student.\n• worker (n): người đi làm\n  Example: He is an office worker.",
+    grammar: "Subject + be + Noun/Adjective\n(Dùng để giới thiệu tên, tuổi, nghề nghiệp hoặc quốc tịch)\nExample 1: I am a student. (Tôi là học sinh)\nExample 2: She is from Vietnam. (Cô ấy đến từ Việt Nam)",
+    question: "Translate to English: 'Tên đầy đủ của tôi là Dũng và tôi là học sinh.'",
+    answer: "My full name is Dung and I am a student."
+  },
+  "COUNTRIES & LANGUAGES": {
+    vocab: "• country (n): quốc gia\n  Example: Vietnam is a beautiful country.\n• native language (n): ngôn ngữ mẹ đẻ\n  Example: Vietnamese is my native language.\n• bilingual (adj): song ngữ\n  Example: She is bilingual in English and Chinese.\n• foreign (adj): nước ngoài\n  Example: I love learning foreign languages.",
+    grammar: "Subject + speak(s) + Language(s)\n(Dùng để diễn đạt ngôn ngữ mà ai đó nói được)\nExample 1: I speak Vietnamese and English. (Tôi nói tiếng Việt và tiếng Anh)\nExample 2: He speaks Japanese fluently. (Anh ấy nói tiếng Nhật trôi chảy)",
+    question: "Translate to English: 'Tôi nói tiếng Anh và tôi muốn học tiếng Nhật.'",
+    answer: "I speak English and I want to learn Japanese."
+  },
+  "GREETINGS & POLITENESS": {
+    vocab: "• greet (v): chào hỏi\n  Example: He greeted me with a warm smile.\n• polite (adj): lịch sự\n  Example: It is polite to say thank you.\n• apologize (v): xin lỗi\n  Example: I apologize for being late.\n• pleasure (n): niềm vinh hạnh\n  Example: It's a pleasure to meet you.",
+    grammar: "Nice to meet you! / It's a pleasure to meet you.\n(Mẫu câu lịch sự dùng khi lần đầu gặp mặt ai đó)\nExample: Hello, I am Peter. Nice to meet you! (Xin chào, tôi là Peter. Rất vui được gặp bạn!)",
+    question: "Complete the dialogue: 'Thank you so much for your help!' -> 'You are ________.'",
+    answer: "welcome"
+  },
+  "AGE & FAMILY": {
+    vocab: "• sibling (n): anh chị em ruột\n  Example: Do you have any siblings?\n• parent (n): cha mẹ\n  Example: My parents live in Hanoi.\n• nuclear family (n): gia đình hạt nhân (cha mẹ và con cái)\n  Example: We live in a nuclear family.\n• relative (n): họ hàng\n  Example: All my relatives came to the party.",
+    grammar: "Subject + have/has + family members\n(Dùng để giới thiệu về thành viên trong gia đình hoặc sở hữu)\nExample 1: I have two older brothers. (Tôi có hai anh trai)\nExample 2: She has a big family. (Cô ấy có một gia đình lớn)",
+    question: "Translate to English: 'Tôi 20 tuổi và tôi có một người em gái.'",
+    answer: "I am 20 years old and I have a younger sister."
+  },
+  "MY HOME": {
+    vocab: "• apartment (n): căn hộ chung cư\n  Example: I live in a quiet apartment.\n• spacious (adj): rộng rãi\n  Example: The living room is very spacious.\n• neighborhood (n): khu dân cư, vùng lân cận\n  Example: We live in a safe neighborhood.\n• cozy (adj): ấm cúng\n  Example: My bedroom is small but cozy.",
+    grammar: "There is / There are + Noun + Location\n(Dùng để miêu tả có những gì trong ngôi nhà)\nExample 1: There is a TV in the living room. (Có một chiếc TV ở phòng khách)\nExample 2: There are three bedrooms in my house. (Có ba phòng ngủ trong nhà tôi)",
+    question: "Translate to English: 'Có một chiếc giường ấm cúng trong phòng ngủ của tôi.'",
+    answer: "There is a cozy bed in my bedroom."
+  },
+  "DAILY ROUTINE": {
+    vocab: "• wake up (v): thức dậy (mở mắt)\n  Example: I usually wake up at 6 AM.\n• get dressed (v): mặc quần áo\n  Example: I get dressed before having breakfast.\n• commute (v): đi làm/đi học (di chuyển)\n  Example: He commutes to work by bus.\n• stay up late (v): thức khuya\n  Example: Don't stay up late, it's bad for your health.",
+    grammar: "Subject + Simple Present Verb (+ Time / Frequency)\n(Dùng để tả thói quen hoặc lịch trình hàng ngày)\nExample 1: I go to bed at 10 PM. (Tôi đi ngủ lúc 10 giờ tối)\nExample 2: She always drinks tea in the morning. (Cô ấy luôn uống trà vào buổi sáng)",
+    question: "Translate to English: 'Tôi thường đi học bằng xe đạp lúc 7 giờ sáng.'",
+    answer: "I usually go to school by bicycle at 7 AM."
+  },
+  "FOOD & DRINKS": {
+    vocab: "• delicious (adj): thơm ngon\n  Example: This beef noodle soup is delicious.\n• beverage (n): đồ uống\n  Example: Water is the healthiest beverage.\n• vegetarian (n/adj): người ăn chay / chay\n  Example: She decided to become a vegetarian.\n• ingredient (n): nguyên liệu nấu ăn\n  Example: Fresh ingredients make good food.",
+    grammar: "Subject + prefer(s) + Noun A + to + Noun B\n(Dùng để diễn tả thích cái gì hơn cái gì)\nExample 1: I prefer tea to coffee. (Tôi thích trà hơn cá phê)\nExample 2: He prefers fish to meat. (Anh ấy thích cá hơn thịt)",
+    question: "Translate to English: 'Tôi thích ăn trái cây hơn đồ ngọt.'",
+    answer: "I prefer eating fruits to sweets."
+  },
+  "FREE TIME & HOBBIES": {
+    vocab: "• leisure time (n): thời gian rảnh rỗi\n  Example: What do you do in your leisure time?\n• instrument (n): nhạc cụ\n  Example: I am learning to play a musical instrument.\n• outdoor (adj): ngoài trời\n  Example: Football is an outdoor sport.\n• relax (v): thư giãn\n  Example: Reading books helps me relax.",
+    grammar: "Subject + enjoy(s)/like(s) + Verb-ing\n(Dùng để nói về sở thích cá nhân)\nExample 1: I enjoy playing the guitar. (Tôi thích chơi đàn guitar)\nExample 2: She likes listening to pop music. (Cô ấy thích nghe nhạc pop)",
+    question: "Translate to English: 'Trong thời gian rảnh, tôi thích đọc sách tiếng Anh.'",
+    answer: "In my free time, I like reading English books."
+  },
+  "PLACES AROUND ME": {
+    vocab: "• grocery store (n): cửa hàng tạp hóa\n  Example: I buy fresh vegetables at the grocery store.\n• convenience (n): sự tiện lợi\n  Example: The supermarket is built for convenience.\n• local park (n): công viên địa phương\n  Example: We jog in the local park every weekend.\n• pharmacy (n): hiệu thuốc\n  Example: I need to buy medicine at the pharmacy.",
+    grammar: "Location A + is next to / opposite / near + Location B\n(Dùng để chỉ vị trí các địa điểm xung quanh)\nExample 1: The cafe is opposite the park. (Quán cà phê đối diện công viên)\nExample 2: The grocery store is near my house. (Cửa hàng tạp hóa ở gần nhà tôi)",
+    question: "Translate to English: 'Hiệu thuốc nằm đối diện siêu thị.'",
+    answer: "The pharmacy is opposite the supermarket."
+  },
+  "YESTERDAY": {
+    vocab: "• yesterday (adv): ngày hôm qua\n  Example: I visited my grandparents yesterday.\n• spent time (v): dành thời gian\n  Example: I spent time cleaning my room.\n• fatigue (n): sự mệt mỏi\n  Example: I felt fatigue after a long workday.\n• productive (adj): năng suất, hiệu quả\n  Example: Yesterday was a very productive day.",
+    grammar: "Subject + Simple Past Verb (V2 / V-ed)\n(Dùng để diễn tả hành động đã xảy ra và chấm dứt trong quá khứ)\nExample 1: I watched a movie yesterday. (Hôm qua tôi đã xem một bộ phim)\nExample 2: She went to the market this morning. (Sáng nay cô ấy đã đi chợ)",
+    question: "Translate to English: 'Hôm qua tôi đã học tiếng Anh trong hai giờ.'",
+    answer: "Yesterday I studied English for two hours."
+  }
+};
+
+const JA_RICH_DATA = {
+  "自己紹介": {
+    vocab: "• 自己紹介 (じこしょうかい): Tự giới thiệu bản thân\n• 学生 (がくせい): Học sinh, sinh viên\n• 社会人 (しゃかいじん): Người đã đi làm\n• 出身 (しゅっしん): Xuất thân, quê quán",
+    grammar: "Noun + です / Noun + でわありません\n(Cấu trúc khẳng định và phủ định cơ bản để giới thiệu)\nExample 1: 私は学生です。 (Tôi là học sinh)\nExample 2: 私は社会人ではありません。 (Tôi không phải là người đi làm)",
+    question: "Dịch sang tiếng Nhật: 'Tôi là người đi làm.'",
+    answer: "私は社会人です。"
+  },
+  "国と言語": {
+    vocab: "• 国 (くに): Quốc gia, đất nước\n• 言語 (げんご): Ngôn ngữ\n• 日本語 (にほんご): Tiếng Nhật\n• 英語 (えいご): Tiếng Anh",
+    grammar: "Language + が話せます / 話せません\n(Cấu trúc nói về khả năng ngoại ngữ)\nExample 1: 私は日本語が話せます。 (Tôi có thể nói tiếng Nhật)\nExample 2: 英語が話せません。 (Tôi không thể nói tiếng Anh)",
+    question: "Dịch sang tiếng Nhật: 'Tôi nói được tiếng Nhật và tiếng Anh.'",
+    answer: "私は日本語と英語が話せます。"
+  },
+  "挨拶と礼儀": {
+    vocab: "• 挨拶 (あいさつ): Chào hỏi\n• ありがとう: Cảm ơn\n• すみません: Xin lỗi / Cho hỏi\n• はじめまして: Rất hân hạnh được gặp bạn",
+    grammar: "はじめまして、[Tên] です。よろしくお願いします。\n(Mẫu câu chào hỏi lịch sự khi lần đầu gặp mặt)\nExample: はじめまして、タインです。よろしくお願いします。 (Chào bạn, tôi là Thành. Rất mong được giúp đỡ.)",
+    question: "Điền từ thích hợp để nói 'Xin lỗi vì đã đến muộn': '________、遅れました。'",
+    answer: "すみません"
+  },
+  "年齢と家族": {
+    vocab: "• 年齢 (ねんれい): Tuổi tác\n• 家族 (かぞく): Gia đình\n• 妹 (いもうと): Em gái\n• 両親 (りょうしん): Bố mẹ",
+    grammar: "Noun + がいます / います\n(Cấu trúc nói về sự tồn tại của con người/động vật - có ai đó)\nExample 1: 私には妹がいます。 (Tôi có một em gái)\nExample 2: 家族がハノイにいます。 (Gia đình tôi ở Hà Nội)",
+    question: "Dịch sang tiếng Nhật: 'Tôi có bố mẹ và em gái.'",
+    answer: "私には両親と妹がいます。"
+  },
+  "私の家": {
+    vocab: "• アパート: Căn hộ chung cư\n• 部屋 (へや): Căn phòng\n• 静か (しずか): Yên tĩnh\n• 広い (ひろい): Rộng rãi",
+    grammar: "Location + に + Noun + があります\n(Cấu trúc mô tả đồ vật ở đâu đó)\nExample 1: 部屋にベッドがあります。 (Có chiếc giường trong phòng)\nExample 2: 家の近くに公園があります。 (Có công viên ở gần nhà tôi)",
+    question: "Dịch sang tiếng Nhật: 'Có một chiếc TV ở phòng khách.'",
+    answer: "居間にテレビがあります。"
+  },
+  "毎日の習慣": {
+    vocab: "• 起きる (おきる): Thức dậy\n• 朝ご飯 (あさごはん): Bữa sáng\n• 学校 (がっこう): Trường học\n• 寝る (ねる): Đi ngủ",
+    grammar: "Time + に + Verb ます\n(Cấu trúc diễn tả hành động làm vào lúc mấy giờ)\nExample 1: 6時に起きます。 (Tôi thức dậy lúc 6 giờ)\nExample 2: 10時に寝ます。 (Tôi đi ngủ lúc 10 giờ)",
+    question: "Dịch sang tiếng Nhật: 'Tôi ăn sáng lúc 7 giờ.'",
+    answer: "7時に朝ご飯を食べます。"
+  }
+};
+
+const ZH_RICH_DATA = {
+  "介绍": {
+    vocab: "• 你 (nǐ): Bạn, Anh, Chị\n• 叫 (jiào): Gọi là, tên là\n• 什么 (shénme): Cái gì\n• 名字 (míngzi): Tên\n• 我 (wǒ): Tôi, Tớ",
+    grammar: "Chủ ngữ + 叫 + Tên\n(Cấu trúc dùng để giới thiệu tên của mình hoặc hỏi tên người khác)\nExample 1: 你叫什么名字？ (Bạn tên là gì?)\nExample 2: 我叫陈中。 (Tôi tên là Trần Trung.)",
+    question: "Translate to Chinese: 'Tôi tên là Dũng.'",
+    answer: "我叫勇。"
+  },
+  "国籍与语言": {
+    vocab: "• 国籍 (guójí): Quốc tịch\n• 哪 (nǎ): Nào, cái nào\n• 国 (guó): Nước, quốc gia\n• 人 (rén): Người\n• 汉语 (Hànyǔ): Tiếng Trung",
+    grammar: "Chủ ngữ + 是 + 哪国人？\n(Cấu trúc hỏi quốc tịch của ai đó)\nExample 1: 你是哪国人？ (Bạn là người nước nào?)\nExample 2: 我是越南人。 (Tôi là người Việt Nam.)",
+    question: "Translate to Chinese: 'Bạn là người nước nào?'",
+    answer: "你是哪国人？"
+  },
+  "问候": {
+    vocab: "• 你好 (nǐ hǎo): Xin chào\n• 谢谢 (xièxie): Cảm ơn\n• 再见 (zàijiàn): Tạm biệt\n• 对不起 (duìbùqǐ): Xin lỗi",
+    grammar: "你好 (Nǐ hǎo) / 您好 (Nín hǎo)\n(Mẫu câu chào hỏi thông dụng nhất trong tiếng Trung)\nExample: 老师，您好！ (Em chào thầy/cô ạ!)",
+    question: "Complete the sentence to say 'Thank you': '________大家！'",
+    answer: "谢谢"
+  }
+};
+
+function enrichLesson(title, langCode, rawVocab, rawGrammar) {
+  const cleanTitle = (title || "").trim().toUpperCase().replace(/LEVEL\s+\d+\s*[-–－:]\s*/g, "");
+  
+  const maps = {
+    LISA: EN_RICH_DATA,
+    JA: JA_RICH_DATA,
+    ZH: ZH_RICH_DATA
+  };
+  
+  const currentMap = maps[langCode] || {};
+  
+  let found = null;
+  for (const key of Object.keys(currentMap)) {
+    if (cleanTitle.includes(key.toUpperCase()) || key.toUpperCase().includes(cleanTitle)) {
+      found = currentMap[key];
+      break;
+    }
+  }
+  
+  if (found) {
+    return {
+      vocab: found.vocab,
+      grammar: found.grammar,
+      question: found.question,
+      answer: found.answer
+    };
+  }
+  
+  // Rule-based enrichment fallback
+  if (langCode === 'LISA' || langCode === 'JA') {
+    const lines = (rawVocab || "").split("\n").map(s => s.trim()).filter(s => s);
+    
+    let formattedVocab = "";
+    if (lines.length > 0) {
+      formattedVocab = lines.map(line => {
+        const clean = line.replace(/^\d+[:：\.\-\s]*/g, "").trim();
+        return `• ${clean}\n  Example sentence with: ${clean}`;
+      }).join("\n");
+    } else {
+      formattedVocab = rawVocab || "• Lesson vocabulary to study.";
+    }
+
+    let generatedGrammar = "";
+    let cleanT = cleanTitle.toLowerCase();
+    if (cleanT.includes("routine") || cleanT.includes("daily") || cleanT.includes("week")) {
+      generatedGrammar = "Subject + Simple Present Verb + time/frequency\n(Diễn tả thói quen hàng ngày)\nExample: I usually exercise in the morning. (Tôi thường tập thể dục vào buổi sáng)";
+    } else if (cleanT.includes("food") || cleanT.includes("drink") || cleanT.includes("eat")) {
+      generatedGrammar = "Subject + like/prefer + Food/Drink\n(Bày tỏ sở thích ăn uống)\nExample: I like drinking hot milk before sleeping. (Tôi thích uống sữa nóng trước khi ngủ)";
+    } else if (cleanT.includes("family") || cleanT.includes("home") || cleanT.includes("age")) {
+      generatedGrammar = "Subject + have/has + Noun\n(Diễn tả sự sở hữu hoặc giới thiệu mối quan hệ)\nExample: I have a small family with 4 members. (Tôi có một gia đình nhỏ gồm 4 thành viên)";
+    } else if (cleanT.includes("yesterday") || cleanT.includes("past") || cleanT.includes("last")) {
+      generatedGrammar = "Subject + Simple Past Verb (V2/V-ed)\n(Diễn đạt sự việc đã kết thúc trong quá khứ)\nExample: I cleaned my house yesterday. (Hôm qua tôi đã dọn dẹp nhà cửa)";
+    } else if (cleanT.includes("travel") || cleanT.includes("transport") || cleanT.includes("place")) {
+      generatedGrammar = "Subject + go to + Location + by + Vehicle\n(Nói về cách thức di chuyển đến một địa điểm)\nExample: We go to school by bus. (Chúng tôi đi học bằng xe buýt)";
+    } else {
+      generatedGrammar = `Subject + modal verb (can/must/should) + Verb\n(Mẫu câu thông dụng trong chủ đề ${title})\nExample: You should study daily to improve. (Bạn nên học hàng ngày để tiến bộ)`;
+    }
+
+    const firstWord = lines.length > 0 ? lines[0].replace(/^\d+[:：\.\-\s]*/g, "").trim() : (title || "Lesson");
+    const question = `Dịch hoặc tạo câu hoàn chỉnh sử dụng: "${firstWord}"`;
+    const answer = `Create a meaningful sentence with: "${firstWord}"`;
+
+    return {
+      vocab: formattedVocab,
+      grammar: generatedGrammar,
+      question,
+      answer
+    };
+  } else if (langCode === 'ZH') {
+    const questionText = rawVocab || "";
+    const answerText = rawGrammar || "";
+    
+    let zhVocab = "";
+    if (questionText.includes("名字")) {
+      zhVocab = "• 你 (nǐ): Bạn, Anh, Chị\n• 叫 (jiào): Gọi là\n• 什么 (shénme): Cái gì\n• 名字 (míngzi): Tên";
+    } else if (questionText.includes("国") || questionText.includes("人")) {
+      zhVocab = "• 是 (shì): Là\n• 哪 (nǎ): Nào\n• 国 (guó): Nước, quốc gia\n• 人 (rén): Người";
+    } else if (questionText.includes("岁") || questionText.includes("多大")) {
+      zhVocab = "• 多大 (duōdà): Bao nhiêu tuổi\n• 岁 (suì): Tuổi\n• 几 (jǐ): Mấy";
+    } else {
+      zhVocab = `• ${questionText} (Học mẫu câu giao tiếp tiếng Trung)`;
+    }
+
+    let zhGrammar = "";
+    if (questionText.includes("什么")) {
+      zhGrammar = "Chủ ngữ + Verb + 什么 + Noun?\n(Cấu trúc câu hỏi 'cái gì' phổ biến)\nExample: 你吃什么？ (Bạn ăn cái gì?)";
+    } else if (questionText.includes("是")) {
+      zhGrammar = "Chủ ngữ + 是 + Noun\n(Cấu trúc khẳng định: Ai đó/Cái gì là cái gì)\nExample: 我是学生。 (Tôi là học sinh.)";
+    } else {
+      zhGrammar = "Chủ ngữ + 怎么样？\n(Hỏi về tính chất, tình trạng của sự việc)\nExample: 今天天气怎么样？ (Thời tiết hôm nay thế nào?)";
+    }
+
+    return {
+      vocab: zhVocab,
+      grammar: zhGrammar,
+      question: `Translate to Chinese: "${questionText}"`,
+      answer: answerText
+    };
+  }
+
+  return {
+    vocab: rawVocab || "Study vocabulary",
+    grammar: rawGrammar || "Practice grammar structure",
+    question: "Complete the exercise",
+    answer: "Show your answer"
+  };
+}
+
 // ─── Main UserApp ─────────────────────────────────────────────────────────────
 export default function UserApp({ user, onLogout }) {
   const [active,      setActive]      = useState('home')
@@ -2019,19 +2250,22 @@ export default function UserApp({ user, onLogout }) {
           const data = await res.json()
           const langEmojis = { LISA: '🇬🇧', ZH: '🇨🇳', JA: '🇯🇵' }
           return data.map((l, idx) => {
-            // Generate question/answer from vocab content if not provided
-            const vocabLines = (l.vocab || '').split('\n').filter(s => s.trim())
+            // Enrich lesson data using rules or mappings
+            const enriched = enrichLesson(l.title, dbLangCode, l.vocab, l.grammar);
+            
+            const vocabLines = (enriched.vocab || '').split('\n').filter(s => s.trim())
             const firstVocab = vocabLines[0] || l.title || 'Practice'
-            const question = l.question || `Translate or explain: "${firstVocab}"`
-            const answer = l.answer || (l.grammar ? l.grammar.split('\n')[0] : `Practice using: ${firstVocab}`)
+            const question = enriched.question || l.question || `Translate or explain: "${firstVocab}"`
+            const answer = enriched.answer || l.answer || `Practice using: ${firstVocab}`
             const vi = l.vi || l.stage || ''
+            
             return {
               id: dbLangCode.toLowerCase() + (idx + 1),
               level: idx + 1,
               title: l.title,
               stage: l.stage,
-              vocab: l.vocab,
-              grammar: l.grammar || 'Review the vocabulary and create your own sentences.',
+              vocab: enriched.vocab,
+              grammar: enriched.grammar,
               question,
               answer,
               vi,
