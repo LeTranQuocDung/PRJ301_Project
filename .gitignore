@@ -1,0 +1,20 @@
+node_modules/
+dist/
+.env
+.DS_Store
+
+# Maven Target Folders
+*/target/
+LucyBackendAPI/target/
+data_importer_toolkit/LucyImporter/target/
+
+# .NET Build Artifacts
+**/bin/
+**/obj/
+
+# Flutter / Dart Build Artifacts
+.dart_tool/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+
