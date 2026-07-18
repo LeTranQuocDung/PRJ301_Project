@@ -38,7 +38,7 @@ class ApiClient {
   }
 
   Future<List<Map<String, dynamic>>> fetchPodcasts() async {
-    final url = Uri.parse('${ApiConfig.apiBase}/api/podcasts/recordings');
+    final url = Uri.parse('${ApiConfig.apiBase}/api/engagement/podcasts');
     try {
       final response = await http.get(url).timeout(const Duration(seconds: 4));
       if (response.statusCode == 200) {
