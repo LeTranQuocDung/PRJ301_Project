@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { agoraService } from './services/agoraClient'
+import LiveRoomView from './LiveRoomView'
 import {
   BookOpen, Play, FileText, Headphones, Upload, Eye, Zap,
   MessageSquare, Mic, Users, Radio, Pin, PhoneOff, Phone,
@@ -239,11 +240,24 @@ function Sidebar({ active, setActive, user, onLogout }) {
 
 // ─── Dashboard View ─────────────────────────────────────────────────────────
 function DashboardView({ setActive }) {
+  const [liveRoomStats, setLiveRoomStats] = useState({ total:0, publicCount:0 })
+
+  useEffect(() => {
+    let active = true
+    const loadLiveRoomStats = () => fetch(`${API_BASE}/api/rooms?admin=true`)
+      .then(res => res.ok ? res.json() : Promise.reject(new Error('Failed to load rooms')))
+      .then(rooms => { if (active) setLiveRoomStats({ total:rooms.length, publicCount:rooms.filter(room => room.isPublic).length }) })
+      .catch(() => { if (active) setLiveRoomStats({ total:0, publicCount:0 }) })
+    loadLiveRoomStats()
+    const timer = setInterval(loadLiveRoomStats, 2000)
+    return () => { active=false; clearInterval(timer) }
+  }, [])
+
   const stats = [
     { label:'Courses', value:'7', icon:'📚', accent:'blue', sub:'3 languages' },
     { label:'Students', value:'455', icon:'🎓', accent:'green', sub:'+12 this week' },
     { label:'Lessons', value:'159', icon:'📝', accent:'purple', sub:'EN/ZH/JA' },
-    { label:'Live Rooms', value:'3', icon:'🔴', accent:'red', sub:'2 active' },
+    { label:'Live Rooms', value:String(liveRoomStats.total), icon:'🔴', accent:'red', sub:`${liveRoomStats.publicCount} public` },
   ]
   const recent = [
     { action:'New student registered', who:'Nguyen_An', when:'5 min ago', icon:'🎓', color:'#10b981' },
@@ -648,6 +662,10 @@ const AGORA_CHANNEL  = 'lucy_room_1'
 const AGORA_TOKEN = null; // Will fetch dynamically
 
 function LiveRoomsView({ role }) {
+  return <LiveRoomView canRecord={role === 'admin' || role === 'mentor' || role === 'teacher'} />
+}
+
+function LegacyLiveRoomsView({ role }) {
   const [uid]           = useState(() => Math.floor(Math.random()*99999)+1)
   const [joining,  setJoining]  = useState(false)
   const [joined,   setJoined]   = useState(false)
@@ -1543,6 +1561,14 @@ function UsersView() {
     const [loading, setLoading] = useState(true)
     const [session, setSession] = useState(null)
     const [btnLoading, setBtnLoading] = useState(false)
+    const [podcastSeries, setPodcastSeries] = useState([])
+    const [selectedPodcast, setSelectedPodcast] = useState(null)
+    const [visibilityLoading, setVisibilityLoading] = useState(null)
+    const [recordVisibilityLoading, setRecordVisibilityLoading] = useState(null)
+    const mediaRecorderRef = useRef(null)
+    const mediaStreamRef = useRef(null)
+    const audioChunksRef = useRef([])
+    const recordStartedAtRef = useRef(null)
 
     const loadRecs = async () => {
       try {
@@ -1560,12 +1586,62 @@ function UsersView() {
 
     useEffect(() => {
       loadRecs()
+      fetch(`${API_BASE}/api/engagement/podcasts?admin=true`)
+        .then(res => res.ok ? res.json() : Promise.reject(new Error('Failed to load podcast catalog')))
+        .then(data => {
+          setPodcastSeries(data)
+          if (data.length) setSelectedPodcast(data[0].title)
+        })
+        .catch(err => console.error(err))
     }, [])
+
+    const toggleEpisodeVisibility = async (seriesTitle, episodeId, currentlyVisible) => {
+      setVisibilityLoading(episodeId)
+      try {
+        const res = await fetch(`${API_BASE}/api/engagement/podcasts/visibility`, {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json' },
+          body:JSON.stringify({ episodeId, visible:!currentlyVisible })
+        })
+        if (!res.ok) throw new Error('Visibility update failed')
+        setPodcastSeries(current => current.map(series => series.title !== seriesTitle ? series : {
+          ...series,
+          episodes:series.episodes.map(ep => ep.id === episodeId ? { ...ep, visible:!currentlyVisible } : ep)
+        }))
+      } catch (err) {
+        alert('Failed to update episode visibility')
+      } finally {
+        setVisibilityLoading(null)
+      }
+    }
+
+    const toggleRecordingVisibility = async (recordingId, currentlyVisible) => {
+      setRecordVisibilityLoading(recordingId)
+      try {
+        const res = await fetch(`${API_BASE}/api/podcasts/record/visibility`, {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ recordingId, visible:!currentlyVisible })
+        })
+        if (!res.ok) throw new Error('Visibility update failed')
+        setRecs(current => current.map(rec => rec.id === recordingId ? { ...rec, visible:!currentlyVisible } : rec))
+      } catch { alert('Failed to update recording visibility') }
+      finally { setRecordVisibilityLoading(null) }
+    }
 
     const handleToggleRecord = async () => {
       setBtnLoading(true)
       if (!session) {
         try {
+          if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) throw new Error('Browser recording is not supported')
+          const stream = await navigator.mediaDevices.getUserMedia({ audio:true })
+          const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm'
+          const recorder = new MediaRecorder(stream, { mimeType })
+          audioChunksRef.current = []
+          recorder.ondataavailable = event => { if (event.data.size) audioChunksRef.current.push(event.data) }
+          recorder.start(1000)
+          mediaStreamRef.current = stream
+          mediaRecorderRef.current = recorder
+          recordStartedAtRef.current = Date.now()
           const res = await fetch(`${API_BASE}/api/podcasts/record/start`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1574,26 +1650,47 @@ function UsersView() {
           if (res.ok) {
             const data = await res.json()
             setSession(data.sessionId)
-            alert(`Live Recording Started! Session: ${data.sessionId}`)
+          } else {
+            throw new Error('Backend could not start recording session')
           }
         } catch (err) {
-          alert("Failed to start recording")
+          mediaRecorderRef.current?.stop()
+          mediaStreamRef.current?.getTracks().forEach(track => track.stop())
+          mediaRecorderRef.current = null
+          mediaStreamRef.current = null
+          alert(`Failed to start recording: ${err.message}`)
         }
       } else {
         try {
+          const recorder = mediaRecorderRef.current
+          if (!recorder) throw new Error('Recorder is unavailable')
+          const audioBlob = await new Promise(resolve => {
+            recorder.onstop = () => resolve(new Blob(audioChunksRef.current, { type:recorder.mimeType || 'audio/webm' }))
+            recorder.stop()
+          })
+          mediaStreamRef.current?.getTracks().forEach(track => track.stop())
           const res = await fetch(`${API_BASE}/api/podcasts/record/stop`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ sessionId: session })
           })
           if (res.ok) {
-            const data = await res.json()
+            const elapsed = Math.max(1, Math.round((Date.now() - recordStartedAtRef.current) / 1000))
+            const duration = `${String(Math.floor(elapsed / 60)).padStart(2,'0')}:${String(elapsed % 60).padStart(2,'0')}`
+            const form = new FormData()
+            form.append('audio', audioBlob, `live-recording-${Date.now()}.webm`)
+            form.append('title', 'Live Mentor QA Session')
+            form.append('roomId', 'room_101')
+            form.append('duration', duration)
+            const uploadRes = await fetch(`${API_BASE}/api/podcasts/record/upload`, { method:'POST', body:form })
+            if (!uploadRes.ok) throw new Error('Audio upload failed')
             setSession(null)
-            alert(`Live Recording Stopped! Created processing clip: ${data.recording.title}`)
+            mediaRecorderRef.current = null
+            mediaStreamRef.current = null
             loadRecs()
           }
         } catch (err) {
-          alert("Failed to stop recording")
+          alert(`Failed to stop recording: ${err.message}`)
         }
       }
       setBtnLoading(false)
@@ -1606,16 +1703,48 @@ function UsersView() {
             <h1 style={{ fontSize:24,fontWeight:800,color:S.text,fontFamily:"'Outfit',sans-serif",margin:0 }}>Podcasts & Recordings</h1>
             <p style={{ color:S.muted,fontSize:13,marginTop:4 }}>Start room recording during live sessions or manage audio episodes</p>
           </div>
-          <ABtn onClick={handleToggleRecord} disabled={btnLoading} accent={session ? "red" : "purple"}>
-            {btnLoading ? 'Processing...' : (session ? 'Stop Recording' : 'Start Room Recording')}
-          </ABtn>
         </div>
 
+        <ACard style={{ padding:20, marginBottom:24 }}>
+          <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',gap:14,marginBottom:16,flexWrap:'wrap' }}>
+            <div>
+              <div style={{ fontWeight:800,fontSize:16,color:S.text }}>Published Podcast Episodes</div>
+              <div style={{ fontSize:12,color:S.muted,marginTop:3 }}>Choose which episodes are visible in the user application</div>
+            </div>
+            <div style={{ display:'flex',gap:8,flexWrap:'wrap' }}>
+              {podcastSeries.map(series => (
+                <button key={series.title} onClick={() => setSelectedPodcast(series.title)} style={{ border:`1px solid ${selectedPodcast === series.title ? '#6366f1' : '#e2e8f0'}`,background:selectedPodcast === series.title ? '#eef2ff' : '#fff',color:selectedPodcast === series.title ? '#4338ca' : S.muted,borderRadius:18,padding:'7px 11px',fontSize:11.5,fontWeight:700,cursor:'pointer' }}>{series.lang}</button>
+              ))}
+            </div>
+          </div>
+          {podcastSeries.filter(series => series.title === selectedPodcast).map(series => (
+            <div key={series.title} style={{ display:'grid',gap:9 }}>
+              {series.episodes.map(ep => (
+                <div key={ep.id} style={{ display:'grid',gridTemplateColumns:'38px minmax(0,1fr) auto auto',alignItems:'center',gap:12,padding:'11px 12px',border:'1px solid #e2e8f0',borderRadius:11,opacity:ep.visible ? 1 : .58 }}>
+                  <div style={{ width:32,height:32,borderRadius:9,display:'grid',placeItems:'center',background:'#eef2ff',color:'#4f46e5',fontSize:11,fontWeight:800 }}>{ep.number}</div>
+                  <div style={{ minWidth:0 }}>
+                    <div style={{ fontWeight:700,fontSize:13,color:S.text,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{ep.title}</div>
+                    <div style={{ color:S.muted,fontSize:11,marginTop:3 }}>{ep.category} · {ep.duration}</div>
+                  </div>
+                  <ABadge accent={ep.visible ? 'green' : 'amber'}>{ep.visible ? 'VISIBLE' : 'HIDDEN'}</ABadge>
+                  <button disabled={visibilityLoading === ep.id} onClick={() => toggleEpisodeVisibility(series.title, ep.id, ep.visible)} aria-label={`${ep.visible ? 'Hide' : 'Show'} ${ep.title}`} style={{ width:44,height:24,border:0,borderRadius:14,padding:2,cursor:visibilityLoading === ep.id ? 'wait' : 'pointer',background:ep.visible ? '#22c55e' : '#cbd5e1',transition:'background .2s' }}>
+                    <span style={{ display:'block',width:20,height:20,borderRadius:'50%',background:'#fff',transform:`translateX(${ep.visible ? 20 : 0}px)`,transition:'transform .2s',boxShadow:'0 1px 3px rgba(0,0,0,.2)' }} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          ))}
+        </ACard>
+
+        <div style={{ margin:'4px 0 14px' }}>
+          <div style={{ fontWeight:800,fontSize:17,color:S.text }}>Podcasts from Live Rooms</div>
+          <div style={{ color:S.muted,fontSize:12,marginTop:3 }}>Recordings created by Admins and Mentors; visible items appear as episodes in the User podcast page.</div>
+        </div>
         {loading ? (
           <div style={{ padding:40,textAlign:'center',color:S.muted }}>Loading recordings...</div>
         ) : (
           <div style={{ display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16 }}>
-            {recs.map((r,i)=>{
+            {recs.filter(r=>r.audioUrl).map((r,i)=>{
               const a = ACCENTS[r.premium ? 'pink' : 'blue']
               return (
                 <ACard key={i} style={{ padding:20, position:'relative' }}>
@@ -1627,11 +1756,16 @@ function UsersView() {
                   <div style={{ fontSize:12,color:S.muted,marginBottom:14 }}>{r.language} - {r.duration || '00:00'} - {r.creator}</div>
                   <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center' }}>
                     <ABadge accent={r.status === 'completed' ? 'green' : 'amber'}>{r.status}</ABadge>
-                    <ABtn sm variant="outline" accent={r.premium ? 'pink' : 'blue'}>Listen</ABtn>
+                    <ABtn sm variant="outline" accent={r.premium ? 'pink' : 'blue'} disabled={!r.audioUrl} onClick={() => r.audioUrl && new Audio(`${API_BASE}${r.audioUrl}`).play()}>Listen</ABtn>
+                  </div>
+                  <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:13,paddingTop:12,borderTop:'1px solid #e2e8f0' }}>
+                    <span style={{ fontSize:11,fontWeight:800,color:r.visible?'#16a34a':'#d97706' }}>{r.visible?'VISIBLE TO USERS':'HIDDEN FROM USERS'}</span>
+                    <button disabled={recordVisibilityLoading===r.id} onClick={()=>toggleRecordingVisibility(r.id,r.visible)} style={{ width:44,height:24,border:0,borderRadius:14,padding:2,cursor:'pointer',background:r.visible?'#22c55e':'#cbd5e1' }}><span style={{ display:'block',width:20,height:20,borderRadius:'50%',background:'#fff',transform:`translateX(${r.visible?20:0}px)`,transition:'transform .2s' }}/></button>
                   </div>
                 </ACard>
               )
             })}
+            {recs.filter(r=>r.audioUrl).length===0 && <div style={{ gridColumn:'1/-1',padding:34,textAlign:'center',color:S.muted,border:'1px dashed #cbd5e1',borderRadius:14 }}>No Live Room recordings yet.</div>}
           </div>
         )}
       </div>

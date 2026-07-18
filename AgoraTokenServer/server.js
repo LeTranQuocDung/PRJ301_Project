@@ -9,8 +9,8 @@ const app = express();
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
 app.use(cors({ origin: CLIENT_ORIGIN }));
 
-const APP_ID = process.env.APP_ID;
-const APP_CERTIFICATE = process.env.APP_CERTIFICATE;
+const APP_ID = process.env.APP_ID || process.env.AGORA_APP_ID;
+const APP_CERTIFICATE = process.env.APP_CERTIFICATE || process.env.AGORA_APP_CERTIFICATE;
 
 const nocache = (req, res, next) => {
   res.header('Cache-Control', 'private, no-cache, no-store, must-revalidate');

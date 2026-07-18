@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { agoraService } from './services/agoraClient'
+import LiveRoomView from './LiveRoomView'
 import { LayoutDashboard, BookOpen, FileText, TrendingUp, Mic, Zap, MessageSquare, Users, Volume2, Radio, Phone, PhoneOff, AlertCircle, Bot } from 'lucide-react'
 
 const API_BASE = import.meta.env.VITE_LUCY_API_BASE || 'http://localhost:8080/LucyBackendAPI';
@@ -474,6 +475,10 @@ function LearnView({ learnLang, setLearnLang, learnLesson, setLearnLesson, compl
 
 // Live View (integrated with Agora Web SDK service)
 function LiveView() {
+  return <LiveRoomView />
+}
+
+function LegacyLiveView() {
   const [joined, setJoined]   = useState(false)
   const [joining, setJoining] = useState(false)
   const [muted, setMuted]     = useState(false)
@@ -649,6 +654,9 @@ function PodcastsView() {
   const [pods, setPods] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [playbackError, setPlaybackError] = useState(null)
+  const [selectedSeries, setSelectedSeries] = useState(null)
+  const [episodeCategory, setEpisodeCategory] = useState('All')
   
   // Audio Player state
   const [activePod, setActivePod] = useState(null)
@@ -657,20 +665,27 @@ function PodcastsView() {
   const [timeStr, setTimeStr] = useState("00:00 / 00:00")
   const audioRef = useRef(null)
 
-  // Map language to mock audio URL
-  const getAudioUrl = (lang) => {
-    if (lang === 'Chinese') return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3';
-    if (lang === 'Japanese') return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3';
-    return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
-  }
-
   useEffect(() => {
     async function loadPods() {
       try {
-        const res = await fetch(`${API_BASE}/api/engagement/podcasts`)
-        if (!res.ok) throw new Error('Failed to fetch')
-        const data = await res.json()
-        setPods(data)
+        const [catalogRes, liveRes] = await Promise.all([
+          fetch(`${API_BASE}/api/engagement/podcasts`),
+          fetch(`${API_BASE}/api/podcasts/recordings?public=true`)
+        ])
+        if (!catalogRes.ok || !liveRes.ok) throw new Error('Failed to fetch')
+        const catalog = await catalogRes.json()
+        const liveRecordings = await liveRes.json()
+        catalog.push({
+            title:'Podcasts from Live Rooms', lang:'Live', flagCode:'LIVE', accent:'blue', subs:0,
+            description:'Recordings published by Admins and Mentors from live learning rooms.',
+            source:'LUCY Live Rooms', episodeCount:liveRecordings.length,
+            episodes:liveRecordings.map((recording, index) => ({
+              id:recording.id, number:index + 1, title:recording.title, category:'Conversations',
+              language:recording.language || 'Live Room', duration:recording.duration || '00:00',
+              audioUrl:recording.audioUrl, source:'LUCY Live Rooms', roomId:recording.roomId
+            }))
+          })
+        setPods(catalog)
       } catch (err) {
         setError('Failed to load podcasts. Please try again.')
       } finally {
@@ -689,32 +704,58 @@ function PodcastsView() {
   }, [])
 
   const handlePlayPod = (p) => {
-    if (activePod && activePod.title === p.title) {
+    if (!p.audioUrl) {
+      setPlaybackError('This podcast does not have a playable audio source.')
+      return
+    }
+    setPlaybackError(null)
+    if (activePod && (p.id ? activePod.id === p.id : activePod.title === p.title)) {
       if (isPlaying) {
         audioRef.current.pause()
         setIsPlaying(false)
       } else {
-        audioRef.current.play().catch(e => console.warn(e))
-        setIsPlaying(true)
+        audioRef.current.play()
+          .then(() => setIsPlaying(true))
+          .catch(e => {
+            console.warn(e)
+            setIsPlaying(false)
+            setPlaybackError(`Could not play audio from ${p.source || 'the podcast provider'}.`)
+          })
       }
     } else {
       if (audioRef.current) {
         audioRef.current.pause()
       }
       
-      const newAudio = new Audio(getAudioUrl(p.lang))
+      const audioUrl = p.audioUrl.startsWith('/api/') ? `${API_BASE}${p.audioUrl}` : p.audioUrl
+      const newAudio = new Audio(audioUrl)
+      newAudio.preload = 'metadata'
       audioRef.current = newAudio
       setActivePod(p)
       setIsPlaying(true)
       setProgress(0)
 
+      newAudio.addEventListener('loadedmetadata', () => {
+        if (Number.isFinite(p.startAt)) newAudio.currentTime = p.startAt
+      })
+
       newAudio.addEventListener('timeupdate', () => {
         if (!audioRef.current) return;
         const cur = newAudio.currentTime
-        const dur = newAudio.duration || 0
+        const segmentStart = Number.isFinite(p.startAt) ? p.startAt : 0
+        const segmentEnd = Number.isFinite(p.endAt) ? p.endAt : newAudio.duration
+        const dur = segmentEnd - segmentStart
+        if (Number.isFinite(p.endAt) && cur >= p.endAt) {
+          newAudio.pause()
+          newAudio.currentTime = segmentStart
+          setIsPlaying(false)
+          setProgress(0)
+          return
+        }
         if (dur > 0) {
-          setProgress((cur / dur) * 100)
-          setTimeStr(`${formatTime(cur)} / ${formatTime(dur)}`)
+          const elapsed = Math.max(0, cur - segmentStart)
+          setProgress((elapsed / dur) * 100)
+          setTimeStr(`${formatTime(elapsed)} / ${formatTime(dur)}`)
         }
       })
 
@@ -723,10 +764,15 @@ function PodcastsView() {
         setProgress(0)
       })
 
+      newAudio.addEventListener('error', () => {
+        setIsPlaying(false)
+        setPlaybackError(`The audio from ${p.source || 'the podcast provider'} is currently unavailable.`)
+      })
+
       newAudio.play().catch(e => {
         console.warn("Failed to play audio:", e)
-        // Auto fallback if soundhelix is blocked or rate limited
-        setIsPlaying(true)
+        setIsPlaying(false)
+        setPlaybackError(`Could not play audio from ${p.source || 'the podcast provider'}.`)
       })
     }
   }
@@ -756,6 +802,11 @@ function PodcastsView() {
     <div className="fade-up" style={{ padding: '28px 28px 40px' }}>
       <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', fontFamily: "'Outfit',sans-serif", margin: '0 0 4px' }}>Audio Podcasts</h1>
       <p style={{ color: '#64748b', fontSize: 13.5, margin: '0 0 20px' }}>Listen to foreign language conversations, lessons and news</p>
+      {playbackError && (
+        <div style={{ padding:'10px 12px', marginBottom:16, borderRadius:10, background:'#fef2f2', color:'#b91c1c', fontSize:12.5 }}>
+          {playbackError}
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginBottom: activePod ? 80 : 0 }}>
         {pods.map((p, idx) => (
@@ -772,24 +823,62 @@ function PodcastsView() {
               <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', background: '#f1f5f9', padding: '3px 8px', borderRadius: 12 }}>{p.lang}</span>
             </div>
             <h3 style={{ fontWeight: 800, fontSize: 16, color: '#0f172a', margin: '0 0 6px', fontFamily: "'Outfit',sans-serif" }}>{p.title}</h3>
-            <div style={{ fontSize: 12, color: '#64748b', marginBottom: 14 }}>{(p.episodes || p.ep) || 10} episodes - {p.subs || 100} subscribers</div>
+            {p.description && <div style={{ fontSize: 12, lineHeight: 1.5, color: '#64748b', marginBottom: 8 }}>{p.description}</div>}
+            <div style={{ fontSize: 12, color: '#64748b', marginBottom: 14 }}>{p.episodeCount || p.episodes?.length || p.ep || 0} episodes - {p.subs || 100} subscribers</div>
             <button 
-              onClick={() => handlePlayPod(p)}
+              onClick={() => { setSelectedSeries(p); setEpisodeCategory('All') }}
               style={{
                 width: '100%', padding: '10px 0', borderRadius: 10,
-                background: activePod?.title === p.title && isPlaying 
-                  ? 'linear-gradient(135deg,#ef4444,#f59e0b)' 
-                  : 'linear-gradient(135deg,#4f46e5,#7c3aed)', 
+                background: selectedSeries?.title === p.title ? 'linear-gradient(135deg,#0ea5e9,#2563eb)' : 'linear-gradient(135deg,#4f46e5,#7c3aed)', 
                 color: '#fff', border: 'none',
                 fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                 transition: 'all 0.2s'
               }}
             >
-              {activePod?.title === p.title && isPlaying ? '⏸ Pause Podcast' : '▶ Listen Now'}
+              {selectedSeries?.title === p.title ? 'Viewing Episodes' : 'Browse Episodes'}
             </button>
+            {p.sourceUrl && (
+              <a href={p.sourceUrl} target="_blank" rel="noreferrer" style={{ display:'block', marginTop:9, textAlign:'center', fontSize:11.5, color:'#6366f1', textDecoration:'none' }}>
+                Source: {p.source || 'Original publisher'}
+              </a>
+            )}
           </div>
         ))}
       </div>
+
+      {selectedSeries && (
+        <section style={{ marginTop:24, marginBottom:activePod ? 110 : 20 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', gap:16, marginBottom:14, flexWrap:'wrap' }}>
+            <div>
+              <h2 style={{ margin:0, fontSize:20, color:'#0f172a' }}>{selectedSeries.title}</h2>
+              <div style={{ marginTop:4, color:'#64748b', fontSize:12.5 }}>{selectedSeries.episodes?.length || 0} episodes</div>
+            </div>
+            <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+              {['All', 'Conversations', 'Lessons', 'News'].map(category => (
+                <button key={category} onClick={() => setEpisodeCategory(category)} style={{ border:'1px solid #e2e8f0', borderRadius:18, padding:'7px 11px', cursor:'pointer', fontSize:11.5, fontWeight:700, background:episodeCategory === category ? '#4f46e5' : '#fff', color:episodeCategory === category ? '#fff' : '#475569' }}>{category}</button>
+              ))}
+            </div>
+          </div>
+          <div style={{ display:'grid', gap:10 }}>
+            {(selectedSeries.episodes || []).length === 0 && <div style={{ padding:28, textAlign:'center', color:'#94a3b8', border:'1px dashed #cbd5e1', borderRadius:12 }}>No published episodes yet.</div>}
+            {(selectedSeries.episodes || []).filter(ep => episodeCategory === 'All' || ep.category === episodeCategory).map(ep => {
+              const playableEpisode = { ...ep, lang:selectedSeries.lang, accent:selectedSeries.accent }
+              const active = activePod?.id === ep.id
+              return (
+                <div key={ep.id} style={{ display:'grid', gridTemplateColumns:'44px minmax(0, 1fr) auto auto', gap:12, alignItems:'center', padding:'12px 14px', background:'#fff', border:`1px solid ${active ? '#818cf8' : '#e2e8f0'}`, borderRadius:12 }}>
+                  <div style={{ width:36, height:36, borderRadius:10, display:'grid', placeItems:'center', background:'#eef2ff', color:'#4f46e5', fontWeight:800, fontSize:12 }}>{ep.number}</div>
+                  <div>
+                    <div style={{ color:'#0f172a', fontSize:13.5, fontWeight:750 }}>{ep.title}</div>
+                    <div style={{ color:'#64748b', fontSize:11.5, marginTop:3 }}>{ep.language} · {ep.duration}</div>
+                  </div>
+                  <span style={{ padding:'4px 8px', borderRadius:12, background:ep.category === 'News' ? '#fef2f2' : ep.category === 'Lessons' ? '#eff6ff' : '#f0fdf4', color:ep.category === 'News' ? '#dc2626' : ep.category === 'Lessons' ? '#2563eb' : '#16a34a', fontSize:10.5, fontWeight:800 }}>{ep.category}</span>
+                  <button onClick={() => handlePlayPod(playableEpisode)} style={{ border:0, borderRadius:9, padding:'8px 11px', cursor:'pointer', color:'#fff', background:active && isPlaying ? '#f59e0b' : '#4f46e5', fontWeight:700 }}>{active && isPlaying ? 'Pause' : 'Play'}</button>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Floating Audio Player panel */}
       {activePod && (
@@ -861,7 +950,9 @@ function PodcastsView() {
               const clickX = e.clientX - rect.left;
               const width = rect.width;
               const clickPercent = clickX / width;
-              audioRef.current.currentTime = clickPercent * audioRef.current.duration;
+              const segmentStart = Number.isFinite(activePod.startAt) ? activePod.startAt : 0;
+              const segmentEnd = Number.isFinite(activePod.endAt) ? activePod.endAt : audioRef.current.duration;
+              audioRef.current.currentTime = segmentStart + clickPercent * (segmentEnd - segmentStart);
             }}
             style={{
               height: 6, width: '100%', background: '#e2e8f0', borderRadius: 3,
