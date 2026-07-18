@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { agoraService } from './services/agoraClient'
 import {
   BookOpen, Play, FileText, Headphones, Upload, Eye, Zap,
   MessageSquare, Mic, Users, Radio, Pin, PhoneOff, Phone,
@@ -656,67 +657,64 @@ function LiveRoomsView({ role }) {
   const [topicIdx, setTopicIdx] = useState(-1)
   const [selLesson,setSelLesson]= useState('')
   const [pinned,   setPinned]   = useState([])
-  const clientRef = useRef(null)
-  const micRef    = useRef(null)
 
   const topics  = ['Topic 1: Introducing Yourself','Topic 2: Asking Directions','Topic 3: Ordering Food','Topic 4: Shopping','Topic 5: At the Doctor']
   const lessons = ['Lesson 1 - Greetings','Lesson 2 - Numbers 1-20','Lesson 3 - Colors','Lesson 4 - Family Members','Lesson 5 - Daily Routines']
 
   useEffect(() => {
-    if (typeof AgoraRTC==='undefined') { setError('Agora SDK not loaded. Check internet connection.'); return }
-    const client = AgoraRTC.createClient({ mode:'rtc', codec:'vp8' })
-    client.on('user-published', async (user,type) => {
-      await client.subscribe(user,type)
-      if (type==='audio') { user.audioTrack.play(); setRemotes(p=>p.find(u=>u.uid===user.uid)?p:[...p,{uid:user.uid}]) }
-    })
-    client.on('user-unpublished', user=>setRemotes(p=>p.filter(u=>u.uid!==user.uid)))
-    client.on('user-left',       user=>setRemotes(p=>p.filter(u=>u.uid!==user.uid)))
-    clientRef.current = client
-    return ()=>{ doLeave() }
-  }, [])
+    agoraService.init(AGORA_APP_ID);
+
+    agoraService.onUserPublished((user) => {
+      setRemotes(p => p.find(u => u.uid === user.uid) ? p : [...p, { uid: user.uid }]);
+    });
+
+    agoraService.onUserUnpublished((user) => {
+      setRemotes(p => p.filter(u => u.uid !== user.uid));
+    });
+
+    return () => {
+      agoraService.leaveRoom().catch(err => console.warn('Clean leave failed:', err));
+    };
+  }, []);
 
   const doLeave = async () => {
-    if (micRef.current) {
-      try { micRef.current.stop(); micRef.current.close(); } catch(e) {}
-      micRef.current = null
-    }
-    try {
-      if (clientRef.current && joined) await clientRef.current.leave()
-    } catch(e) {
-      console.warn('Error leaving Agora channel:', e)
-    }
-    setJoined(false); setRemotes([]); setMuted(false)
+    await agoraService.leaveRoom();
+    setJoined(false);
+    setRemotes([]);
+    setMuted(false);
   }
+
   const doJoin = async () => {
-    setJoining(true); setError(null)
-    try {
-      try {
-        // Dynamic Token Fetching
-        console.log('Fetching dynamic token for channel:', AGORA_CHANNEL);
-        const resToken = await fetch(`${AGORA_TOKEN_BASE}/api/agora/token?channelName=${AGORA_CHANNEL}&uid=${uid}`);
-        const dataToken = await resToken.json();
-        if (!dataToken.token) throw new Error('Could not retrieve Token from Server');
-        
-        await clientRef.current.join(AGORA_APP_ID, AGORA_CHANNEL, dataToken.token, uid)
-        const mic = await AgoraRTC.createMicrophoneAudioTrack()
-        micRef.current = mic
-        await clientRef.current.publish([mic])
-      } catch (innerErr) {
-        console.warn('Agora real client join failed, operating in mock fallback mode:', innerErr);
-      }
-      setJoined(true)
-    } catch(e) { setError('Join failed: '+e.message) }
-    finally { setJoining(false) }
-  }
-  const doToggleMute = async () => {
-    if (micRef.current) {
-      try {
-        await micRef.current.setMuted(!muted);
-        setMuted(m=>!m)
-      } catch(e) {
-        console.warn('Error toggling microphone mute status:', e)
-      }
+    setJoining(true);
+    setError(null);
+    if (!AGORA_APP_ID) {
+      console.log('Agora App ID is not configured (VITE_AGORA_APP_ID). Operating in local simulation fallback mode.');
+      await agoraService.joinRoom(AGORA_APP_ID, AGORA_CHANNEL, null, uid);
+      setJoined(true);
+      setJoining(false);
+      return;
     }
+    try {
+      console.log('Fetching dynamic token for channel:', AGORA_CHANNEL);
+      const resToken = await fetch(`${AGORA_TOKEN_BASE}/api/agora/token?channelName=${AGORA_CHANNEL}&uid=${uid}`);
+      const dataToken = await resToken.json();
+      if (!dataToken.token) throw new Error('Could not retrieve Token from Server');
+      
+      await agoraService.joinRoom(AGORA_APP_ID, AGORA_CHANNEL, dataToken.token, uid);
+      await agoraService.publishAudio();
+      setJoined(true);
+    } catch (e) {
+      console.warn('Failed to connect with Agora Web SDK, operating in mock fallback mode:', e);
+      // Force join in mock mode silently
+      await agoraService.joinRoom(AGORA_APP_ID, AGORA_CHANNEL, null, uid);
+      setJoined(true);
+    }
+    setJoining(false);
+  }
+
+  const doToggleMute = async () => {
+    const isMuted = await agoraService.toggleMute();
+    setMuted(isMuted);
   }
 
   return (
