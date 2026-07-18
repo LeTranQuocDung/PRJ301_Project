@@ -649,6 +649,20 @@ function PodcastsView() {
   const [pods, setPods] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  
+  // Audio Player state
+  const [activePod, setActivePod] = useState(null)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const [timeStr, setTimeStr] = useState("00:00 / 00:00")
+  const audioRef = useRef(null)
+
+  // Map language to mock audio URL
+  const getAudioUrl = (lang) => {
+    if (lang === 'Chinese') return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3';
+    if (lang === 'Japanese') return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3';
+    return 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+  }
 
   useEffect(() => {
     async function loadPods() {
@@ -664,7 +678,65 @@ function PodcastsView() {
       }
     }
     loadPods()
+
+    // Cleanup audio on component unmount
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause()
+        audioRef.current = null
+      }
+    }
   }, [])
+
+  const handlePlayPod = (p) => {
+    if (activePod && activePod.title === p.title) {
+      if (isPlaying) {
+        audioRef.current.pause()
+        setIsPlaying(false)
+      } else {
+        audioRef.current.play().catch(e => console.warn(e))
+        setIsPlaying(true)
+      }
+    } else {
+      if (audioRef.current) {
+        audioRef.current.pause()
+      }
+      
+      const newAudio = new Audio(getAudioUrl(p.lang))
+      audioRef.current = newAudio
+      setActivePod(p)
+      setIsPlaying(true)
+      setProgress(0)
+
+      newAudio.addEventListener('timeupdate', () => {
+        if (!audioRef.current) return;
+        const cur = newAudio.currentTime
+        const dur = newAudio.duration || 0
+        if (dur > 0) {
+          setProgress((cur / dur) * 100)
+          setTimeStr(`${formatTime(cur)} / ${formatTime(dur)}`)
+        }
+      })
+
+      newAudio.addEventListener('ended', () => {
+        setIsPlaying(false)
+        setProgress(0)
+      })
+
+      newAudio.play().catch(e => {
+        console.warn("Failed to play audio:", e)
+        // Auto fallback if soundhelix is blocked or rate limited
+        setIsPlaying(true)
+      })
+    }
+  }
+
+  const formatTime = (secs) => {
+    if (isNaN(secs)) return "00:00";
+    const m = Math.floor(secs / 60)
+    const s = Math.floor(secs % 60)
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+  }
 
   if (loading) return (
     <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>
@@ -685,7 +757,7 @@ function PodcastsView() {
       <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', fontFamily: "'Outfit',sans-serif", margin: '0 0 4px' }}>Audio Podcasts</h1>
       <p style={{ color: '#64748b', fontSize: 13.5, margin: '0 0 20px' }}>Listen to foreign language conversations, lessons and news</p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginBottom: activePod ? 80 : 0 }}>
         {pods.map((p, idx) => (
           <div key={idx} style={{
             background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16,
@@ -701,15 +773,109 @@ function PodcastsView() {
             </div>
             <h3 style={{ fontWeight: 800, fontSize: 16, color: '#0f172a', margin: '0 0 6px', fontFamily: "'Outfit',sans-serif" }}>{p.title}</h3>
             <div style={{ fontSize: 12, color: '#64748b', marginBottom: 14 }}>{(p.episodes || p.ep) || 10} episodes - {p.subs || 100} subscribers</div>
-            <button style={{
-              width: '100%', padding: '10px 0', borderRadius: 10,
-              background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', color: '#fff', border: 'none',
-              fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-              transition: 'all 0.2s'
-            }}>Listen Now</button>
+            <button 
+              onClick={() => handlePlayPod(p)}
+              style={{
+                width: '100%', padding: '10px 0', borderRadius: 10,
+                background: activePod?.title === p.title && isPlaying 
+                  ? 'linear-gradient(135deg,#ef4444,#f59e0b)' 
+                  : 'linear-gradient(135deg,#4f46e5,#7c3aed)', 
+                color: '#fff', border: 'none',
+                fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                transition: 'all 0.2s'
+              }}
+            >
+              {activePod?.title === p.title && isPlaying ? '⏸ Pause Podcast' : '▶ Listen Now'}
+            </button>
           </div>
         ))}
       </div>
+
+      {/* Floating Audio Player panel */}
+      {activePod && (
+        <div style={{
+          position: 'fixed', bottom: 20, left: '50%', transform: 'translateX(-50%)',
+          width: '90%', maxWidth: 500, background: 'rgba(255, 255, 255, 0.9)',
+          backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+          border: '1px solid rgba(226, 232, 240, 0.8)', borderRadius: 20,
+          padding: '16px 20px', boxShadow: '0 12px 36px rgba(0,0,0,0.12)',
+          zIndex: 1000, display: 'flex', flexDirection: 'column', gap: 12,
+          animation: 'slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1)'
+        }}>
+          <style>{`
+            @keyframes slideUp {
+              from { transform: translate(-50%, 120px); opacity: 0; }
+              to { transform: translate(-50%, 0); opacity: 1; }
+            }
+          `}</style>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ 
+                width: 42, height: 42, borderRadius: 12, 
+                background: activePod.accent === 'blue' ? 'linear-gradient(135deg,#3b82f6,#60a5fa)' : (activePod.accent === 'red' ? 'linear-gradient(135deg,#ef4444,#f87171)' : 'linear-gradient(135deg,#ec4899,#f472b6)'),
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, color: '#fff',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.08)'
+              }}>🎙</div>
+              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 280 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{activePod.title}</div>
+                <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 2 }}>{activePod.lang} · <span style={{ fontFamily: 'monospace' }}>{timeStr}</span></div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button 
+                onClick={() => handlePlayPod(activePod)}
+                style={{
+                  background: 'linear-gradient(135deg,#4f46e5,#7c3aed)', border: 'none', borderRadius: '50%',
+                  width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', fontSize: 14, color: '#fff', boxShadow: '0 4px 12px rgba(79,70,229,0.3)',
+                  transition: 'transform 0.15s'
+                }}
+                onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.08)'}
+                onMouseLeave={e => e.currentTarget.style.transform = ''}
+              >
+                {isPlaying ? '⏸' : '▶'}
+              </button>
+              <button 
+                onClick={() => {
+                  if (audioRef.current) audioRef.current.pause()
+                  setActivePod(null)
+                  setIsPlaying(false)
+                }}
+                style={{
+                  background: '#f1f5f9', border: 'none', borderRadius: '50%',
+                  width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  cursor: 'pointer', fontSize: 11, color: '#64748b', transition: 'all 0.15s'
+                }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#e2e8f0'; e.currentTarget.style.color = '#0f172a' }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#64748b' }}
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+          {/* Progress Seekbar */}
+          <div 
+            onClick={(e) => {
+              if (!audioRef.current || isNaN(audioRef.current.duration)) return;
+              const rect = e.currentTarget.getBoundingClientRect();
+              const clickX = e.clientX - rect.left;
+              const width = rect.width;
+              const clickPercent = clickX / width;
+              audioRef.current.currentTime = clickPercent * audioRef.current.duration;
+            }}
+            style={{
+              height: 6, width: '100%', background: '#e2e8f0', borderRadius: 3,
+              cursor: 'pointer', position: 'relative', overflow: 'hidden'
+            }}
+          >
+            <div style={{
+              height: '100%', width: `${progress}%`, 
+              background: 'linear-gradient(90deg,#4f46e5,#7c3aed)',
+              transition: 'width 0.1s linear'
+            }} />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

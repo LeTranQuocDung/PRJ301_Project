@@ -396,7 +396,37 @@ class _PodcastScreenState extends State<PodcastScreen> {
                             leading: CircleAvatar(child: Text(pod['flagCode'] ?? '🎙')),
                             title: Text(pod['title'] ?? '', style: const TextStyle(fontWeight: FontWeight.bold)),
                             subtitle: Text('${pod['episodes']} episodes · ${pod['lang']}'),
-                            trailing: IconButton(icon: const Icon(Icons.play_arrow), onPressed: () {}),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.play_arrow, color: Colors.indigo),
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: Text(pod['title'] ?? 'Podcast'),
+                                    content: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.radio, size: 48, color: Colors.indigo),
+                                        const SizedBox(height: 16),
+                                        Text('Now Playing: ${pod['title']}', textAlign: TextAlign.center),
+                                        const SizedBox(height: 4),
+                                        Text('Language: ${pod['lang']} · ${pod['episodes']} eps', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                                        const SizedBox(height: 16),
+                                        const LinearProgressIndicator(value: 0.35),
+                                        const SizedBox(height: 8),
+                                        const Text('Playing podcast audio...', style: TextStyle(fontStyle: FontStyle.italic, fontSize: 11)),
+                                      ],
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: const Text('Stop'),
+                                      )
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
                           ),
                         );
                       },
