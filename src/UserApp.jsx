@@ -881,13 +881,25 @@ function PodcastsView() {
 }
 
 // Premium View
-function PremiumView({ user }) {
+function PremiumView({ user, setActive, setLearnLang }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [balance, setBalance] = useState(0)
   const [currency, setCurrency] = useState('VND')
   const [topupLoading, setTopupLoading] = useState(false)
+  
+  // Custom Premium Subscription state
+  const [subType, setSubType] = useState(() => {
+    return localStorage.getItem('lucy_sub_type') || 'Free'
+  })
+  const [unlockedCourses, setUnlockedCourses] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('lucy_unlocked_courses') || '[]')
+    } catch {
+      return []
+    }
+  })
 
   useEffect(() => {
     async function loadPremium() {
@@ -947,6 +959,116 @@ function PremiumView({ user }) {
     }
   }
 
+  const handleSubscribe = async (planName, cost) => {
+    if (subType === planName) {
+      alert(`You are already subscribed to the ${planName} plan.`);
+      return;
+    }
+
+    if (balance < cost) {
+      alert(`Insufficient balance! This plan costs ${cost.toLocaleString()} ${currency}, but you only have ${balance.toLocaleString()} ${currency}. Please perform a Sandbox Top Up.`);
+      return;
+    }
+
+    const confirmSub = window.confirm(`Upgrade to Lucy ${planName} for ${cost.toLocaleString()} ${currency}?`);
+    if (!confirmSub) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/wallet/send-gift`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fromUserId: user?.id || 1,
+          toMentorId: 2, // System / Mentor balance collector
+          giftCode: 'SUB_UPGRADE_' + planName.toUpperCase(),
+          amount: cost
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setBalance(data.newBalance);
+        setSubType(planName);
+        localStorage.setItem('lucy_sub_type', planName);
+        alert(`Congratulations! You have successfully upgraded to Lucy ${planName} Plan! 🎉`);
+      } else {
+        const errData = await res.json();
+        alert(`Subscription failed: ${errData.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.warn("Failed to subscribe via server, implementing fallback:", err);
+      // Fallback
+      const newBal = Math.max(0, balance - cost);
+      setBalance(newBal);
+      setSubType(planName);
+      localStorage.setItem('lucy_sub_type', planName);
+      alert(`[Offline Mode] Congratulations! You upgraded to Lucy ${planName} Plan! 🎉`);
+    }
+  }
+
+  const handleUnlockCourse = async (course) => {
+    const isPremiumMember = subType === 'Super' || subType === 'Ultra';
+    
+    if (unlockedCourses.includes(course.title) || isPremiumMember) {
+      // Direct redirect
+      handleLearnCourse(course.title);
+      return;
+    }
+
+    const cost = 49000.0;
+    if (balance < cost) {
+      alert(`Insufficient balance to unlock this course! Cost: ${cost.toLocaleString()} ${currency}. Please top up your wallet.`);
+      return;
+    }
+
+    const confirmUnlock = window.confirm(`Unlock course "${course.title}" for ${cost.toLocaleString()} ${currency}?`);
+    if (!confirmUnlock) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/wallet/send-gift`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fromUserId: user?.id || 1,
+          toMentorId: 2,
+          giftCode: 'UNLOCK_COURSE_' + course.title.toUpperCase().replace(/\s+/g, '_'),
+          amount: cost
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setBalance(data.newBalance);
+        const newUnlocked = [...unlockedCourses, course.title];
+        setUnlockedCourses(newUnlocked);
+        localStorage.setItem('lucy_unlocked_courses', JSON.stringify(newUnlocked));
+        alert(`Success! "${course.title}" is now unlocked. Let's start learning! 🚀`);
+      } else {
+        const errData = await res.json();
+        alert(`Unlock failed: ${errData.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.warn("Failed to unlock course via server, implementing fallback:", err);
+      const newBal = Math.max(0, balance - cost);
+      setBalance(newBal);
+      const newUnlocked = [...unlockedCourses, course.title];
+      setUnlockedCourses(newUnlocked);
+      localStorage.setItem('lucy_unlocked_courses', JSON.stringify(newUnlocked));
+      alert(`[Offline Mode] Success! "${course.title}" is unlocked. Let's start learning! 🚀`);
+    }
+  }
+
+  const handleLearnCourse = (courseTitle) => {
+    if (courseTitle.includes("English") || courseTitle.includes("Business") || courseTitle.includes("Conversational")) {
+      setLearnLang("EN");
+    } else if (courseTitle.includes("JLPT") || courseTitle.includes("Prep") || courseTitle.includes("Japanese")) {
+      setLearnLang("JA");
+    } else if (courseTitle.includes("HSK") || courseTitle.includes("Chinese")) {
+      setLearnLang("ZH");
+    }
+    setActive("explore");
+  }
+
   if (loading) return (
     <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>
       <div style={{ width: 30, height: 30, border: '3px solid #bfdbfe', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 10px' }}></div>
@@ -962,47 +1084,215 @@ function PremiumView({ user }) {
   )
 
   return (
-    <div className="fade-up" style={{ padding: '28px 28px 40px' }}>
-      <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', fontFamily: "'Outfit',sans-serif", margin: '0 0 4px' }}>Lucy Premium</h1>
-      <p style={{ color: '#64748b', fontSize: 13.5, margin: '0 0 20px' }}>Unlock exclusive advanced courses and features</p>
-
-      {/* Wallet Card */}
-      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: '20px 24px', marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>My Wallet Balance</div>
-          <div style={{ fontSize: 24, fontWeight: 900, color: '#0f172a', fontFamily: "'Outfit',sans-serif", marginTop: 4 }}>
-            {balance.toLocaleString()} {currency}
-          </div>
+    <div className="fade-up" style={{ padding: '28px 28px 40px', maxWidth: 1000, margin: '0 auto' }}>
+      {/* Premium Banner */}
+      <div style={{
+        background: 'linear-gradient(135deg, #1e1b4b, #311042)',
+        borderRadius: 24, padding: '40px 32px', color: '#fff', marginBottom: 28,
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        boxShadow: '0 12px 40px rgba(49, 16, 66, 0.25)', border: '1px solid rgba(255,255,255,0.05)',
+        position: 'relative', overflow: 'hidden'
+      }}>
+        {/* Shimmer decoration */}
+        <div style={{
+          position: 'absolute', top: '-50%', left: '-50%', width: '200%', height: '200%',
+          background: 'radial-gradient(circle, rgba(139,92,246,0.1) 0%, transparent 60%)',
+          pointerEvents: 'none'
+        }} />
+        
+        <div style={{ zIndex: 1, flex: 1 }}>
+          <span style={{
+            fontSize: 10.5, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em',
+            background: 'linear-gradient(90deg, #f59e0b, #ec4899)', padding: '4px 10px', borderRadius: 20,
+            display: 'inline-block', marginBottom: 12, boxShadow: '0 4px 10px rgba(236,72,153,0.2)'
+          }}>LUCY SUPER MEMBERSHIP</span>
+          <h1 style={{ fontSize: 28, fontWeight: 900, color: '#fff', fontFamily: "'Outfit',sans-serif", margin: '0 0 6px' }}>Lucy Premium 💎</h1>
+          <p style={{ color: '#cbd5e1', fontSize: 13.5, margin: 0, maxWidth: 500 }}>Unlock advanced curriculums, unrestricted live chats, AI-powered learning feedback, and high-quality premium content.</p>
         </div>
-        <button onClick={handleTopup} disabled={topupLoading} style={{
-          padding: '10px 18px', borderRadius: 10,
-          background: 'linear-gradient(135deg,#10b981,#059669)', color: '#fff', border: 'none',
-          fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s'
+        
+        {/* Wallet Section inside Banner */}
+        <div style={{
+          zIndex: 1, background: 'rgba(255, 255, 255, 0.07)', backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, padding: '20px 24px',
+          minWidth: 260, boxShadow: '0 10px 30px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: 12
         }}>
-          {topupLoading ? 'Processing...' : 'Sandbox Top Up (+100k)'}
-        </button>
+          <div>
+            <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>Wallet Balance</div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: '#fbbf24', fontFamily: "'Outfit',sans-serif", marginTop: 2 }}>
+              {balance.toLocaleString()} {currency}
+            </div>
+          </div>
+          <button 
+            onClick={handleTopup} 
+            disabled={topupLoading}
+            style={{
+              padding: '10px 0', width: '100%', borderRadius: 10,
+              background: 'linear-gradient(135deg,#10b981,#059669)', color: '#fff', border: 'none',
+              fontSize: 12.5, fontWeight: 700, cursor: 'pointer', transition: 'transform 0.15s, opacity 0.15s',
+              boxShadow: '0 4px 12px rgba(16,185,129,0.2)'
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
+            onMouseLeave={e => e.currentTarget.style.transform = ''}
+          >
+            {topupLoading ? '⏳ Processing...' : '⚡ Top Up Wallet (+100k)'}
+          </button>
+        </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginBottom: 24 }}>
-        {items.map((item, idx) => (
-          <div key={idx} style={{
-            background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16,
-            padding: '20px', transition: 'all 0.2s', position: 'relative', overflow: 'hidden'
-          }}
-            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.05)' }}
-            onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '' }}
+      {/* Pricing Plans Section */}
+      <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', fontFamily: "'Outfit',sans-serif", margin: '0 0 16px' }}>Choose Your Membership Plan</h2>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, marginBottom: 36 }}>
+        {/* Free Plan */}
+        <div style={{
+          background: '#fff', border: '1px solid #e2e8f0', borderRadius: 20, padding: 24,
+          display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden',
+          boxShadow: subType === 'Free' ? '0 10px 25px rgba(0,0,0,0.04)' : 'none'
+        }}>
+          {subType === 'Free' && (
+            <div style={{ position: 'absolute', top: 0, right: 0, background: '#64748b', color: '#fff', fontSize: 9, fontWeight: 800, padding: '4px 10px', borderBottomLeftRadius: 10 }}>ACTIVE</div>
+          )}
+          <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: '0 0 4px', fontFamily: "'Outfit',sans-serif" }}>Lucy Basic</h3>
+          <div style={{ fontSize: 20, fontWeight: 900, color: '#0f172a', fontFamily: "'Outfit',sans-serif", margin: '10px 0 16px' }}>0 VND <span style={{ fontSize: 12, fontWeight: 400, color: '#64748b' }}>/ month</span></div>
+          <div style={{ height: 1, background: '#f1f5f9', marginBottom: 16 }} />
+          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10, fontSize: 12.5, color: '#475569' }}>
+            <li>✓ Access standard curriculums</li>
+            <li>✓ 15 mins daily Voice Rooms</li>
+            <li>✓ Generic coaching insight</li>
+            <li>✗ Blocked Premium modules</li>
+          </ul>
+          <button 
+            disabled 
+            style={{
+              padding: '12px 0', width: '100%', borderRadius: 12,
+              background: subType === 'Free' ? '#f1f5f9' : '#cbd5e1', color: '#64748b', border: 'none',
+              fontSize: 13, fontWeight: 700, cursor: 'not-allowed'
+            }}
           >
-            <div style={{ position: 'absolute', top: 0, right: 0, background: '#f59e0b', color: '#fff', fontSize: 9, fontWeight: 800, padding: '4px 10px', borderBottomLeftRadius: 10, letterSpacing: '0.05em' }}>PREMIUM</div>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#475569', marginBottom: 10 }}>{{ GB: 'GB', CN: 'CN', JP: 'JP' }[item.langCode] || item.langCode || 'Premium'}</div>
-            <h3 style={{ fontWeight: 800, fontSize: 15, color: '#0f172a', margin: '0 0 14px', fontFamily: "'Outfit',sans-serif", paddingRight: 40 }}>{item.title}</h3>
-            <button style={{
-              width: '100%', padding: '10px 0', borderRadius: 10,
-              background: '#0f172a', color: '#fff', border: 'none',
-              fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
-              transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
-            }}>Unlock Plan</button>
-          </div>
-        ))}
+            {subType === 'Free' ? 'Current Active Plan' : 'Standard Tier'}
+          </button>
+        </div>
+
+        {/* Super Plan */}
+        <div style={{
+          background: '#fff', border: '2px solid #8b5cf6', borderRadius: 20, padding: 24,
+          display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden',
+          boxShadow: '0 12px 30px rgba(139,92,246,0.15)'
+        }}>
+          <div style={{ position: 'absolute', top: 0, right: 0, background: 'linear-gradient(90deg,#8b5cf6,#ec4899)', color: '#fff', fontSize: 9, fontWeight: 900, padding: '4px 10px', borderBottomLeftRadius: 10, letterSpacing: '0.05em' }}>POPULAR</div>
+          <h3 style={{ fontSize: 16, fontWeight: 800, color: '#8b5cf6', margin: '0 0 4px', fontFamily: "'Outfit',sans-serif" }}>Lucy Super (VIP)</h3>
+          <div style={{ fontSize: 20, fontWeight: 900, color: '#0f172a', fontFamily: "'Outfit',sans-serif", margin: '10px 0 16px' }}>99,000 VND <span style={{ fontSize: 12, fontWeight: 400, color: '#64748b' }}>/ month</span></div>
+          <div style={{ height: 1, background: '#f1f5f9', marginBottom: 16 }} />
+          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10, fontSize: 12.5, color: '#475569' }}>
+            <li style={{ fontWeight: 600, color: '#8b5cf6' }}>✓ Unlock ALL Premium Courses</li>
+            <li>✓ Unlimited Voice Chats</li>
+            <li>✓ Advanced AI Coach integration</li>
+            <li>✓ Custom AI Mentor feedback</li>
+          </ul>
+          <button 
+            onClick={() => handleSubscribe('Super', 99000.0)}
+            style={{
+              padding: '12px 0', width: '100%', borderRadius: 12,
+              background: subType === 'Super' ? '#10b981' : 'linear-gradient(135deg,#8b5cf6,#ec4899)',
+              color: '#fff', border: 'none',
+              fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'transform 0.15s',
+              boxShadow: subType === 'Super' ? 'none' : '0 4px 14px rgba(139,92,246,0.3)'
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
+            onMouseLeave={e => e.currentTarget.style.transform = ''}
+          >
+            {subType === 'Super' ? '✓ Active Plan' : (subType === 'Ultra' ? 'Downgrade' : 'Upgrade to Super')}
+          </button>
+        </div>
+
+        {/* Ultra Plan */}
+        <div style={{
+          background: '#fff', border: '1px solid #e2e8f0', borderRadius: 20, padding: 24,
+          display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden',
+          boxShadow: subType === 'Ultra' ? '0 10px 25px rgba(0,0,0,0.04)' : 'none'
+        }}>
+          {subType === 'Ultra' && (
+            <div style={{ position: 'absolute', top: 0, right: 0, background: '#10b981', color: '#fff', fontSize: 9, fontWeight: 800, padding: '4px 10px', borderBottomLeftRadius: 10 }}>ACTIVE</div>
+          )}
+          <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: '0 0 4px', fontFamily: "'Outfit',sans-serif" }}>Lucy Ultra</h3>
+          <div style={{ fontSize: 20, fontWeight: 900, color: '#0f172a', fontFamily: "'Outfit',sans-serif", margin: '10px 0 16px' }}>189,000 VND <span style={{ fontSize: 12, fontWeight: 400, color: '#64748b' }}>/ month</span></div>
+          <div style={{ height: 1, background: '#f1f5f9', marginBottom: 16 }} />
+          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10, fontSize: 12.5, color: '#475569' }}>
+            <li>✓ Everything in Super tier</li>
+            <li>✓ Up to 5 family slots sharing</li>
+            <li>✓ VIP profile icon badge</li>
+            <li style={{ color: '#10b981' }}>✓ Tipping balance (+20k XP/mo)</li>
+          </ul>
+          <button 
+            onClick={() => handleSubscribe('Ultra', 189000.0)}
+            style={{
+              padding: '12px 0', width: '100%', borderRadius: 12,
+              background: subType === 'Ultra' ? '#10b981' : '#0f172a',
+              color: '#fff', border: 'none',
+              fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'transform 0.15s'
+            }}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
+            onMouseLeave={e => e.currentTarget.style.transform = ''}
+          >
+            {subType === 'Ultra' ? '✓ Active Plan' : 'Upgrade to Ultra'}
+          </button>
+        </div>
+      </div>
+
+      {/* Premium Courses Section */}
+      <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', fontFamily: "'Outfit',sans-serif", margin: '0 0 16px' }}>Exclusive Premium Courses</h2>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 18 }}>
+        {items.map((item, idx) => {
+          const isUnlocked = unlockedCourses.includes(item.title) || subType === 'Super' || subType === 'Ultra';
+          const flag = { GB: '🇬🇧', CN: '🇨🇳', JP: '🇯🇵' }[item.langCode] || item.langCode || '💎';
+          const accentColor = item.accent === 'blue' ? '#3b82f6' : (item.accent === 'red' ? '#ef4444' : '#ec4899');
+          
+          return (
+            <div key={idx} style={{
+              background: '#fff', border: '1px solid #e2e8f0', borderRadius: 20,
+              padding: 20, transition: 'all 0.25s', position: 'relative', overflow: 'hidden',
+              display: 'flex', flexDirection: 'column',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
+              borderTop: `4px solid ${accentColor}`
+            }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 10px 25px rgba(0,0,0,0.05)' }}
+              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.02)' }}
+            >
+              {/* Premium Badge */}
+              <div style={{
+                position: 'absolute', top: 0, right: 0, 
+                background: isUnlocked ? '#10b981' : '#fbbf24', 
+                color: '#fff', fontSize: 8.5, fontWeight: 900, padding: '4px 10px', 
+                borderBottomLeftRadius: 10, letterSpacing: '0.05em'
+              }}>
+                {isUnlocked ? 'UNLOCKED' : 'LOCKED 🔒'}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                <span style={{ fontSize: 18 }}>{flag}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>{item.langCode} Course</span>
+              </div>
+
+              <h3 style={{ 
+                fontWeight: 800, fontSize: 14.5, color: '#0f172a', margin: '0 0 14px', 
+                fontFamily: "'Outfit',sans-serif", flex: 1, lineHeight: 1.4
+              }}>{item.title}</h3>
+
+              <button 
+                onClick={() => handleUnlockCourse(item)}
+                style={{
+                  width: '100%', padding: '10px 0', borderRadius: 10,
+                  background: isUnlocked ? '#f0fdf4' : '#0f172a',
+                  color: isUnlocked ? '#10b981' : '#fff',
+                  border: isUnlocked ? '1.5px solid #bbf7d0' : 'none',
+                  fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                  transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                }}
+              >
+                {isUnlocked ? '▶ Learn Now' : `Unlock Course (49,000 VND)`}
+              </button>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -1886,7 +2176,7 @@ export default function UserApp({ user, onLogout }) {
       case 'learn':     return <LearnView learnLang={learnLang} setLearnLang={setLearnLang} learnLesson={learnLesson} setLearnLesson={setLearnLesson} completed={completed} onComplete={handleComplete} />
       case 'live':      return <LiveView />
       case 'podcasts':  return <PodcastsView />
-      case 'premium':   return <PremiumView user={user} />
+      case 'premium':   return <PremiumView user={user} setActive={setActive} setLearnLang={setLearnLang} />
       case 'gifts':     return <GiftsView xp={xp} onRedeem={handleRedeem} />
       case 'progress':  return <ProgressView xp={xp} streak={streak} completed={completed} />
       case 'coach':     return <CoachView user={user} />
