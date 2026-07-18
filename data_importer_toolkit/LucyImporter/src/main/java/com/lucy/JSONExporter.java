@@ -2,90 +2,165 @@ package com.lucy;
 
 import com.lucy.util.DBConnection;
 import java.sql.*;
-import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class JSONExporter {
+    
+    // Class to represent Q&A item for Chinese
+    public static class QA {
+        public String q;
+        public String a;
+        public QA(String q, String a) {
+            this.q = q;
+            this.a = a;
+        }
+    }
+
+    // Class to represent a Chinese level group
+    public static class ChineseLevel {
+        public int level;
+        public String title;
+        public String stage;
+        public List<QA> qa = new ArrayList<>();
+    }
+
     public static void main(String[] args) {
         String outputPath = "lessonsData.json";
         if (args != null && args.length > 0 && args[0] != null && !args[0].trim().isEmpty()) {
             outputPath = args[0].trim();
         }
-        
+
         try (Connection conn = DBConnection.getConnection();
-             Statement stmt = conn.createStatement();
              PrintWriter out = new PrintWriter(new java.io.OutputStreamWriter(
                      new java.io.FileOutputStream(outputPath), java.nio.charset.StandardCharsets.UTF_8))) {
-             
+
             out.println("{");
-            
-            String[] langs = {"EN", "ZH", "JA"};
-            int[] langIds = {1, 2, 3};
-            
-            for (int i = 0; i < langs.length; i++) {
-                String code = langs[i];
-                int langId = langIds[i];
-                out.println("  \"" + code + "\": [");
-                
-                String sql = "SELECT l.level_number, l.title, s.name as stage_name " +
-                             "FROM Levels l JOIN Stages s ON l.stage_id = s.id " +
-                             "WHERE l.language_id = " + langId + " " +
-                             "ORDER BY l.level_number";
-                
-                ResultSet rs = stmt.executeQuery(sql);
-                boolean firstL = true;
-                while (rs.next()) {
-                    if (!firstL) out.println(",");
-                    firstL = false;
-                    int level = rs.getInt("level_number");
-                    String title = rs.getString("title").replace("\"", "\\\"");
-                    String stage = rs.getString("stage_name");
-                    
-                    out.print("    { \"level\": " + level + ", \"title\": \"" + title + "\", \"stage\": \"" + stage + "\", ");
-                    
-                    // fetch content
-                    Statement stmt2 = conn.createStatement();
-                    if (langId == 2) {
-                        // Chinese has QA
-                        String sql2 = "SELECT question_text, answer_text FROM Questions WHERE level_id = (SELECT id FROM Levels WHERE language_id=" + langId + " AND level_number=" + level + ") ORDER BY order_index";
-                        ResultSet rs2 = stmt2.executeQuery(sql2);
-                        out.print("\"vocab\": \"\", \"grammar\": \"\", \"qa\": [");
-                        boolean firstQ = true;
-                        while(rs2.next()) {
-                            if (!firstQ) out.print(",");
-                            firstQ = false;
-                            out.print("{\"q\":\"" + rs2.getString("question_text").replace("\"", "\\\"").replace("\n", "\\n") + "\", \"a\":\"" + rs2.getString("answer_text").replace("\"", "\\\"").replace("\n", "\\n") + "\"}");
-                        }
-                        out.print("]");
-                        rs2.close();
-                    } else {
-                        // EN/JA
-                        String sql2 = "SELECT sub_level_name, content FROM LevelContents WHERE level_id = (SELECT id FROM Levels WHERE language_id=" + langId + " AND level_number=" + level + ") ORDER BY order_index";
-                        ResultSet rs2 = stmt2.executeQuery(sql2);
-                        String vocab = "";
-                        String grammar = "";
-                        while(rs2.next()) {
-                            String sub = rs2.getString("sub_level_name");
-                            String c = rs2.getString("content").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "");
-                            if (sub.equalsIgnoreCase("Vocabulary")) vocab = c;
-                            else if (sub.equalsIgnoreCase("Grammar")) grammar = c;
-                            else vocab += "\\n" + c; // fallback
-                        }
-                        out.print("\"vocab\": \"" + vocab + "\", \"grammar\": \"" + grammar + "\"");
-                        rs2.close();
-                    }
-                    stmt2.close();
-                    out.print(" }");
-                }
-                rs.close();
-                out.println();
-                if (i < langs.length - 1) out.println("  ],");
-                else out.println("  ]");
-            }
+
+            // 1. Export English (LISA) -> JSON key "EN"
+            out.println("  \"EN\": [");
+            exportStandardLanguage(conn, out, "LISA");
+            out.println("  ],");
+
+            // 2. Export Chinese (ZH) -> JSON key "ZH"
+            out.println("  \"ZH\": [");
+            exportChinese(conn, out);
+            out.println("  ],");
+
+            // 3. Export Japanese (JA) -> JSON key "JA"
+            out.println("  \"JA\": [");
+            exportStandardLanguage(conn, out, "JA");
+            out.println("  ]");
+
             out.println("}");
-            System.out.println("Exported lessonsData.json!");
+            System.out.println("Exported lessonsData.json successfully to: " + outputPath);
+
         } catch (Exception e) {
+            System.err.println("Error exporting JSON: " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    private static void exportStandardLanguage(Connection conn, PrintWriter out, String dbLangCode) throws SQLException {
+        String sql = "SELECT level_num, title, stage, vocab, grammar FROM Lessons WHERE lang_code = ? ORDER BY level_num";
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, dbLangCode);
+            try (ResultSet rs = ps.executeQuery()) {
+                boolean first = true;
+                while (rs.next()) {
+                    if (!first) {
+                        out.println(",");
+                    }
+                    first = false;
+                    
+                    int level = rs.getInt("level_num");
+                    String title = escapeJson(rs.getString("title"));
+                    String stage = escapeJson(rs.getString("stage"));
+                    String vocab = escapeJson(rs.getString("vocab"));
+                    String grammar = escapeJson(rs.getString("grammar"));
+
+                    out.print("    { \"level\": " + level + 
+                              ", \"title\": \"" + title + 
+                              "\", \"stage\": \"" + stage + 
+                              "\", \"vocab\": \"" + vocab + 
+                              "\", \"grammar\": \"" + grammar + "\" }");
+                }
+                out.println();
+            }
+        }
+    }
+
+    private static void exportChinese(Connection conn, PrintWriter out) throws SQLException {
+        String sql = "SELECT level_num, title, stage, vocab, grammar FROM Lessons WHERE lang_code = 'ZH' ORDER BY level_num, id";
+        Map<Integer, ChineseLevel> levelsMap = new LinkedHashMap<>();
+        
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            
+            while (rs.next()) {
+                int levelNum = rs.getInt("level_num");
+                String title = rs.getString("title");
+                String stage = rs.getString("stage");
+                String question = rs.getString("vocab");
+                String answer = rs.getString("grammar");
+                
+                ChineseLevel lvl = levelsMap.get(levelNum);
+                if (lvl == null) {
+                    lvl = new ChineseLevel();
+                    lvl.level = levelNum;
+                    lvl.title = title;
+                    lvl.stage = stage;
+                    levelsMap.put(levelNum, lvl);
+                }
+                
+                if (question != null && !question.trim().isEmpty()) {
+                    lvl.qa.add(new QA(question, answer != null ? answer : ""));
+                }
+            }
+        }
+
+        boolean firstLevel = true;
+        for (ChineseLevel lvl : levelsMap.values()) {
+            if (!firstLevel) {
+                out.println(",");
+            }
+            firstLevel = false;
+
+            String escapedTitle = escapeJson(lvl.title);
+            String escapedStage = escapeJson(lvl.stage);
+            
+            out.print("    { \"level\": " + lvl.level + 
+                      ", \"title\": \"" + escapedTitle + 
+                      "\", \"stage\": \"" + escapedStage + 
+                      "\", \"vocab\": \"\", \"grammar\": \"\", \"qa\": [");
+            
+            boolean firstQA = true;
+            for (QA qa : lvl.qa) {
+                if (!firstQA) {
+                    out.print(",");
+                }
+                firstQA = false;
+                
+                String q = escapeJson(qa.q);
+                String a = escapeJson(qa.a);
+                out.print("{\"q\":\"" + q + "\", \"a\":\"" + a + "\"}");
+            }
+            out.print("] }");
+        }
+        out.println();
+    }
+
+    private static String escapeJson(String input) {
+        if (input == null) {
+            return "";
+        }
+        return input.replace("\\", "\\\\")
+                    .replace("\"", "\\\"")
+                    .replace("\n", "\\n")
+                    .replace("\r", "")
+                    .replace("\t", "\\t");
     }
 }
