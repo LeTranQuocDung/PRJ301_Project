@@ -80,7 +80,7 @@ function makeRequest(method, urlStr, headers = {}, body = null) {
           'User-Agent': 'Lucy-Agent-EvalClient',
           ...headers
         },
-        timeout: 3000
+        timeout: 25000
       };
 
       let bodyStr = null;
