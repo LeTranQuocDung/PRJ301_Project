@@ -1,0 +1,309 @@
+openapi: 3.0.3
+info:
+  title: LUCY Backend API
+  version: 1.0.0
+  description: OpenAPI documentation for the LUCY Java Servlet backend.
+servers:
+  - url: /LucyBackendAPI
+    description: Local Tomcat deployment
+tags:
+  - { name: Users, description: Authentication and user administration }
+  - { name: Content, description: Lessons and learning content }
+  - { name: Progress, description: Learning progress and XP }
+  - { name: Rooms, description: Live learning rooms }
+  - { name: Engagement, description: Podcasts, premium content and gifts }
+  - { name: Recordings, description: Podcast recording management }
+  - { name: Wallet, description: Demo wallet operations }
+  - { name: Teacher, description: Teacher dashboard data }
+  - { name: Import, description: Curriculum import history }
+  - { name: AI, description: Question generation and learning agents }
+
+paths:
+  /api/users:
+    get:
+      tags: [Users]
+      summary: List all users (admin only)
+      parameters: [ { $ref: '#/components/parameters/AdminRole' } ]
+      responses:
+        '200': { description: User list, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/User' } } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    delete:
+      tags: [Users]
+      summary: Delete a user (admin only)
+      parameters:
+        - { $ref: '#/components/parameters/AdminRole' }
+        - { name: id, in: query, required: true, schema: { type: integer } }
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/users/register:
+    post:
+      tags: [Users]
+      summary: Register a user
+      requestBody: { $ref: '#/components/requestBodies/Register' }
+      responses:
+        '200': { description: Registered user, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+  /api/users/login:
+    post:
+      tags: [Users]
+      summary: Log in
+      requestBody: { $ref: '#/components/requestBodies/Login' }
+      responses:
+        '200': { description: Logged-in user, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
+        '401': { description: Invalid email or password }
+  /api/users/change-password:
+    post:
+      tags: [Users]
+      summary: Change password
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [userId, email, oldPassword, newPassword], properties: { userId: { type: integer }, email: { type: string, format: email }, oldPassword: { type: string, format: password }, newPassword: { type: string, format: password } } } } }
+      responses:
+        '200': { $ref: '#/components/responses/Success' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+  /api/users/admin/create-user:
+    post:
+      tags: [Users]
+      summary: Create a user (admin only)
+      parameters: [ { $ref: '#/components/parameters/AdminRole' } ]
+      requestBody: { $ref: '#/components/requestBodies/Register' }
+      responses: { '200': { description: Created user }, '403': { $ref: '#/components/responses/Forbidden' } }
+  /api/users/admin/reset-password:
+    post:
+      tags: [Users]
+      summary: Reset a user's password (admin only)
+      parameters: [ { $ref: '#/components/parameters/AdminRole' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, additionalProperties: true } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Forbidden' } }
+  /api/users/admin/update-role:
+    put:
+      tags: [Users]
+      summary: Update a user's role (admin only)
+      parameters: [ { $ref: '#/components/parameters/AdminRole' } ]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [id, role], properties: { id: { type: integer }, role: { type: string, enum: [student, teacher, admin] } } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '403': { $ref: '#/components/responses/Forbidden' } }
+
+  /api/lessons:
+    get:
+      tags: [Content]
+      summary: Get lessons by language
+      parameters: [ { name: lang, in: query, schema: { type: string, enum: [LISA, ZH, JA], default: LISA } } ]
+      responses: { '200': { description: Lesson list, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Lesson' } } } } } }
+  /api/contents:
+    get:
+      tags: [Content]
+      summary: Filter learning content
+      parameters:
+        - { name: language, in: query, schema: { type: string } }
+        - { name: lang, in: query, description: Alias for language, schema: { type: string } }
+        - { name: stage, in: query, schema: { type: string } }
+        - { name: level, in: query, schema: { type: string } }
+      responses: { '200': { description: Content list } }
+
+  /api/progress:
+    get:
+      tags: [Progress]
+      summary: Get a user's progress and total XP
+      parameters: [ { $ref: '#/components/parameters/UserId' } ]
+      responses: { '200': { description: Progress summary }, '400': { $ref: '#/components/responses/BadRequest' } }
+  /api/progress/complete:
+    post:
+      tags: [Progress]
+      summary: Complete a lesson and add XP
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [userId, languageCode, lessonId, levelNum, xp], properties: { userId: { type: integer }, languageCode: { type: string }, lessonId: { type: string }, levelNum: { type: integer }, xp: { type: integer } } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '400': { $ref: '#/components/responses/BadRequest' } }
+  /api/progress/redeem:
+    post:
+      tags: [Progress]
+      summary: Adjust XP when redeeming a reward
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [userId, xpDelta, reason], properties: { userId: { type: integer }, xpDelta: { type: integer, example: -100 }, reason: { type: string } } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '400': { $ref: '#/components/responses/BadRequest' } }
+
+  /api/rooms:
+    get:
+      tags: [Rooms]
+      summary: List public rooms
+      parameters: [ { name: admin, in: query, schema: { type: boolean, default: false } } ]
+      responses: { '200': { description: Room summaries } }
+    post:
+      tags: [Rooms]
+      summary: Create a room
+      requestBody: { $ref: '#/components/requestBodies/CreateRoom' }
+      responses: { '201': { description: Room created, content: { application/json: { schema: { $ref: '#/components/schemas/Room' } } } }, '409': { description: Room ID already exists } }
+  /api/rooms/{roomId}:
+    get:
+      tags: [Rooms]
+      summary: Get room state
+      parameters: [ { $ref: '#/components/parameters/RoomId' } ]
+      responses: { '200': { description: Room state, content: { application/json: { schema: { $ref: '#/components/schemas/Room' } } } }, '404': { $ref: '#/components/responses/NotFound' } }
+  /api/rooms/{roomId}/{action}:
+    post:
+      tags: [Rooms]
+      summary: Perform an action in a room
+      description: Body fields depend on action. All actions require name; message also requires text; pin requires lesson; privacy requires isPublic.
+      parameters:
+        - { $ref: '#/components/parameters/RoomId' }
+        - { name: action, in: path, required: true, schema: { type: string, enum: [join, leave, message, pin, unpin, privacy] } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/RoomAction' } } }
+      responses: { '200': { description: Updated room state }, '400': { $ref: '#/components/responses/BadRequest' }, '403': { $ref: '#/components/responses/Forbidden' }, '404': { $ref: '#/components/responses/NotFound' } }
+
+  /api/engagement/podcasts:
+    get: { tags: [Engagement], summary: Get podcast catalogue, responses: { '200': { description: Podcast list } } }
+  /api/engagement/podcasts/visibility:
+    post:
+      tags: [Engagement]
+      summary: Change episode visibility
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [episodeId, visible], properties: { episodeId: { type: string }, visible: { type: boolean } } } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' } }
+  /api/engagement/premium:
+    get: { tags: [Engagement], summary: Get premium courses, responses: { '200': { description: Premium course list } } }
+  /api/engagement/gifts:
+    get: { tags: [Engagement], summary: Get redeemable gifts, responses: { '200': { description: Gift list } } }
+
+  /api/podcasts/recordings:
+    get:
+      tags: [Recordings]
+      summary: Get recordings
+      parameters: [ { name: public, in: query, schema: { type: boolean } } ]
+      responses: { '200': { description: Recording list } }
+  /api/podcasts/record/audio:
+    get:
+      tags: [Recordings]
+      summary: Download recorded audio
+      parameters: [ { name: id, in: query, required: true, schema: { type: string } } ]
+      responses: { '200': { description: Audio bytes, content: { audio/webm: { schema: { type: string, format: binary } } } }, '404': { $ref: '#/components/responses/NotFound' } }
+  /api/podcasts/record/upload:
+    post:
+      tags: [Recordings]
+      summary: Upload recorded audio
+      requestBody: { required: true, content: { multipart/form-data: { schema: { type: object, properties: { audio: { type: string, format: binary }, sessionId: { type: string } } } } } }
+      responses: { '200': { description: Uploaded recording }, '400': { $ref: '#/components/responses/BadRequest' } }
+  /api/podcasts/record/start:
+    post:
+      tags: [Recordings]
+      summary: Start a recording session
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [roomId, creatorId, title], properties: { roomId: { type: string }, creatorId: { type: integer }, title: { type: string } } } } } }
+      responses: { '200': { description: Active session } }
+  /api/podcasts/record/stop:
+    post:
+      tags: [Recordings]
+      summary: Stop a recording session
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [sessionId], properties: { sessionId: { type: string } } } } } }
+      responses: { '200': { description: Completed recording } }
+  /api/podcasts/record/visibility:
+    post:
+      tags: [Recordings]
+      summary: Change recording visibility
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [recordingId, visible], properties: { recordingId: { type: string }, visible: { type: boolean } } } } } }
+      responses: { '200': { description: Updated recording } }
+
+  /api/wallet/balance:
+    get:
+      tags: [Wallet]
+      summary: Get wallet balance
+      parameters: [ { name: userId, in: query, schema: { type: integer, default: 1 } } ]
+      responses: { '200': { description: Wallet balance } }
+  /api/wallet/topup:
+    post:
+      tags: [Wallet]
+      summary: Top up a demo wallet
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [userId, amount, method], properties: { userId: { type: integer }, amount: { type: number, format: double }, method: { type: string } } } } } }
+      responses: { '200': { description: Transaction result } }
+  /api/wallet/send-gift:
+    post:
+      tags: [Wallet]
+      summary: Send a gift payment
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [fromUserId, toMentorId, giftCode, amount], properties: { fromUserId: { type: integer }, toMentorId: { type: integer }, giftCode: { type: string }, amount: { type: number, format: double } } } } } }
+      responses: { '200': { description: Transaction result }, '400': { $ref: '#/components/responses/BadRequest' } }
+
+  /api/teacher/classrooms:
+    get: { tags: [Teacher], summary: Get classroom dashboard, responses: { '200': { description: Classroom data } } }
+  /api/teacher/materials:
+    get: { tags: [Teacher], summary: Get teaching materials, responses: { '200': { description: Material list } } }
+  /api/import/history:
+    get: { tags: [Import], summary: Get import history, responses: { '200': { description: Import history } } }
+  /api/import/reprocess:
+    post:
+      tags: [Import]
+      summary: Reprocess an imported file
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [fileName], properties: { fileName: { type: string } } } } } }
+      responses: { '200': { $ref: '#/components/responses/Success' }, '400': { $ref: '#/components/responses/BadRequest' } }
+
+  /api/ai/generate-questions:
+    post:
+      tags: [AI]
+      summary: Generate practice questions
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [prompt], properties: { prompt: { type: string }, level: { type: string }, count: { type: integer, minimum: 1 } } } } } }
+      responses: { '200': { description: Generated questions }, '400': { $ref: '#/components/responses/BadRequest' } }
+  /api/agent/coach:
+    get:
+      tags: [AI]
+      summary: Get an AI coaching plan
+      parameters: [ { $ref: '#/components/parameters/UserId' } ]
+      responses: { '200': { description: Coaching plan }, '400': { $ref: '#/components/responses/BadRequest' } }
+  /api/agent/mentor-feedback:
+    post:
+      tags: [AI]
+      summary: Get AI mentor feedback
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [userId, answerText, lessonCode], properties: { userId: { type: integer }, answerText: { type: string }, lessonCode: { type: string } } } } } }
+      responses: { '200': { description: Mentor feedback }, '400': { $ref: '#/components/responses/BadRequest' } }
+  /api/agent/admin-insights:
+    get: { tags: [AI], summary: Get AI-generated admin insights, responses: { '200': { description: Admin insights } } }
+
+components:
+  parameters:
+    AdminRole: { name: X-LUCY-ROLE, in: header, required: true, schema: { type: string, enum: [admin] } }
+    UserId: { name: userId, in: query, required: true, schema: { type: integer, minimum: 1 } }
+    RoomId: { name: roomId, in: path, required: true, schema: { type: string, minLength: 4, example: ROOM123 } }
+  requestBodies:
+    Login:
+      required: true
+      content: { application/json: { schema: { type: object, required: [email, password], properties: { email: { type: string, format: email }, password: { type: string, format: password } } } } }
+    Register:
+      required: true
+      content: { application/json: { schema: { type: object, required: [username, email, password], properties: { username: { type: string }, email: { type: string, format: email }, password: { type: string, format: password }, avatarUrl: { type: string }, role: { type: string, enum: [student, teacher, admin] } } } } }
+    CreateRoom:
+      required: true
+      content: { application/json: { schema: { type: object, required: [roomId, name], properties: { roomId: { type: string, minLength: 4, example: ROOM123 }, name: { type: string, example: Lucy }, isPublic: { type: boolean, default: true } } } } }
+  responses:
+    Success: { description: Operation completed successfully }
+    BadRequest: { description: Invalid request, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Forbidden: { description: Access denied, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    NotFound: { description: Resource not found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  schemas:
+    Error: { type: object, properties: { error: { type: string } } }
+    User:
+      type: object
+      properties: { id: { type: integer }, username: { type: string }, email: { type: string, format: email }, role: { type: string }, avatarUrl: { type: string, nullable: true } }
+    Lesson:
+      type: object
+      additionalProperties: true
+      properties: { id: { type: integer }, langCode: { type: string }, stage: { type: string }, title: { type: string }, levelNum: { type: integer } }
+    Room:
+      type: object
+      properties:
+        id: { type: string }
+        creator: { type: string }
+        createdAt: { type: string, format: date-time }
+        isPublic: { type: boolean }
+        members: { type: array, items: { type: string } }
+        messages: { type: array, items: { type: object, additionalProperties: true } }
+        pinnedLesson: { type: object, nullable: true, additionalProperties: true }
+    RoomAction:
+      type: object
+      properties:
+        name: { type: string }
+        text: { type: string, maxLength: 500 }
+        lesson: { type: object, additionalProperties: true }
+        isPublic: { type: boolean }
