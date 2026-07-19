@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-@WebServlet(urlPatterns = {"/api/rooms", "/api/rooms/*"})
+@WebServlet(urlPatterns = { "/api/rooms", "/api/rooms/*" })
 public class LiveRoomServlet extends HttpServlet {
     private Gson gson;
     private static final Map<String, RoomState> rooms = new ConcurrentHashMap<>();
@@ -81,7 +81,8 @@ public class LiveRoomServlet extends HttpServlet {
         JsonObject body;
         try {
             body = gson.fromJson(req.getReader(), JsonObject.class);
-            if (body == null) body = new JsonObject();
+            if (body == null)
+                body = new JsonObject();
         } catch (Exception ex) {
             error(resp, HttpServletResponse.SC_BAD_REQUEST, "Invalid JSON body");
             return;
@@ -101,7 +102,10 @@ public class LiveRoomServlet extends HttpServlet {
         String name = text(body, "name");
         switch (action) {
             case "join":
-                if (name.isEmpty()) { error(resp, 400, "name is required"); return; }
+                if (name.isEmpty()) {
+                    error(resp, 400, "name is required");
+                    return;
+                }
                 room.members.add(name);
                 break;
             case "leave":
@@ -114,20 +118,38 @@ public class LiveRoomServlet extends HttpServlet {
                 break;
             case "message":
                 addMessage(room, name, text(body, "text"), resp);
-                if (resp.getStatus() >= 400) return;
+                if (resp.getStatus() >= 400)
+                    return;
                 break;
             case "pin":
-                if (!room.creator.equals(name)) { error(resp, 403, "Only the room owner can pin lessons"); return; }
-                if (!body.has("lesson")) { error(resp, 400, "lesson is required"); return; }
-                room.pinnedLesson = gson.fromJson(body.get("lesson"), Map.class);
+                if (!room.creator.equals(name)) {
+                    error(resp, 403, "Only the room owner can pin lessons");
+                    return;
+                }
+                if (!body.has("lesson")) {
+                    error(resp, 400, "lesson is required");
+                    return;
+                }
+                room.pinnedLesson = gson.fromJson(body.get("lesson"),
+                        new com.google.gson.reflect.TypeToken<Map<String, Object>>() {
+                        }.getType());
                 break;
             case "unpin":
-                if (!room.creator.equals(name)) { error(resp, 403, "Only the room owner can unpin lessons"); return; }
+                if (!room.creator.equals(name)) {
+                    error(resp, 403, "Only the room owner can unpin lessons");
+                    return;
+                }
                 room.pinnedLesson = null;
                 break;
             case "privacy":
-                if (!room.creator.equals(name)) { error(resp, 403, "Only the room owner can change room privacy"); return; }
-                if (!body.has("isPublic")) { error(resp, 400, "isPublic is required"); return; }
+                if (!room.creator.equals(name)) {
+                    error(resp, 403, "Only the room owner can change room privacy");
+                    return;
+                }
+                if (!body.has("isPublic")) {
+                    error(resp, 400, "isPublic is required");
+                    return;
+                }
                 room.isPublic = body.get("isPublic").getAsBoolean();
                 break;
             default:
@@ -171,7 +193,8 @@ public class LiveRoomServlet extends HttpServlet {
         item.put("sentAt", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
         synchronized (room.messages) {
             room.messages.add(item);
-            if (room.messages.size() > 200) room.messages.remove(0);
+            if (room.messages.size() > 200)
+                room.messages.remove(0);
         }
     }
 
@@ -182,14 +205,17 @@ public class LiveRoomServlet extends HttpServlet {
         result.put("createdAt", room.createdAt);
         result.put("isPublic", room.isPublic);
         result.put("members", new ArrayList<>(room.members));
-        synchronized (room.messages) { result.put("messages", new ArrayList<>(room.messages)); }
+        synchronized (room.messages) {
+            result.put("messages", new ArrayList<>(room.messages));
+        }
         result.put("pinnedLesson", room.pinnedLesson);
         return result;
     }
 
     private String roomId(HttpServletRequest req) {
         String path = req.getPathInfo();
-        if (path == null) return "";
+        if (path == null)
+            return "";
         String[] parts = path.split("/");
         return parts.length > 1 ? parts[1].toUpperCase() : "";
     }
