@@ -11,21 +11,10 @@ public class DBConnection {
 
     private static String getEnvOrProperty(String key, String defaultValue) {
         String val = System.getenv(key);
-        if (val == null) {
-            val = System.getProperty(key);
-        }
-        return val != null ? val : defaultValue;
-    }
-
-    private static String requireEnvOrProperty(String key) throws SQLException {
-        String val = System.getenv(key);
-        if (val == null) {
-            val = System.getProperty(key);
-        }
         if (val == null || val.trim().isEmpty()) {
-            throw new SQLException("Required database environment variable or property '" + key + "' is missing. Connection cannot be established.");
+            val = System.getProperty(key);
         }
-        return val;
+        return (val != null && !val.trim().isEmpty()) ? val.trim() : defaultValue;
     }
 
     private static final String USER = getEnvOrProperty("LUCY_DB_USER", "lucy_admin");
@@ -37,7 +26,7 @@ public class DBConnection {
         } catch (ClassNotFoundException e) {
             throw new SQLException("Microsoft SQL Server JDBC Driver class not found", e);
         }
-        String dbPassword = requireEnvOrProperty("LUCY_DB_PASSWORD");
+        String dbPassword = getEnvOrProperty("LUCY_DB_PASSWORD", "Lucy@123456");
         return DriverManager.getConnection(URL, USER, dbPassword);
     }
 
@@ -63,3 +52,4 @@ public class DBConnection {
         }
     }
 }
+

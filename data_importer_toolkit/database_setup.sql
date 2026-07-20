@@ -1,11 +1,6 @@
 -- ==============================================================================
 -- LUCY PROJECT DATABASE SETUP SCRIPT
 -- ==============================================================================
--- NOTE ON EXECUTION: This script uses SQLCMD variables for security configurations.
--- In SSMS, please enable SQLCMD Mode (Query -> SQLCMD Mode) before executing.
--- Alternatively, replace the $(LUCY_DB_LOGIN_PASSWORD) occurrences manually.
--- ==============================================================================
-:setvar LUCY_DB_LOGIN_PASSWORD "Lucy@123456"
 
 -- 1. Create the Database if it doesn't exist
 IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = 'LUCY_DBS')
@@ -20,7 +15,7 @@ GO
 -- 2. Create the SQL Login User 'lucy_admin' if it doesn't exist
 IF NOT EXISTS (SELECT * FROM sys.server_principals WHERE name = 'lucy_admin')
 BEGIN
-    CREATE LOGIN lucy_admin WITH PASSWORD = '$(LUCY_DB_LOGIN_PASSWORD)';
+    CREATE LOGIN lucy_admin WITH PASSWORD = 'Lucy@123456';
 END
 GO
 

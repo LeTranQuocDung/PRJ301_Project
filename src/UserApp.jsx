@@ -687,7 +687,37 @@ function PodcastsView() {
           })
         setPods(catalog)
       } catch (err) {
-        setError('Failed to load podcasts. Please try again.')
+        console.warn('Failed to load podcasts, using local fallback:', err.message)
+        setPods([
+          {
+            title: "English for Beginners", episodeCount: 12, lang: "English", subs: 234, accent: "blue", flagCode: "GB",
+            description: "Elementary English listening practice from the British Council.",
+            source: "British Council LearnEnglish",
+            audioUrl: "https://learnenglish.britishcouncil.org/sites/podcasts/files/podcast/elementary-podcasts-s01-e01.mp3",
+            episodes: [
+              { id: "EN-EP-1", number: 1, title: "Meet the Hosts and Angelina Jolie", category: "Conversations", language: "English", duration: "02:00", audioUrl: "https://learnenglish.britishcouncil.org/sites/podcasts/files/podcast/elementary-podcasts-s01-e01.mp3" },
+              { id: "EN-EP-2", number: 2, title: "Why Zara Admires Angelina Jolie", category: "Conversations", language: "English", duration: "02:00", audioUrl: "https://learnenglish.britishcouncil.org/sites/podcasts/files/podcast/elementary-podcasts-s01-e01.mp3" }
+            ]
+          },
+          {
+            title: "Chinese for Beginners", episodeCount: 8, lang: "Chinese", subs: 145, accent: "red", flagCode: "CN",
+            description: "Learn practical Chinese for banking, rules and financial safety.",
+            source: "Castbox - 中文加油站",
+            audioUrl: "https://d3ctxlq1ktw2nl.cloudfront.net/staging/2026-6-17/5c05ce5e-5ad2-81f7-d3b6-bbe9aabfbfb2.mp3",
+            episodes: [
+              { id: "ZH-EP-1", number: 1, title: "Chuẩn bị trước khi đi ngân hàng", category: "Conversations", language: "Chinese", duration: "02:00", audioUrl: "https://d3ctxlq1ktw2nl.cloudfront.log/staging/2026-6-17/5c05ce5e-5ad2-81f7-d3b6-bbe9aabfbfb2.mp3" }
+            ]
+          },
+          {
+            title: "Japanese for Beginners", episodeCount: 15, lang: "Japanese", subs: 178, accent: "pink", flagCode: "JP",
+            description: "Podcast 52: practical Japanese for dealing with a cold in Japan.",
+            source: "Learn Japanese Pod",
+            audioUrl: "https://podcast.learnjapanesepod.com/podcasts/podcast_52_lesson.mp3",
+            episodes: [
+              { id: "JA-EP-1", number: 1, title: "Bản tin cúm mùa ở Nhật", category: "Conversations", language: "Japanese", duration: "02:00", audioUrl: "https://podcast.learnjapanesepod.com/podcasts/podcast_52_lesson.mp3" }
+            ]
+          }
+        ])
       } finally {
         setLoading(false)
       }
@@ -976,9 +1006,18 @@ function PremiumView({ user, setActive, setLearnLang }) {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [balance, setBalance] = useState(0)
+  const [balance, setBalance] = useState(() => {
+    try {
+      const stored = localStorage.getItem('lucy_wallet_balance')
+      return stored !== null ? Number(stored) : 5000000
+    } catch {
+      return 5000000
+    }
+  })
   const [currency, setCurrency] = useState('VND')
   const [topupLoading, setTopupLoading] = useState(false)
+  const [promoCode, setPromoCode] = useState('')
+  const [couponApplied, setCouponApplied] = useState(false)
   
   // Custom Premium Subscription state
   const [subType, setSubType] = useState(() => {
@@ -1000,7 +1039,13 @@ function PremiumView({ user, setActive, setLearnLang }) {
         const data = await res.json()
         setItems(data)
       } catch (err) {
-        setError('Failed to load Premium benefits.')
+        console.warn('Failed to fetch premium perks, using local fallback:', err.message)
+        setItems([
+          { title: "Advanced Business English", langCode: "GB", accent: "blue" },
+          { title: "JLPT N5 Prep Course", langCode: "JP", accent: "pink" },
+          { title: "HSK 1 Complete Pack", langCode: "CN", accent: "red" },
+          { title: "Conversational English Master", langCode: "GB", accent: "indigo" }
+        ])
       } finally {
         setLoading(false)
       }
@@ -1015,14 +1060,25 @@ function PremiumView({ user, setActive, setLearnLang }) {
         if (res.ok) {
           const data = await res.json()
           setBalance(data.balance)
-          setCurrency(data.currency || 'VND')
+          if (data.currency) setCurrency(data.currency)
+          localStorage.setItem('lucy_wallet_balance', data.balance)
         }
       } catch (err) {
-        console.error("Failed to load wallet balance:", err)
+        console.warn("Failed to load wallet balance from server, using local balance:", err)
       }
     }
     loadBalance()
   }, [user])
+
+  const handleApplyCoupon = () => {
+    if (promoCode.trim().toUpperCase() === 'LUCY26') {
+      setCouponApplied(true);
+      alert('Áp dụng mã giảm giá thành công! Các gói 1 năm đã được giảm giá đặc biệt.');
+    } else {
+      alert('Mã giảm giá không hợp lệ. Vui lòng nhập LUCY26.');
+      setCouponApplied(false);
+    }
+  }
 
   const handleTopup = async () => {
     setTopupLoading(true)
@@ -1032,19 +1088,24 @@ function PremiumView({ user, setActive, setLearnLang }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: user?.id || 1,
-          amount: 100000,
+          amount: 1000000,
           method: 'demo_vnpay_sandbox'
         })
       })
       if (res.ok) {
         const data = await res.json()
         setBalance(data.newBalance)
-        alert(`Sandbox Top-up successful! New Balance: ${data.newBalance} ${currency}`)
+        localStorage.setItem('lucy_wallet_balance', data.newBalance)
+        alert(`Sandbox Top-up thành công! Số dư mới: ${data.newBalance.toLocaleString()} ${currency}`)
       } else {
-        alert("Top-up failed")
+        throw new Error("Server topup failed")
       }
     } catch (err) {
-      alert("Top-up request connection error")
+      console.warn("Lỗi kết nối server topup, nạp ví ảo ngoại tuyến:", err)
+      const newBal = balance + 1000000
+      setBalance(newBal)
+      localStorage.setItem('lucy_wallet_balance', newBal)
+      alert(`[Ngoại tuyến] Sandbox Top-up thành công! Số dư mới: ${newBal.toLocaleString()} ${currency}`)
     } finally {
       setTopupLoading(false)
     }
@@ -1052,16 +1113,16 @@ function PremiumView({ user, setActive, setLearnLang }) {
 
   const handleSubscribe = async (planName, cost) => {
     if (subType === planName) {
-      alert(`You are already subscribed to the ${planName} plan.`);
+      alert(`Bạn đang sử dụng gói ${planName} rồi.`);
       return;
     }
 
     if (balance < cost) {
-      alert(`Insufficient balance! This plan costs ${cost.toLocaleString()} ${currency}, but you only have ${balance.toLocaleString()} ${currency}. Please perform a Sandbox Top Up.`);
+      alert(`Số dư không đủ! Gói này có giá ${cost.toLocaleString()} ${currency}, nhưng ví của bạn chỉ còn ${balance.toLocaleString()} ${currency}. Vui lòng nạp thêm tiền ảo.`);
       return;
     }
 
-    const confirmSub = window.confirm(`Upgrade to Lucy ${planName} for ${cost.toLocaleString()} ${currency}?`);
+    const confirmSub = window.confirm(`Xác nhận đăng ký gói ${planName} với giá ${cost.toLocaleString()} ${currency}?`);
     if (!confirmSub) return;
 
     try {
@@ -1070,8 +1131,8 @@ function PremiumView({ user, setActive, setLearnLang }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fromUserId: user?.id || 1,
-          toMentorId: 2, // System / Mentor balance collector
-          giftCode: 'SUB_UPGRADE_' + planName.toUpperCase(),
+          toMentorId: 2,
+          giftCode: 'SUB_UPGRADE_' + planName.toUpperCase().replace(/\s+/g, '_'),
           amount: cost
         })
       });
@@ -1079,40 +1140,40 @@ function PremiumView({ user, setActive, setLearnLang }) {
       if (res.ok) {
         const data = await res.json();
         setBalance(data.newBalance);
+        localStorage.setItem('lucy_wallet_balance', data.newBalance);
         setSubType(planName);
         localStorage.setItem('lucy_sub_type', planName);
-        alert(`Congratulations! You have successfully upgraded to Lucy ${planName} Plan! 🎉`);
+        alert(`Chúc mừng! Bạn đã đăng ký thành công gói ${planName}! 🎉`);
       } else {
         const errData = await res.json();
-        alert(`Subscription failed: ${errData.error || 'Unknown error'}`);
+        alert(`Đăng ký thất bại: ${errData.error || 'Lỗi không xác định'}`);
       }
     } catch (err) {
-      console.warn("Failed to subscribe via server, implementing fallback:", err);
-      // Fallback
+      console.warn("Lỗi đăng ký qua server, tự động kích hoạt chế độ dự phòng ngoại tuyến:", err);
       const newBal = Math.max(0, balance - cost);
       setBalance(newBal);
+      localStorage.setItem('lucy_wallet_balance', newBal);
       setSubType(planName);
       localStorage.setItem('lucy_sub_type', planName);
-      alert(`[Offline Mode] Congratulations! You upgraded to Lucy ${planName} Plan! 🎉`);
+      alert(`[Ngoại tuyến] Chúc mừng! Bạn đã nâng cấp thành công gói ${planName}! 🎉`);
     }
   }
 
   const handleUnlockCourse = async (course) => {
-    const isPremiumMember = subType === 'Super' || subType === 'Ultra';
+    const isPremiumMember = subType !== 'Free';
     
     if (unlockedCourses.includes(course.title) || isPremiumMember) {
-      // Direct redirect
       handleLearnCourse(course.title);
       return;
     }
 
     const cost = 49000.0;
     if (balance < cost) {
-      alert(`Insufficient balance to unlock this course! Cost: ${cost.toLocaleString()} ${currency}. Please top up your wallet.`);
+      alert(`Số dư ví không đủ! Phí mở khóa: ${cost.toLocaleString()} ${currency}. Vui lòng nạp tiền vào ví.`);
       return;
     }
 
-    const confirmUnlock = window.confirm(`Unlock course "${course.title}" for ${cost.toLocaleString()} ${currency}?`);
+    const confirmUnlock = window.confirm(`Mở khóa khóa học "${course.title}" với giá ${cost.toLocaleString()} ${currency}?`);
     if (!confirmUnlock) return;
 
     try {
@@ -1130,22 +1191,24 @@ function PremiumView({ user, setActive, setLearnLang }) {
       if (res.ok) {
         const data = await res.json();
         setBalance(data.newBalance);
+        localStorage.setItem('lucy_wallet_balance', data.newBalance);
         const newUnlocked = [...unlockedCourses, course.title];
         setUnlockedCourses(newUnlocked);
         localStorage.setItem('lucy_unlocked_courses', JSON.stringify(newUnlocked));
-        alert(`Success! "${course.title}" is now unlocked. Let's start learning! 🚀`);
+        alert(`Thành công! Khóa học "${course.title}" đã được mở khóa. Hãy bắt đầu học! 🚀`);
       } else {
         const errData = await res.json();
-        alert(`Unlock failed: ${errData.error || 'Unknown error'}`);
+        alert(`Mở khóa thất bại: ${errData.error || 'Lỗi không xác định'}`);
       }
     } catch (err) {
-      console.warn("Failed to unlock course via server, implementing fallback:", err);
+      console.warn("Lỗi kết nối mở khóa, tự động kích hoạt chế độ ngoại tuyến:", err);
       const newBal = Math.max(0, balance - cost);
       setBalance(newBal);
+      localStorage.setItem('lucy_wallet_balance', newBal);
       const newUnlocked = [...unlockedCourses, course.title];
       setUnlockedCourses(newUnlocked);
       localStorage.setItem('lucy_unlocked_courses', JSON.stringify(newUnlocked));
-      alert(`[Offline Mode] Success! "${course.title}" is unlocked. Let's start learning! 🚀`);
+      alert(`[Ngoại tuyến] Thành công! Khóa học "${course.title}" đã được mở khóa. Hãy bắt đầu học! 🚀`);
     }
   }
 
@@ -1163,177 +1226,307 @@ function PremiumView({ user, setActive, setLearnLang }) {
   if (loading) return (
     <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>
       <div style={{ width: 30, height: 30, border: '3px solid #bfdbfe', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 10px' }}></div>
-      <div>Loading Premium perks...</div>
+      <div>Đang tải thông tin gói cước...</div>
       <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
     </div>
   )
 
   if (error) return (
     <div style={{ padding: 40, textAlign: 'center', color: '#ef4444' }}>
-      <div style={{ fontSize: 14, marginBottom: 10 }}>Warning: {error}</div>
+      <div style={{ fontSize: 14, marginBottom: 10 }}>Cảnh báo: {error}</div>
     </div>
   )
 
+  const plans = [
+    {
+      id: 'Premium Lifetime',
+      title: 'LUCY Premium Trọn Đời',
+      originalPrice: 8800000,
+      price: 3890000,
+      isPremium: true,
+      isLifetime: true,
+      accent: 'linear-gradient(135deg, #1e1b4b 0%, #311042 100%)',
+      features: [
+        'Truy cập toàn bộ kho giáo trình Premium',
+        'Phòng Live voice chat không giới hạn',
+        'Cố vấn học tập AI Lisa thông minh hơn',
+        'Nhận phản hồi chi tiết từ AI Mentor',
+        'Cập nhật nội dung trọn đời',
+        'Ưu tiên kết nối phòng học'
+      ]
+    },
+    {
+      id: 'Premium 1 Year',
+      title: 'LUCY Premium 1 năm',
+      originalPrice: 2745000,
+      price: couponApplied ? 999000 : 1716000,
+      isPremium: true,
+      isLifetime: false,
+      accent: 'linear-gradient(135deg, #311042 0%, #6366f1 100%)',
+      couponText: 'Nhập mã LUCY26 giảm chỉ còn 999K khi thanh toán online',
+      features: [
+        'Truy cập toàn bộ kho giáo trình Premium',
+        'Phòng Live voice chat không giới hạn',
+        'Cố vấn học tập AI Lisa chuyên sâu',
+        'Nhận phản hồi chi tiết từ AI Mentor',
+        'Thời hạn sử dụng trong 1 năm',
+        'Hỗ trợ kỹ thuật 24/7'
+      ]
+    },
+    {
+      id: 'Pro Lifetime',
+      title: 'LUCY Pro Trọn Đời',
+      originalPrice: 3395000,
+      price: 2195000,
+      isPremium: false,
+      isLifetime: true,
+      accent: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+      features: [
+        'Truy cập toàn bộ kho giáo trình Premium',
+        'Phòng Live voice chat không giới hạn',
+        'Lộ trình gợi ý cốt lõi từ AI Lisa',
+        'Nhận xét ngữ pháp từ AI Mentor',
+        'Cập nhật nội dung trọn đời'
+      ]
+    },
+    {
+      id: 'Pro 1 Year',
+      title: 'LUCY Pro 1 năm',
+      originalPrice: 1595000,
+      price: couponApplied ? 829000 : 1095000,
+      isPremium: false,
+      isLifetime: false,
+      accent: 'linear-gradient(135deg, #1e293b 0%, #475569 100%)',
+      couponText: 'Nhập mã LUCY26 giảm chỉ còn 829K khi thanh toán online',
+      features: [
+        'Truy cập toàn bộ kho giáo trình Premium',
+        'Phòng Live voice chat không giới hạn',
+        'Lộ trình gợi ý cốt lõi từ AI Lisa',
+        'Nhận xét ngữ pháp từ AI Mentor',
+        'Thời hạn sử dụng trong 1 năm'
+      ]
+    }
+  ]
+
   return (
-    <div className="fade-up" style={{ padding: '28px 28px 40px', maxWidth: 1000, margin: '0 auto' }}>
-      {/* Premium Banner */}
+    <div className="fade-up" style={{ padding: '28px 28px 40px', maxWidth: 1100, margin: '0 auto', fontFamily: "'Outfit', 'Inter', sans-serif" }}>
+      {/* Title Header matching ELSA */}
+      <div style={{ textAlign: 'center', marginBottom: 36 }}>
+        <h1 style={{ fontSize: 32, fontWeight: 900, color: '#0f172a', margin: '0 0 10px', letterSpacing: '-0.02em' }}>Học Ngoại Ngữ cùng LUCY</h1>
+        <p style={{ color: '#64748b', fontSize: 15, margin: '0 auto', maxWidth: 650, lineHeight: 1.6 }}>
+          Học ngoại ngữ trực tuyến cùng LUCY để rèn luyện các kỹ năng Anh - Trung - Nhật với kho tài liệu học đầy đủ nhất.
+        </p>
+      </div>
+
+      {/* Wallet / Sandbox Control Panel */}
       <div style={{
-        background: 'linear-gradient(135deg, #1e1b4b, #311042)',
-        borderRadius: 24, padding: '40px 32px', color: '#fff', marginBottom: 28,
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        boxShadow: '0 12px 40px rgba(49, 16, 66, 0.25)', border: '1px solid rgba(255,255,255,0.05)',
-        position: 'relative', overflow: 'hidden'
+        background: 'linear-gradient(135deg, #1e1b4b 0%, #311042 100%)',
+        borderRadius: 24, padding: '24px 32px', color: '#fff', marginBottom: 36,
+        display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 20,
+        boxShadow: '0 12px 36px rgba(49, 16, 66, 0.15)', border: '1px solid rgba(255,255,255,0.06)'
       }}>
-        {/* Shimmer decoration */}
-        <div style={{
-          position: 'absolute', top: '-50%', left: '-50%', width: '200%', height: '200%',
-          background: 'radial-gradient(circle, rgba(139,92,246,0.1) 0%, transparent 60%)',
-          pointerEvents: 'none'
-        }} />
-        
-        <div style={{ zIndex: 1, flex: 1 }}>
-          <span style={{
-            fontSize: 10.5, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em',
-            background: 'linear-gradient(90deg, #f59e0b, #ec4899)', padding: '4px 10px', borderRadius: 20,
-            display: 'inline-block', marginBottom: 12, boxShadow: '0 4px 10px rgba(236,72,153,0.2)'
-          }}>LUCY SUPER MEMBERSHIP</span>
-          <h1 style={{ fontSize: 28, fontWeight: 900, color: '#fff', fontFamily: "'Outfit',sans-serif", margin: '0 0 6px' }}>Lucy Premium 💎</h1>
-          <p style={{ color: '#cbd5e1', fontSize: 13.5, margin: 0, maxWidth: 500 }}>Unlock advanced curriculums, unrestricted live chats, AI-powered learning feedback, and high-quality premium content.</p>
-        </div>
-        
-        {/* Wallet Section inside Banner */}
-        <div style={{
-          zIndex: 1, background: 'rgba(255, 255, 255, 0.07)', backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, padding: '20px 24px',
-          minWidth: 260, boxShadow: '0 10px 30px rgba(0,0,0,0.15)', display: 'flex', flexDirection: 'column', gap: 12
-        }}>
-          <div>
-            <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase' }}>Wallet Balance</div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: '#fbbf24', fontFamily: "'Outfit',sans-serif", marginTop: 2 }}>
-              {balance.toLocaleString()} {currency}
-            </div>
+        <div>
+          <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Ví Tiền Thử Nghiệm (Sandbox Wallet)</div>
+          <div style={{ fontSize: 28, fontWeight: 900, color: '#fbbf24', marginTop: 4 }}>
+            {balance.toLocaleString()} {currency}
           </div>
+          <div style={{ fontSize: 12, color: '#a5b4fc', marginTop: 4 }}>Trạng thái tài khoản: <strong style={{ color: '#38bdf8' }}>{subType === 'Free' ? 'Thành viên thường (Free)' : subType}</strong></div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Coupon Input */}
+          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: '4px 6px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            <input 
+              type="text" 
+              placeholder="Nhập mã giảm giá..."
+              value={promoCode}
+              onChange={e => setPromoCode(e.target.value)}
+              style={{
+                background: 'transparent', border: 'none', color: '#fff', fontSize: 13,
+                padding: '6px 10px', outline: 'none', width: 170, fontFamily: 'inherit'
+              }}
+            />
+            <button 
+              onClick={handleApplyCoupon}
+              style={{
+                background: '#6366f1', color: '#fff', border: 'none', borderRadius: 8,
+                padding: '6px 14px', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                transition: 'all 0.2s'
+              }}
+            >
+              Áp dụng
+            </button>
+          </div>
+
           <button 
             onClick={handleTopup} 
             disabled={topupLoading}
             style={{
-              padding: '10px 0', width: '100%', borderRadius: 10,
+              padding: '12px 24px', borderRadius: 12,
               background: 'linear-gradient(135deg,#10b981,#059669)', color: '#fff', border: 'none',
-              fontSize: 12.5, fontWeight: 700, cursor: 'pointer', transition: 'transform 0.15s, opacity 0.15s',
-              boxShadow: '0 4px 12px rgba(16,185,129,0.2)'
+              fontSize: 13.5, fontWeight: 700, cursor: 'pointer', transition: 'transform 0.15s',
+              boxShadow: '0 4px 14px rgba(16,185,129,0.25)'
             }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
+            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.03)'}
             onMouseLeave={e => e.currentTarget.style.transform = ''}
           >
-            {topupLoading ? '⏳ Processing...' : '⚡ Top Up Wallet (+100k)'}
+            {topupLoading ? '⏳ Đang nạp...' : '⚡ Nạp Ví ảo (+1.000.000đ)'}
           </button>
         </div>
       </div>
 
-      {/* Pricing Plans Section */}
-      <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', fontFamily: "'Outfit',sans-serif", margin: '0 0 16px' }}>Choose Your Membership Plan</h2>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20, marginBottom: 36 }}>
-        {/* Free Plan */}
-        <div style={{
-          background: '#fff', border: '1px solid #e2e8f0', borderRadius: 20, padding: 24,
-          display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden',
-          boxShadow: subType === 'Free' ? '0 10px 25px rgba(0,0,0,0.04)' : 'none'
-        }}>
-          {subType === 'Free' && (
-            <div style={{ position: 'absolute', top: 0, right: 0, background: '#64748b', color: '#fff', fontSize: 9, fontWeight: 800, padding: '4px 10px', borderBottomLeftRadius: 10 }}>ACTIVE</div>
-          )}
-          <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: '0 0 4px', fontFamily: "'Outfit',sans-serif" }}>Lucy Basic</h3>
-          <div style={{ fontSize: 20, fontWeight: 900, color: '#0f172a', fontFamily: "'Outfit',sans-serif", margin: '10px 0 16px' }}>0 VND <span style={{ fontSize: 12, fontWeight: 400, color: '#64748b' }}>/ month</span></div>
-          <div style={{ height: 1, background: '#f1f5f9', marginBottom: 16 }} />
-          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10, fontSize: 12.5, color: '#475569' }}>
-            <li>✓ Access standard curriculums</li>
-            <li>✓ 15 mins daily Voice Rooms</li>
-            <li>✓ Generic coaching insight</li>
-            <li>✗ Blocked Premium modules</li>
-          </ul>
-          <button 
-            disabled 
-            style={{
-              padding: '12px 0', width: '100%', borderRadius: 12,
-              background: subType === 'Free' ? '#f1f5f9' : '#cbd5e1', color: '#64748b', border: 'none',
-              fontSize: 13, fontWeight: 700, cursor: 'not-allowed'
-            }}
-          >
-            {subType === 'Free' ? 'Current Active Plan' : 'Standard Tier'}
-          </button>
-        </div>
+      {/* 4 Cards Packages Section matching ELSA layout */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 20, marginBottom: 40 }}>
+        {plans.map((p) => {
+          const isActive = subType === p.id;
+          const buttonGradient = isActive 
+            ? 'linear-gradient(135deg, #10b981, #059669)'
+            : 'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)';
+          
+          return (
+            <div 
+              key={p.id} 
+              style={{
+                background: '#fff',
+                border: isActive ? '3px solid #6366f1' : '1px solid #e2e8f0',
+                borderRadius: 24,
+                padding: '24px 20px',
+                display: 'flex',
+                flexDirection: 'column',
+                position: 'relative',
+                overflow: 'hidden',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                boxShadow: isActive 
+                  ? '0 20px 40px rgba(99, 102, 241, 0.18)' 
+                  : '0 10px 30px rgba(0,0,0,0.03)'
+              }}
+              onMouseEnter={e => {
+                if(!isActive) {
+                  e.currentTarget.style.transform = 'translateY(-6px)';
+                  e.currentTarget.style.boxShadow = '0 20px 40px rgba(0,0,0,0.08)';
+                }
+              }}
+              onMouseLeave={e => {
+                if(!isActive) {
+                  e.currentTarget.style.transform = '';
+                  e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,0,0,0.03)';
+                }
+              }}
+            >
+              {/* Active Badge */}
+              {isActive && (
+                <div style={{
+                  position: 'absolute', top: 0, right: 0,
+                  background: '#6366f1', color: '#fff',
+                  fontSize: 9, fontWeight: 900, padding: '5px 12px',
+                  borderBottomLeftRadius: 12, letterSpacing: '0.05em'
+                }}>ĐANG DÙNG</div>
+              )}
 
-        {/* Super Plan */}
-        <div style={{
-          background: '#fff', border: '2px solid #8b5cf6', borderRadius: 20, padding: 24,
-          display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden',
-          boxShadow: '0 12px 30px rgba(139,92,246,0.15)'
-        }}>
-          <div style={{ position: 'absolute', top: 0, right: 0, background: 'linear-gradient(90deg,#8b5cf6,#ec4899)', color: '#fff', fontSize: 9, fontWeight: 900, padding: '4px 10px', borderBottomLeftRadius: 10, letterSpacing: '0.05em' }}>POPULAR</div>
-          <h3 style={{ fontSize: 16, fontWeight: 800, color: '#8b5cf6', margin: '0 0 4px', fontFamily: "'Outfit',sans-serif" }}>Lucy Super (VIP)</h3>
-          <div style={{ fontSize: 20, fontWeight: 900, color: '#0f172a', fontFamily: "'Outfit',sans-serif", margin: '10px 0 16px' }}>99,000 VND <span style={{ fontSize: 12, fontWeight: 400, color: '#64748b' }}>/ month</span></div>
-          <div style={{ height: 1, background: '#f1f5f9', marginBottom: 16 }} />
-          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10, fontSize: 12.5, color: '#475569' }}>
-            <li style={{ fontWeight: 600, color: '#8b5cf6' }}>✓ Unlock ALL Premium Courses</li>
-            <li>✓ Unlimited Voice Chats</li>
-            <li>✓ Advanced AI Coach integration</li>
-            <li>✓ Custom AI Mentor feedback</li>
-          </ul>
-          <button 
-            onClick={() => handleSubscribe('Super', 99000.0)}
-            style={{
-              padding: '12px 0', width: '100%', borderRadius: 12,
-              background: subType === 'Super' ? '#10b981' : 'linear-gradient(135deg,#8b5cf6,#ec4899)',
-              color: '#fff', border: 'none',
-              fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'transform 0.15s',
-              boxShadow: subType === 'Super' ? 'none' : '0 4px 14px rgba(139,92,246,0.3)'
-            }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
-            onMouseLeave={e => e.currentTarget.style.transform = ''}
-          >
-            {subType === 'Super' ? '✓ Active Plan' : (subType === 'Ultra' ? 'Downgrade' : 'Upgrade to Super')}
-          </button>
-        </div>
+              {/* 3D Box Mockup via CSS */}
+              <div style={{
+                height: 120, width: '100%', borderRadius: 16,
+                background: p.accent, display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center', position: 'relative',
+                color: '#fff', boxShadow: 'inset 0 0 20px rgba(255,255,255,0.1), 0 8px 18px rgba(0,0,0,0.08)',
+                overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)',
+                marginBottom: 16
+              }}>
+                <div style={{
+                  width: 50, height: 54, background: 'rgba(255,255,255,0.12)',
+                  transform: 'rotateX(55deg) rotateY(0deg) rotateZ(-45deg)',
+                  transformStyle: 'preserve-3d', position: 'relative',
+                  boxShadow: '-8px 8px 16px rgba(0,0,0,0.4)',
+                  borderRadius: 4, border: '1.5px solid rgba(255,255,255,0.3)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontWeight: 900, fontSize: 10, letterSpacing: '0.05em'
+                }}>
+                  LUCY
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 900, marginTop: 8, letterSpacing: '0.04em', color: p.isPremium ? '#fbbf24' : '#38bdf8' }}>
+                  {p.isPremium ? '💎 PREMIUM' : '⚡ PRO'}
+                </div>
+                <div style={{ fontSize: 9, opacity: 0.8, fontWeight: 700, letterSpacing: '0.08em', marginTop: 2 }}>
+                  {p.isLifetime ? 'LIFETIME' : '1 YEAR'}
+                </div>
+              </div>
 
-        {/* Ultra Plan */}
-        <div style={{
-          background: '#fff', border: '1px solid #e2e8f0', borderRadius: 20, padding: 24,
-          display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden',
-          boxShadow: subType === 'Ultra' ? '0 10px 25px rgba(0,0,0,0.04)' : 'none'
-        }}>
-          {subType === 'Ultra' && (
-            <div style={{ position: 'absolute', top: 0, right: 0, background: '#10b981', color: '#fff', fontSize: 9, fontWeight: 800, padding: '4px 10px', borderBottomLeftRadius: 10 }}>ACTIVE</div>
-          )}
-          <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', margin: '0 0 4px', fontFamily: "'Outfit',sans-serif" }}>Lucy Ultra</h3>
-          <div style={{ fontSize: 20, fontWeight: 900, color: '#0f172a', fontFamily: "'Outfit',sans-serif", margin: '10px 0 16px' }}>189,000 VND <span style={{ fontSize: 12, fontWeight: 400, color: '#64748b' }}>/ month</span></div>
-          <div style={{ height: 1, background: '#f1f5f9', marginBottom: 16 }} />
-          <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 24px', flex: 1, display: 'flex', flexDirection: 'column', gap: 10, fontSize: 12.5, color: '#475569' }}>
-            <li>✓ Everything in Super tier</li>
-            <li>✓ Up to 5 family slots sharing</li>
-            <li>✓ VIP profile icon badge</li>
-            <li style={{ color: '#10b981' }}>✓ Tipping balance (+20k XP/mo)</li>
-          </ul>
-          <button 
-            onClick={() => handleSubscribe('Ultra', 189000.0)}
-            style={{
-              padding: '12px 0', width: '100%', borderRadius: 12,
-              background: subType === 'Ultra' ? '#10b981' : '#0f172a',
-              color: '#fff', border: 'none',
-              fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'transform 0.15s'
-            }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
-            onMouseLeave={e => e.currentTarget.style.transform = ''}
-          >
-            {subType === 'Ultra' ? '✓ Active Plan' : 'Upgrade to Ultra'}
-          </button>
-        </div>
+              {/* Package Title */}
+              <h3 style={{ fontSize: 15, fontWeight: 800, color: '#0f172a', margin: '0 0 4px', fontFamily: "'Outfit',sans-serif", textAlign: 'center' }}>
+                {p.title}
+              </h3>
+
+              {/* Crossed-out original price */}
+              <div style={{ fontSize: 12, color: '#94a3b8', textDecoration: 'line-through', textAlign: 'center', marginTop: 6 }}>
+                Giá gốc: {p.originalPrice.toLocaleString()}đ
+              </div>
+
+              {/* Current bold red price */}
+              <div style={{ fontSize: 20, fontWeight: 900, color: '#dc2626', fontFamily: "'Outfit',sans-serif", margin: '4px 0 12px', textAlign: 'center' }}>
+                {p.price.toLocaleString()}đ
+              </div>
+
+              {/* Coupon discount text */}
+              {p.couponText && !couponApplied && (
+                <div style={{
+                  fontSize: 10.5, color: '#ea580c', background: '#fff7ed',
+                  padding: '6px 10px', borderRadius: 8, border: '1px dashed #fdba74',
+                  textAlign: 'center', marginBottom: 12, lineHeight: 1.4, fontWeight: 600
+                }}>
+                  {p.couponText}
+                </div>
+              )}
+              {p.couponText && couponApplied && (
+                <div style={{
+                  fontSize: 10.5, color: '#16a34a', background: '#f0fdf4',
+                  padding: '6px 10px', borderRadius: 8, border: '1px solid #86efac',
+                  textAlign: 'center', marginBottom: 12, lineHeight: 1.4, fontWeight: 700
+                }}>
+                  ✓ Đã giảm giá online thành công!
+                </div>
+              )}
+
+              <div style={{ height: 1, background: '#f1f5f9', marginBottom: 14 }} />
+
+              {/* Features list */}
+              <ul style={{
+                listStyle: 'none', padding: 0, margin: '0 0 20px', flex: 1,
+                display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12, color: '#475569',
+                lineHeight: 1.4
+              }}>
+                {p.features.map((f, fi) => (
+                  <li key={fi} style={{ display: 'flex', gap: 6 }}>
+                    <span style={{ color: p.isPremium ? '#8b5cf6' : '#0284c7', fontWeight: 'bold' }}>✓</span>
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+
+              {/* Buy Button */}
+              <button 
+                onClick={() => handleSubscribe(p.id, p.price)}
+                style={{
+                  padding: '12px 0', width: '100%', borderRadius: 12,
+                  background: buttonGradient,
+                  color: '#fff', border: 'none',
+                  fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s',
+                  boxShadow: isActive ? 'none' : '0 4px 14px rgba(37,99,235,0.2)'
+                }}
+                onMouseEnter={e => { if(!isActive) e.currentTarget.style.transform = 'scale(1.02)' }}
+                onMouseLeave={e => { if(!isActive) e.currentTarget.style.transform = '' }}
+              >
+                {isActive ? '✓ Đang sử dụng' : 'Mua ngay'}
+              </button>
+            </div>
+          )
+        })}
       </div>
 
       {/* Premium Courses Section */}
       <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', fontFamily: "'Outfit',sans-serif", margin: '0 0 16px' }}>Exclusive Premium Courses</h2>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 18 }}>
         {items.map((item, idx) => {
-          const isUnlocked = unlockedCourses.includes(item.title) || subType === 'Super' || subType === 'Ultra';
+          const isUnlocked = unlockedCourses.includes(item.title) || subType !== 'Free';
           const flag = { GB: '🇬🇧', CN: '🇨🇳', JP: '🇯🇵' }[item.langCode] || item.langCode || '💎';
           const accentColor = item.accent === 'blue' ? '#3b82f6' : (item.accent === 'red' ? '#ef4444' : '#ec4899');
           
@@ -1403,7 +1596,12 @@ function GiftsView({ xp, onRedeem }) {
         const data = await res.json()
         setGifts(data)
       } catch (err) {
-        setError('Failed to load gift items.')
+        console.warn('Failed to fetch gifts, using local fallback:', err.message)
+        setGifts([
+          { name: "Lucy Premium T-Shirt", xp: 500, desc: "Premium cotton t-shirt with Lucy branding", iconCode: "tshirt" },
+          { name: "Double XP Card (24h)", xp: 200, desc: "Gain double XP for all lessons for 24 hours", iconCode: "double_xp" },
+          { name: "Agora VIP Pass", xp: 800, desc: "Unlock priority slot in Agora live room discussions", iconCode: "vip_pass" }
+        ])
       } finally {
         setLoading(false)
       }

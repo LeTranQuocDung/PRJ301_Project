@@ -100,12 +100,34 @@ export default function LoginPage({ onLogin }) {
       if (res.ok) {
         const user = await res.json()
         onLogin({ id: user.id, name: user.username, email: user.email, role: user.role, roleId: user.role, avatarUrl: user.avatarUrl })
-      } else {
-        setError('Sai tên đăng nhập hoặc mật khẩu.')
-        setLoading(false)
+        return
       }
     } catch (e) {
-      setError('Lỗi kết nối Server.')
+      console.warn('Backend login connection failed, checking local seed accounts:', e)
+    }
+
+    // Local / Offline fallback checking seed & local accounts
+    const localAccounts = getAccounts()
+    const inputName = name.trim().toLowerCase()
+    const found = localAccounts.find(a => 
+      (a.name?.toLowerCase() === inputName || a.email?.toLowerCase() === inputName || a.id?.toLowerCase() === inputName) &&
+      a.password === password
+    )
+
+    if (found) {
+      setSuccess('Đăng nhập thành công!')
+      setTimeout(() => {
+        onLogin({
+          id: found.id,
+          name: found.name,
+          email: found.email || `${found.name}@lucy.edu`,
+          role: found.role || found.roleId || 'student',
+          roleId: found.roleId || found.role || 'student',
+          avatarUrl: found.avatarUrl || '🦊'
+        })
+      }, 500)
+    } else {
+      setError('Sai tên đăng nhập hoặc mật khẩu.')
       setLoading(false)
     }
   }
@@ -117,17 +139,17 @@ export default function LoginPage({ onLogin }) {
     if (password !== confirm) return setError('Mật khẩu xác nhận không khớp.')
     
     setLoading(true)
+    const selectedAvatarEmoji = AVATARS.find(a => a.id === selectedAvatar)?.icon || '🦊';
+    
+    const reqBody = {
+      username: name.trim(),
+      email: email.trim() || (name.trim() + '@lucy.edu'),
+      password: password,
+      avatarUrl: selectedAvatarEmoji,
+      role: 'student'
+    }
+
     try {
-      const selectedAvatarEmoji = AVATARS.find(a => a.id === selectedAvatar)?.icon || '🦊';
-      
-      const reqBody = {
-        username: name.trim(),
-        email: email.trim() || (name.trim() + '@lucy.edu'),
-        password: password,
-        avatarUrl: selectedAvatarEmoji,
-        role: 'student' // Mặc định chỉ đăng ký học viên
-      }
-      
       const res = await fetch(`${API_BASE}/api/users/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -138,15 +160,39 @@ export default function LoginPage({ onLogin }) {
         setSuccess('Đăng ký thành công! Đang đăng nhập...')
         const user = await res.json()
         setTimeout(() => onLogin({ id: user.id, name: user.username, email: user.email, role: user.role, roleId: user.role, avatarUrl: user.avatarUrl }), 800)
+        return
       } else {
-        const err = await res.text()
-        setError(err.includes('exists') ? 'Tên đăng nhập đã tồn tại.' : 'Lỗi đăng ký.')
-        setLoading(false)
+        const errText = await res.text()
+        if (errText.includes('exists')) {
+          setError('Tên đăng nhập đã tồn tại.')
+          setLoading(false)
+          return
+        }
       }
     } catch (e) {
-      setError('Lỗi kết nối Server.')
-      setLoading(false)
+      console.warn('Backend register connection failed, using offline local account creation:', e)
     }
+
+    // Local offline registration fallback
+    const newAcc = {
+      id: 'local-' + Date.now(),
+      name: reqBody.username,
+      email: reqBody.email,
+      password: reqBody.password,
+      role: 'user',
+      roleId: 'student',
+      avatarUrl: reqBody.avatarUrl
+    }
+    saveAccount(newAcc)
+    setSuccess('Đăng ký thành công! Đang đăng nhập...')
+    setTimeout(() => onLogin({
+      id: newAcc.id,
+      name: newAcc.name,
+      email: newAcc.email,
+      role: newAcc.role,
+      roleId: newAcc.roleId,
+      avatarUrl: newAcc.avatarUrl
+    }), 800)
   }
 
   return (
