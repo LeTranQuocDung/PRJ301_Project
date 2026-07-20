@@ -77,6 +77,10 @@ public class LiveRoomServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        // JSON payloads may contain Vietnamese, Chinese, and Japanese text.
+        // Set the request encoding before getReader() so Tomcat never falls
+        // back to ISO-8859-1 for chat messages or pinned lesson content.
+        req.setCharacterEncoding("UTF-8");
         prepare(resp);
         JsonObject body;
         try {

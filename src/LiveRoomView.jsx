@@ -75,14 +75,14 @@ export default function LiveRoomView({ canRecord = false }) {
     const leaveUrl = `${API_BASE}/api/rooms/${activeRoomId}/leave`
     const leavePayload = JSON.stringify({ name })
     const handlePageHide = () => {
-      if (navigator.sendBeacon) navigator.sendBeacon(leaveUrl, new Blob([leavePayload], { type:'text/plain' }))
+      if (navigator.sendBeacon) navigator.sendBeacon(leaveUrl, new Blob([leavePayload], { type:'application/json; charset=UTF-8' }))
     }
     window.addEventListener('pagehide', handlePageHide)
     return () => {
       window.removeEventListener('pagehide', handlePageHide)
       fetch(leaveUrl, {
         method:'POST',
-        headers:{'Content-Type':'application/json'},
+        headers:{'Content-Type':'application/json; charset=UTF-8'},
         body:leavePayload,
         keepalive:true
       }).catch(() => {})
@@ -121,8 +121,8 @@ export default function LiveRoomView({ canRecord = false }) {
     setBusy(true); setError('')
     try {
       const state = create
-        ? await request('/api/rooms', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ roomId:cleanId, name, isPublic:newRoomPublic }) })
-        : await request(`/api/rooms/${cleanId}/join`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ name }) })
+        ? await request('/api/rooms', { method:'POST', headers:{'Content-Type':'application/json; charset=UTF-8'}, body:JSON.stringify({ roomId:cleanId, name, isPublic:newRoomPublic }) })
+        : await request(`/api/rooms/${cleanId}/join`, { method:'POST', headers:{'Content-Type':'application/json; charset=UTF-8'}, body:JSON.stringify({ name }) })
       setRoom(state)
       await connectAudio(cleanId)
     } catch (e) {
@@ -136,7 +136,7 @@ export default function LiveRoomView({ canRecord = false }) {
   }
 
   const leaveRoom = async () => {
-    try { await request(`/api/rooms/${room.id}/leave`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ name }) }) } catch {}
+    try { await request(`/api/rooms/${room.id}/leave`, { method:'POST', headers:{'Content-Type':'application/json; charset=UTF-8'}, body:JSON.stringify({ name }) }) } catch {}
     await agoraService.leaveRoom()
     setRoom(null); setRemotes([]); setMuted(false)
   }
@@ -147,7 +147,7 @@ export default function LiveRoomView({ canRecord = false }) {
     if (!text) return
     setMessage('')
     try {
-      const latest = await request(`/api/rooms/${room.id}/message`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ name, text }) })
+      const latest = await request(`/api/rooms/${room.id}/message`, { method:'POST', headers:{'Content-Type':'application/json; charset=UTF-8'}, body:JSON.stringify({ name, text }) })
       setRoom(latest)
     } catch (e) { setError(e.message) }
   }
@@ -155,18 +155,18 @@ export default function LiveRoomView({ canRecord = false }) {
   const pinLesson = async () => {
     const lesson = lessons.find(item => String(item.id) === String(lessonId))
     if (!lesson) return
-    const latest = await request(`/api/rooms/${room.id}/pin`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ name, lesson }) })
+    const latest = await request(`/api/rooms/${room.id}/pin`, { method:'POST', headers:{'Content-Type':'application/json; charset=UTF-8'}, body:JSON.stringify({ name, lesson }) })
     setRoom(latest)
   }
 
   const unpinLesson = async () => {
-    const latest = await request(`/api/rooms/${room.id}/unpin`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ name }) })
+    const latest = await request(`/api/rooms/${room.id}/unpin`, { method:'POST', headers:{'Content-Type':'application/json; charset=UTF-8'}, body:JSON.stringify({ name }) })
     setRoom(latest)
   }
 
   const togglePrivacy = async () => {
     try {
-      const latest = await request(`/api/rooms/${room.id}/privacy`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ name, isPublic:!room.isPublic }) })
+      const latest = await request(`/api/rooms/${room.id}/privacy`, { method:'POST', headers:{'Content-Type':'application/json; charset=UTF-8'}, body:JSON.stringify({ name, isPublic:!room.isPublic }) })
       setRoom(latest)
     } catch (e) { setError(e.message) }
   }
