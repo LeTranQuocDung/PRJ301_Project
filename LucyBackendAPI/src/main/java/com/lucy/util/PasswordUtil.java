@@ -11,7 +11,7 @@ import javax.crypto.spec.PBEKeySpec;
 public class PasswordUtil {
     // Global salt to make simple SHA-256 more secure (backward compatibility)
     private static final String SALT = "LUCY_SUPER_SECRET_SALT_2026";
-    private static final int ITERATIONS = 65536;
+    private static final int ITERATIONS = 10000;
     private static final int KEY_LENGTH = 256; // bits
     private static final int SALT_LENGTH = 16; // bytes
 
