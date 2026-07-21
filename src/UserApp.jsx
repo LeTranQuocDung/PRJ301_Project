@@ -1009,11 +1009,13 @@ function PremiumView({ user, setActive, setLearnLang }) {
   const [balance, setBalance] = useState(() => {
     try {
       const stored = localStorage.getItem('lucy_wallet_balance')
-      return stored !== null ? Number(stored) : 5000000
+      const num = Number(stored)
+      return stored !== null && !isNaN(num) ? num : 5000000
     } catch {
       return 5000000
     }
   })
+  const safeBalance = (typeof balance === 'number' && !isNaN(balance)) ? balance : 5000000
   const [currency, setCurrency] = useState('VND')
   const [topupOpen, setTopupOpen] = useState(false)
   const [topupAmount, setTopupAmount] = useState(1000000)
@@ -1026,11 +1028,13 @@ function PremiumView({ user, setActive, setLearnLang }) {
   
   // Custom Premium Subscription state
   const [subType, setSubType] = useState(() => {
-    return localStorage.getItem('lucy_sub_type') || 'Free'
+    const s = localStorage.getItem('lucy_sub_type')
+    return (s && typeof s === 'string') ? s : 'Free'
   })
   const [unlockedCourses, setUnlockedCourses] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem('lucy_unlocked_courses') || '[]')
+      const parsed = JSON.parse(localStorage.getItem('lucy_unlocked_courses') || '[]')
+      return Array.isArray(parsed) ? parsed : []
     } catch {
       return []
     }
@@ -1069,9 +1073,11 @@ function PremiumView({ user, setActive, setLearnLang }) {
         const res = await fetch(`${API_BASE}/api/wallet/balance?userId=${user?.id || 1}`)
         if (res.ok) {
           const data = await res.json()
-          setBalance(data.balance)
-          if (data.currency) setCurrency(data.currency)
-          localStorage.setItem('lucy_wallet_balance', data.balance)
+          if (data && typeof data.balance === 'number' && !isNaN(data.balance)) {
+            setBalance(data.balance)
+            if (data.currency) setCurrency(data.currency)
+            localStorage.setItem('lucy_wallet_balance', data.balance)
+          }
         }
       } catch (err) {
         console.warn("Failed to load wallet balance from server, using local balance:", err)
@@ -1188,7 +1194,7 @@ function PremiumView({ user, setActive, setLearnLang }) {
 
     if (balance < cost) {
       const wantZaloPay = window.confirm(
-        `Số dư ví hiện tại (${balance.toLocaleString('vi-VN')}đ) chưa đủ để mua gói ${planName} (${cost.toLocaleString('vi-VN')}đ).\n\n` +
+        `Số dư ví hiện tại (${safeBalance.toLocaleString('vi-VN')}đ) chưa đủ để mua gói ${planName} (${cost.toLocaleString('vi-VN')}đ).\n\n` +
         `Bạn có muốn mở cổng thanh toán Ví ZaloPay Sandbox để đăng ký ngay không?`
       );
       if (wantZaloPay) {
@@ -1243,7 +1249,7 @@ function PremiumView({ user, setActive, setLearnLang }) {
     }
 
     const cost = 49000.0;
-    if (balance < cost) {
+    if (safeBalance < cost) {
       alert(`Số dư ví không đủ! Phí mở khóa: ${cost.toLocaleString()} ${currency}. Vui lòng nạp tiền vào ví.`);
       return;
     }
@@ -1506,7 +1512,7 @@ function PremiumView({ user, setActive, setLearnLang }) {
         <div>
           <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Ví Tiền Thử Nghiệm (Sandbox Wallet)</div>
           <div style={{ fontSize: 28, fontWeight: 900, color: '#fbbf24', marginTop: 4 }}>
-            {balance.toLocaleString()} {currency}
+            {safeBalance.toLocaleString('vi-VN')} {currency}
           </div>
           <div style={{ fontSize: 12, color: '#a5b4fc', marginTop: 4 }}>Trạng thái tài khoản: <strong style={{ color: '#38bdf8' }}>{subType === 'Free' ? 'Thành viên thường (Free)' : subType}</strong></div>
         </div>
