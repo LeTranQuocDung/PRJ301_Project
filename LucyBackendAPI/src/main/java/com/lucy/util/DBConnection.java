@@ -17,8 +17,8 @@ public class DBConnection {
         return (val != null && !val.trim().isEmpty()) ? val.trim() : defaultValue;
     }
 
-    private static final String USER = getEnvOrProperty("LUCY_DB_USER", "sa");
-    private static final String URL = getEnvOrProperty("LUCY_DB_URL", "jdbc:sqlserver://localhost:1433;databaseName=LUCY_DBS;encrypt=false;trustServerCertificate=true;");
+    private static final String USER = getEnvOrProperty("LUCY_DB_USER", "lucy_admin");
+    private static final String URL = getEnvOrProperty("LUCY_DB_URL", "jdbc:sqlserver://localhost\\SQLEXPRESS;databaseName=LUCY_DBS;encrypt=false;trustServerCertificate=true;");
 
     public static Connection getConnection() throws SQLException {
         try {

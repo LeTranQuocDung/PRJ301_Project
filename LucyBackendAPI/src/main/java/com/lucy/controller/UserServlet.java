@@ -32,20 +32,22 @@ public class UserServlet extends HttpServlet {
         com.lucy.util.CorsUtil.setCorsHeaders(resp);
     }
 
-    private boolean isAdmin(HttpServletRequest req) {
+    private boolean isSuper(HttpServletRequest req) {
         String role = req.getHeader("X-LUCY-ROLE");
-        return "admin".equalsIgnoreCase(role);
+        return "super".equalsIgnoreCase(role);
     }
 
     private String sanitizeAndValidateRole(String role) {
-        if (role == null) return "student";
+        if (role == null) return "lucy";
         String r = role.trim().toLowerCase();
-        if ("mentor".equals(r)) r = "teacher";
-        if ("influencer".equals(r)) r = "student";
-        if ("admin".equals(r) || "teacher".equals(r) || "student".equals(r)) {
+        // Map legacy role names to new LUCY roles
+        if ("admin".equals(r)) r = "super";
+        if ("teacher".equals(r) || "mentor".equals(r)) r = "pro";
+        if ("student".equals(r) || "influencer".equals(r)) r = "lucy";
+        if ("super".equals(r) || "pro".equals(r) || "lucy".equals(r)) {
             return r;
         }
-        return "student";
+        return "lucy";
     }
 
     @Override
@@ -57,12 +59,13 @@ public class UserServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         setCorsHeaders(resp);
+        resp.setContentType("application/json;charset=UTF-8");
         String pathInfo = req.getPathInfo();
 
         if (pathInfo == null || pathInfo.equals("/")) {
             // GET /api/users - List all users (Admin only)
-            if (!isAdmin(req)) {
-                sendError(resp, 403, "Access denied. Admin role required.");
+            if (!isSuper(req)) {
+                sendError(resp, 403, "Access denied. Super role required.");
                 return;
             }
             List<User> users = userDAO.getAllUsers();
@@ -77,6 +80,8 @@ public class UserServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         setCorsHeaders(resp);
+        resp.setContentType("application/json;charset=UTF-8");
+        req.setCharacterEncoding("UTF-8");
         String pathInfo = req.getPathInfo();
         
         StringBuilder sb = new StringBuilder();
@@ -110,14 +115,14 @@ public class UserServlet extends HttpServlet {
         } else if ("/change-password".equals(pathInfo)) {
             handleChangePassword(json, resp);
         } else if ("/admin/reset-password".equals(pathInfo)) {
-            if (!isAdmin(req)) {
-                sendError(resp, 403, "Access denied. Admin role required.");
+            if (!isSuper(req)) {
+                sendError(resp, 403, "Access denied. Super role required.");
                 return;
             }
             handleAdminResetPassword(json, resp);
         } else if ("/admin/create-user".equals(pathInfo)) {
-            if (!isAdmin(req)) {
-                sendError(resp, 403, "Access denied. Admin role required.");
+            if (!isSuper(req)) {
+                sendError(resp, 403, "Access denied. Super role required.");
                 return;
             }
             handleAdminCreateUser(json, resp);
@@ -157,7 +162,7 @@ public class UserServlet extends HttpServlet {
         user.setPasswordHash(PasswordUtil.hashPassword(password));
         user.setDisplayName(json.has("displayName") ? json.get("displayName").getAsString().trim() : username);
         user.setAvatarUrl(json.has("avatarUrl") ? json.get("avatarUrl").getAsString().trim() : "");
-        user.setRole("student"); // FORCE role to student for public registration
+        user.setRole("lucy"); // FORCE role to lucy (anonymous learner) for public registration
 
         if (userDAO.insertUser(user)) {
             User created = userDAO.getUserByEmail(email);
@@ -260,7 +265,7 @@ public class UserServlet extends HttpServlet {
         String username = json.has("username") ? json.get("username").getAsString().trim() : "";
         String email = json.has("email") ? json.get("email").getAsString().trim() : "";
         String password = json.has("password") ? json.get("password").getAsString().trim() : "";
-        String role = json.has("role") ? json.get("role").getAsString().trim() : "student";
+        String role = json.has("role") ? json.get("role").getAsString().trim() : "lucy";
         
         if (username.isEmpty() || email.isEmpty()) {
             sendError(resp, 400, "Missing required fields");
@@ -306,6 +311,8 @@ public class UserServlet extends HttpServlet {
     @Override
     protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         setCorsHeaders(resp);
+        resp.setContentType("application/json;charset=UTF-8");
+        req.setCharacterEncoding("UTF-8");
         String path = req.getPathInfo();
         if (path == null) {
             sendError(resp, 400, "Invalid action");
@@ -313,8 +320,8 @@ public class UserServlet extends HttpServlet {
         }
 
         if (path.startsWith("/admin")) {
-            if (!isAdmin(req)) {
-                sendError(resp, 403, "Access denied. Admin role required.");
+            if (!isSuper(req)) {
+                sendError(resp, 403, "Access denied. Super role required.");
                 return;
             }
         }
@@ -343,8 +350,9 @@ public class UserServlet extends HttpServlet {
     @Override
     protected void doDelete(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         setCorsHeaders(resp);
-        if (!isAdmin(req)) {
-            sendError(resp, 403, "Access denied. Admin role required.");
+        resp.setContentType("application/json;charset=UTF-8");
+        if (!isSuper(req)) {
+            sendError(resp, 403, "Access denied. Super role required.");
             return;
         }
 

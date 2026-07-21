@@ -2,9 +2,9 @@ import { useState } from 'react'
 
 // ─── Seed default accounts ────────────────────────────────────────────────────
 const SEED_ACCOUNTS = [
-  { id: 'admin-default', name: 'Admin',   password: '123456', roleId: 'admin',    role: 'admin' },
-  { id: 'mentor-default', name: 'Mentor', password: '123456', roleId: 'teacher',  role: 'teacher' },
-  { id: 'user-default',  name: 'Student', password: '123456', roleId: 'student',  role: 'user'  },
+  { id: 'super-default', name: 'Super',   password: '123456', roleId: 'super',   role: 'super' },
+  { id: 'mentor-default', name: 'Mentor', password: '123456', roleId: 'pro',     role: 'pro' },
+  { id: 'user-default',  name: 'Student', password: '123456', roleId: 'lucy',    role: 'lucy'  },
 ]
 
 const getAccounts = () => {
@@ -121,8 +121,8 @@ export default function LoginPage({ onLogin }) {
           id: found.id,
           name: found.name,
           email: found.email || `${found.name}@lucy.edu`,
-          role: found.role || found.roleId || 'student',
-          roleId: found.roleId || found.role || 'student',
+          role: found.role || found.roleId || 'lucy',
+          roleId: found.roleId || found.role || 'lucy',
           avatarUrl: found.avatarUrl || '🦊'
         })
       }, 500)
@@ -146,7 +146,7 @@ export default function LoginPage({ onLogin }) {
       email: email.trim() || (name.trim() + '@lucy.edu'),
       password: password,
       avatarUrl: selectedAvatarEmoji,
-      role: 'student'
+      role: 'lucy'
     }
 
     try {
@@ -179,8 +179,8 @@ export default function LoginPage({ onLogin }) {
       name: reqBody.username,
       email: reqBody.email,
       password: reqBody.password,
-      role: 'user',
-      roleId: 'student',
+      role: 'lucy',
+      roleId: 'lucy',
       avatarUrl: reqBody.avatarUrl
     }
     saveAccount(newAcc)

@@ -134,20 +134,20 @@ const NAV_GROUPS = [
     { id:'podcasts', icon:<Headphones size={15}/>, label:'Podcasts', emoji:'🎧' },
     { id:'premium', icon:<Star size={15}/>, label:'Premium', emoji:'⭐' },
   ]},
-  { label:'IMPORT', hideFor: ['teacher', 'mentor'], color:'#f59e0b', items:[
+  { label:'IMPORT', hideFor: ['pro'], color:'#f59e0b', items:[
     { id:'import', icon:<Upload size={15}/>, label:'Import Files', emoji:'📤' },
     { id:'preview', icon:<Eye size={15}/>, label:'DOCX Preview', emoji:'👁' },
     { id:'imported-data', icon:<Database size={15}/>, label:'Imported Data', emoji:'🗄️' },
   ]},
-  { label:'AI', hideFor: ['teacher', 'mentor'], color:'#ec4899', items:[
+  { label:'AI', hideFor: ['pro'], color:'#ec4899', items:[
     { id:'insights', icon:<Sparkles size={15}/>, label:'AI Insights', emoji:'✨' },
     { id:'templates', icon:<Zap size={15}/>, label:'AI Templates', emoji:'⚡' },
     { id:'questions', icon:<MessageSquare size={15}/>, label:'AI Questions', emoji:'🤖' },
   ]},
-  { label:'USERS', hideFor: ['teacher', 'mentor'], color:'#06b6d4', items:[
+  { label:'USERS', hideFor: ['pro'], color:'#06b6d4', items:[
     { id:'users', icon:<Users size={15}/>, label:'Users', emoji:'👥' },
   ]},
-  { label:'TEACHER WORKSPACE', showOnlyFor: ['teacher', 'mentor'], color:'#8b5cf6', items:[
+  { label:'MENTOR WORKSPACE', showOnlyFor: ['pro'], color:'#8b5cf6', items:[
     { id:'teacher-profile', icon:<Users size={15}/>, label:'Profile', emoji:'👤' },
     { id:'teacher-classrooms', icon:<BookOpen size={15}/>, label:'Classrooms', emoji:'👨‍🏫' },
     { id:'teacher-materials', icon:<FileText size={15}/>, label:'Materials', emoji:'📚' },
@@ -157,7 +157,7 @@ const NAV_GROUPS = [
 function Sidebar({ active, setActive, user, onLogout }) {
   const [hov, setHov] = useState(null)
   const sidebarBorder = 'rgba(255,255,255,0.07)';
-  const isMentor = user.role === 'teacher' || user.role === 'mentor';
+  const isMentor = user.role === 'pro';
   
   return (
     <nav style={{
@@ -179,7 +179,7 @@ function Sidebar({ active, setActive, user, onLogout }) {
           <div>
             <div style={{ fontWeight: 900, fontSize: 18, color: '#fff', fontFamily: "'Outfit',sans-serif", letterSpacing: '-0.03em', lineHeight: 1 }}>LUCY</div>
             <div style={{ fontSize: 9, color: '#94a3b8', letterSpacing: '0.08em', fontWeight: 600, marginTop: 4 }}>
-              {isMentor ? 'MENTOR PORTAL' : 'ADMIN PORTAL'}
+              {isMentor ? 'LUCY PRO PORTAL' : 'LUCY SUPER PORTAL'}
             </div>
           </div>
         </div>
@@ -192,14 +192,14 @@ function Sidebar({ active, setActive, user, onLogout }) {
               background: isMentor ? 'linear-gradient(135deg,#8b5cf6,#d946ef)' : 'linear-gradient(135deg,#6366f1,#06b6d4)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0
             }}>
-              {isMentor ? '👨‍🏫' : '👑'}
+              {isMentor ? '👨‍🏫' : '🌟'}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {user.displayName || user.username || user.name}
               </div>
               <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 2, fontWeight: 600 }}>
-                {isMentor ? 'Mentor / Teacher' : 'Administrator'}
+                {isMentor ? 'LUCY Pro · Mentor' : 'LUCY Super · Creator'}
               </div>
             </div>
           </div>
@@ -261,7 +261,7 @@ function Sidebar({ active, setActive, user, onLogout }) {
 // ─── Dashboard View ─────────────────────────────────────────────────────────
 function DashboardView({ setActive, user }) {
   const [liveRoomStats, setLiveRoomStats] = useState({ total:0, publicCount:0 })
-  const isMentor = user?.role === 'teacher' || user?.role === 'mentor';
+  const isMentor = user?.role === 'pro';
 
   useEffect(() => {
     let active = true
@@ -308,7 +308,7 @@ function DashboardView({ setActive, user }) {
         <div style={{ position: 'absolute', top: -30, right: -30, width: 150, height: 150, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
         <div style={{ position: 'absolute', bottom: -20, right: 60, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
         <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 6, fontWeight: 700, letterSpacing: '0.1em' }}>
-          {isMentor ? 'MENTOR WORKSPACE' : 'SYSTEM ADMINISTRATION'}
+          {isMentor ? 'LUCY PRO WORKSPACE' : 'LUCY SUPER DASHBOARD'}
         </div>
         <h1 style={{ fontSize: 28, fontWeight: 900, margin: '0 0 8px', fontFamily: "'Outfit',sans-serif", letterSpacing: '-0.03em' }}>
           Welcome back, {user?.displayName || user?.username || 'User'}! 👋
@@ -702,7 +702,7 @@ const AGORA_CHANNEL  = 'lucy_room_1'
 const AGORA_TOKEN = null; // Will fetch dynamically
 
 function LiveRoomsView({ role }) {
-  return <LiveRoomView canRecord={role === 'admin' || role === 'mentor' || role === 'teacher'} />
+  return <LiveRoomView canRecord={role === 'super'} />
 }
 
 function LegacyLiveRoomsView({ role }) {
@@ -1405,16 +1405,16 @@ function GeneratedQuestionsView() {
 
 // Users View
 function UsersView({ user }) {
-    const roleHeader = user?.role || 'admin'
+    const roleHeader = user?.role || 'super'
     const [users, setUsers] = useState([])
     const [loading, setLoading] = useState(true)
     const [editId, setEditId] = useState(null)
     const [editingRole, setEditingRole] = useState(null)
     const [tempRole, setTempRole] = useState('')
-    const [form,   setForm]   = useState({ name:'', email:'', role:'student' })
+    const [form,   setForm]   = useState({ name:'', email:'', role:'lucy' })
   
-    const roleAccent = { 'student':'blue', 'mentor':'purple', 'teacher':'purple', 'influencer':'amber', 'admin':'green' }
-    const roleIcon   = { 'student':'[Student] ', 'mentor':'[Mentor] ', 'teacher':'[Teacher] ', 'influencer':'[Creator] ', 'admin':'[Admin] ' }
+    const roleAccent = { 'lucy':'blue', 'pro':'purple', 'super':'green' }
+    const roleIcon   = { 'lucy':'[LUCY] ', 'pro':'[Pro] ', 'super':'[Super] ' }
 
     useEffect(() => {
       fetchUsers()
@@ -1455,7 +1455,7 @@ function UsersView({ user }) {
         if (res.ok) {
           alert('Added successfully! Generated password is: ' + generatedPassword)
           fetchUsers()
-          setForm({name:'',email:'',role:'student'})
+          setForm({name:'',email:'',role:'lucy'})
         } else {
           const err = await res.json()
           alert('Error: ' + err.error)
@@ -1528,10 +1528,9 @@ function UsersView({ user }) {
               <div>
                 <label style={{ fontSize:12,fontWeight:600,color:S.muted,display:'block',marginBottom:4 }}>Assign Role</label>
                 <select value={form.role} onChange={e=>setForm(f=>({...f,role:e.target.value}))} style={{ width:'100%',padding:'9px 12px',borderRadius:8,border:`1px solid ${S.border}`,fontSize:13,outline:'none',boxSizing:'border-box' }}>
-                  <option value="student">Student</option>
-                  <option value="mentor">Mentor</option>
-                  <option value="influencer">Influencer</option>
-                  <option value="admin">Admin</option>
+                  <option value="lucy">LUCY (Learner)</option>
+                  <option value="pro">LUCY Pro (Mentor)</option>
+                  <option value="super">LUCY Super (Creator)</option>
                 </select>
               </div>
               <div style={{ fontSize:11, color:S.muted, marginTop:4 }}>A secure temporary password will be auto-generated and shown.</div>
@@ -1567,9 +1566,9 @@ function UsersView({ user }) {
                         {editingRole === u.id ? (
                           <div style={{ display:'flex', gap:6 }}>
                             <select value={tempRole} onChange={e=>setTempRole(e.target.value)} style={{ padding:'4px', borderRadius:6, border:'1px solid #cbd5e1' }}>
-                              <option value="student">student</option>
-                              <option value="mentor">mentor</option>
-                              <option value="admin">admin</option>
+                              <option value="lucy">lucy</option>
+                              <option value="pro">pro</option>
+                              <option value="super">super</option>
                             </select>
                             <button onClick={()=>saveRole(u.id)} style={{ padding:'4px 8px', borderRadius:6, border:'none', background:ACCENTS.green.c, color:'#fff', cursor:'pointer' }}>Save</button>
                             <button onClick={()=>setEditingRole(null)} style={{ padding:'4px 8px', borderRadius:6, border:'none', background:'#e2e8f0', cursor:'pointer' }}>Cancel</button>
@@ -1958,34 +1957,68 @@ function CourseRunsView() {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-
-    const fallbackStudents = {
-      className: "English Communication K12 Classroom (Offline fallback)",
-      totalStudents: 3,
-      students: [
-        { name: "Nguyen Van A", email: "nva@gmail.com", progress: "85%", status: "Active" },
-        { name: "Tran Thi B", email: "ttb@gmail.com", progress: "62%", status: "Active" },
-        { name: "Le Hoang C", email: "lhc@gmail.com", progress: "12%", status: "Absent" }
-      ]
-    };
+    const [search, setSearch] = useState('');
+    const [filterStatus, setFilterStatus] = useState('All');
+    const [selectedStudent, setSelectedStudent] = useState(null);
+    const [aiFeedback, setAiFeedback] = useState(null);
+    const [generating, setGenerating] = useState(false);
 
     useEffect(() => {
-      async function loadClassrooms() {
-        try {
-          const res = await fetch(`${API_BASE}/api/teacher/classrooms`);
-          if (!res.ok) throw new Error("Failed to fetch classrooms");
-          const json = await res.json();
-          setData(json);
-        } catch (err) {
-          console.error("Failed to fetch from Teacher API, using fallback data:", err);
-          setError("Offline Mode: Server connection failed. Using template offline data.");
-          setData(fallbackStudents);
-        } finally {
-          setLoading(false);
-        }
-      }
       loadClassrooms();
     }, []);
+
+    async function loadClassrooms() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`${API_BASE}/api/teacher/classrooms`);
+        if (!res.ok) throw new Error("Failed to fetch classrooms");
+        const json = await res.json();
+        setData(json);
+      } catch (err) {
+        console.error("Failed to fetch from Teacher API, using fallback data:", err);
+        setError("Offline Mode: Server connection failed. Using template offline data.");
+        setData({
+          className: "Lucy Global Language School - English Classroom",
+          totalStudents: 3,
+          students: [
+            { name: "Nguyen Van A", email: "student@lucy.edu", progress: "150 XP", status: "Active" },
+            { name: "Tran Thi B", email: "ttb@gmail.com", progress: "62 XP", status: "Active" },
+            { name: "Le Hoang C", email: "lhc@gmail.com", progress: "12 XP", status: "Inactive" }
+          ]
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    const generateAIReport = async (student) => {
+      setGenerating(true);
+      setAiFeedback(null);
+      try {
+        const res = await fetch(`${API_BASE}/api/agent/mentor-feedback`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: 1,
+            answerText: `Generate a professional, encouraging Vietnamese progress report card and recommendation for student ${student.name} (${student.email}) who has progress: ${student.progress}.`,
+            lessonCode: 'REPORT_CARD'
+          })
+        });
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        const result = await res.json();
+        setAiFeedback(result);
+      } catch (e) {
+        console.error(e);
+        setAiFeedback({
+          feedback: `[AI Fallback Report] Học viên ${student.name} đang cho thấy những tiến bộ rõ rệt trong lộ trình học tập, hoàn thành các bài học và đạt tích lũy ${student.progress}. Cần tiếp tục duy trì đà học tập để đạt kết quả tốt nhất.`,
+          speakingTips: "Nên tham gia các phòng nói tiếng Anh Live Room 15-20 phút hàng ngày để tăng phản xạ.",
+          confidenceScore: 85
+        });
+      } finally {
+        setGenerating(false);
+      }
+    };
 
     if (loading) {
       return (
@@ -1996,44 +2029,206 @@ function CourseRunsView() {
       );
     }
 
-    const currentClass = data || fallbackStudents;
+    const currentClass = data || { className: '', totalStudents: 0, students: [] };
+    const filteredStudents = currentClass.students.filter(s => {
+      const matchSearch = s.name.toLowerCase().includes(search.toLowerCase()) || s.email.toLowerCase().includes(search.toLowerCase());
+      const matchFilter = filterStatus === 'All' || s.status === filterStatus;
+      return matchSearch && matchFilter;
+    });
 
     return (
       <div className="fade-up" style={{ padding: '28px 28px 40px' }}>
-        <ACard>
-          <ACardHead icon={<BookOpen size={13}/>} title="My Classroom" accent="blue" gradient />
-          <div style={{ padding: 24 }}>
-            {error && (
-              <div style={{ background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#b45309', marginBottom: 16 }}>
-                ⚠️ {error}
+        <div style={{ display: 'grid', gridTemplateColumns: selectedStudent ? '1.2fr 1fr' : '1fr', gap: 20 }}>
+          
+          <ACard>
+            <ACardHead icon={<BookOpen size={15}/>} title="My Classroom & Student Directory" accent="blue" gradient />
+            <div style={{ padding: 24 }}>
+              {error && (
+                <div style={{ background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#b45309', marginBottom: 16 }}>
+                  ⚠️ {error}
+                </div>
+              )}
+              
+              <div style={{ background: '#eff6ff', padding: 16, borderRadius: 12, border: '1px solid #bfdbfe', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#1e40af' }}>{currentClass.className}</div>
+                  <div style={{ fontSize: 13, color: '#3b82f6', marginTop: 4 }}>Size: {currentClass.totalStudents} students registered</div>
+                </div>
+                <button onClick={loadClassrooms} style={{ padding: '8px 12px', background: '#fff', border: '1px solid #bfdbfe', borderRadius: 8, fontSize: 12, color: '#2563eb', cursor: 'pointer', fontWeight: 600 }}>🔄 Refresh</button>
               </div>
-            )}
-            <div style={{ background: '#eff6ff', padding: 16, borderRadius: 12, border: '1px solid #bfdbfe', marginBottom: 20 }}>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#1e40af' }}>{currentClass.className}</div>
-              <div style={{ fontSize: 13, color: '#3b82f6', marginTop: 4 }}>Size: {currentClass.totalStudents} students</div>
+
+              <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+                <input 
+                  type="text" 
+                  value={search} 
+                  onChange={e => setSearch(e.target.value)} 
+                  placeholder="🔍 Search students by name or email..." 
+                  style={{ flex: 1, minWidth: 200, padding: '10px 14px', borderRadius: 10, border: '1px solid #cbd5e1', fontSize: 13.5 }}
+                />
+                <select 
+                  value={filterStatus} 
+                  onChange={e => setFilterStatus(e.target.value)} 
+                  style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #cbd5e1', fontSize: 13.5, background: '#fff' }}
+                >
+                  <option value="All">All Statuses</option>
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                  <option value="Absent">Absent</option>
+                </select>
+              </div>
+
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13.5 }}>
+                  <thead>
+                    <tr style={{ borderBottom: '2px solid #e2e8f0', background: '#f8fafc', color: '#475569' }}>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700 }}>Student</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700 }}>Email</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700 }}>Progress</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700 }}>Status</th>
+                      <th style={{ padding: '12px 16px', textAlign: 'center', fontWeight: 700 }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredStudents.map((s, i) => (
+                      <tr key={i} style={{ borderBottom: '1px solid #e2e8f0', background: selectedStudent?.email === s.email ? '#f1f5f9' : 'transparent', transition: 'background 0.2s' }}>
+                        <td style={{ padding: '12px 16px', fontWeight: 700, color: '#0f172a' }}>{s.name}</td>
+                        <td style={{ padding: '12px 16px', color: '#64748b' }}>{s.email}</td>
+                        <td style={{ padding: '12px 16px', fontWeight: 800, color: '#10b981' }}>{s.progress}</td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <ABadge accent={s.status === 'Active' ? 'green' : 'red'}>{s.status}</ABadge>
+                        </td>
+                        <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                          <button 
+                            onClick={() => { setSelectedStudent(s); setAiFeedback(null); }} 
+                            style={{ padding: '6px 12px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            Details & AI Report
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredStudents.length === 0 && (
+                      <tr>
+                        <td colSpan={5} style={{ padding: 32, textAlign: 'center', color: '#94a3b8' }}>
+                          No students matched your search criteria.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-              <thead>
-                <tr style={{ borderBottom: '1px solid #e2e8f0', background: '#f8fafc' }}>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700 }}>Student</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700 }}>Email</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700 }}>Progress</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 700 }}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {currentClass.students.map((s, i) => (
-                  <tr key={i} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                    <td style={{ padding: '12px 16px', fontWeight: 600 }}>{s.name}</td>
-                    <td style={{ padding: '12px 16px', color: '#64748b' }}>{s.email}</td>
-                    <td style={{ padding: '12px 16px', fontWeight: 700, color: '#10b981' }}>{s.progress}</td>
-                    <td style={{ padding: '12px 16px' }}><ABadge accent={s.status === 'Active' || s.status === 'Hoạt động' ? 'green' : 'red'}>{s.status === 'Active' ? 'Active' : (s.status === 'Absent' ? 'Absent' : s.status)}</ABadge></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </ACard>
+          </ACard>
+
+          {selectedStudent && (
+            <div className="fade-in">
+              <ACard style={{ border: '1.5px solid #8b5cf6' }}>
+                <ACardHead icon={<Sparkles size={15}/>} title="Student AI Report & Profile" accent="purple" action={
+                  <button 
+                    onClick={() => setSelectedStudent(null)} 
+                    style={{ border: 'none', background: 'transparent', fontSize: 16, cursor: 'pointer', color: '#fff' }}
+                  >✕</button>
+                } gradient />
+                <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#f8fafc', padding: 14, borderRadius: 12, border: '1px solid #e2e8f0' }}>
+                    <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg,#8b5cf6,#ec4899)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>🎓</div>
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: 16, color: '#0f172a' }}>{selectedStudent.name}</div>
+                      <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{selectedStudent.email}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', padding: 12, borderRadius: 10, textAlign: 'center' }}>
+                      <div style={{ fontSize: 11, color: '#7c3aed', fontWeight: 700 }}>TOTAL PROGRESS</div>
+                      <div style={{ fontSize: 20, fontWeight: 900, color: '#6d28d9', marginTop: 4 }}>{selectedStudent.progress}</div>
+                    </div>
+                    <div style={{ background: selectedStudent.status === 'Active' ? '#f0fdf4' : '#fef2f2', border: selectedStudent.status === 'Active' ? '1px solid #bbf7d0' : '1px solid #fecaca', padding: 12, borderRadius: 10, textAlign: 'center' }}>
+                      <div style={{ fontSize: 11, color: selectedStudent.status === 'Active' ? '#16a34a' : '#dc2626', fontWeight: 700 }}>STATUS</div>
+                      <div style={{ fontSize: 20, fontWeight: 900, color: selectedStudent.status === 'Active' ? '#15803d' : '#b91c1c', marginTop: 4 }}>{selectedStudent.status}</div>
+                    </div>
+                  </div>
+
+                  <hr style={{ border: 'none', borderTop: '1px solid #e2e8f0', margin: '4px 0' }} />
+
+                  <div>
+                    <h3 style={{ fontSize: 14, fontWeight: 800, color: '#0f172a', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      🤖 AI Progress Evaluation
+                    </h3>
+                    
+                    {!aiFeedback && !generating && (
+                      <div style={{ textAlign: 'center', padding: '24px 0' }}>
+                        <p style={{ fontSize: 12.5, color: '#64748b', marginBottom: 12 }}>Analyze this student's progress and generate an encouraging AI report card instantly.</p>
+                        <button 
+                          onClick={() => generateAIReport(selectedStudent)} 
+                          style={{ padding: '10px 16px', background: 'linear-gradient(135deg,#8b5cf6,#6366f1)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 12px rgba(139,92,246,0.3)' }}
+                        >
+                          ✨ Generate AI Report Card
+                        </button>
+                      </div>
+                    )}
+
+                    {generating && (
+                      <div style={{ textAlign: 'center', padding: '32px 0', color: '#64748b' }}>
+                        <div style={{ width: 28, height: 28, border: '3px solid #ddd6fe', borderTopColor: '#8b5cf6', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 12px' }}></div>
+                        <div style={{ fontSize: 13 }}>Consulting LISA AI Mentor agent...</div>
+                      </div>
+                    )}
+
+                    {aiFeedback && (
+                      <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        
+                        <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 12, padding: 14 }}>
+                          <div style={{ fontSize: 11, fontWeight: 800, color: '#7c3aed', marginBottom: 6 }}>AI MENTOR FEEDBACK</div>
+                          <div style={{ fontSize: 13, color: '#4c1d95', lineHeight: 1.5, fontWeight: 500 }}>
+                            {aiFeedback.feedback}
+                          </div>
+                        </div>
+
+                        {aiFeedback.speakingTips && (
+                          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 12, padding: 14 }}>
+                            <div style={{ fontSize: 11, fontWeight: 800, color: '#2563eb', marginBottom: 6 }}>RECOMMENDED SPEAKING TIPS</div>
+                            <div style={{ fontSize: 13, color: '#1e3a8a', lineHeight: 1.5 }}>
+                              {aiFeedback.speakingTips}
+                            </div>
+                          </div>
+                        )}
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: 10, borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                          <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>Confidence Score:</span>
+                          <span style={{ fontSize: 14, fontWeight: 800, color: '#10b981' }}>🎯 {aiFeedback.confidenceScore}%</span>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                          <button 
+                            onClick={async () => {
+                              const text = `Học viên: ${selectedStudent.name}\nTiến trình: ${selectedStudent.progress}\nĐánh giá từ AI Coach:\n${aiFeedback.feedback}\nLời khuyên: ${aiFeedback.speakingTips}`;
+                              await navigator.clipboard.writeText(text);
+                              alert('AI Report card copied to clipboard!');
+                            }} 
+                            style={{ flex: 1, padding: '9px 0', background: '#fff', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 12, color: '#475569', fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            📋 Copy Report
+                          </button>
+                          <button 
+                            onClick={() => generateAIReport(selectedStudent)} 
+                            style={{ padding: '9px 12px', background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 8, fontSize: 12, color: '#7c3aed', fontWeight: 700, cursor: 'pointer' }}
+                          >
+                            🔄 Regenerate
+                          </button>
+                        </div>
+
+                      </div>
+                    )}
+                  </div>
+
+                </div>
+              </ACard>
+            </div>
+          )}
+
+        </div>
       </div>
     );
   }
@@ -2042,29 +2237,74 @@ function CourseRunsView() {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-
-    const fallbackMaterials = [
-      { subject: 'English Communication (Offline)', lessons: ['Lesson 1: Greetings & Introductions', 'Lesson 2: Daily Routines', 'Lesson 3: Ordering Food'] },
-      { subject: 'Fundamental Grammar (Offline)', lessons: ['Lesson 1: Present Simple Tense', 'Lesson 2: Past Simple Tense'] }
-    ];
+    const [subjectInput, setSubjectInput] = useState('');
+    const [lessonInput, setLessonInput] = useState('');
+    const [search, setSearch] = useState('');
+    const [adding, setAdding] = useState(false);
 
     useEffect(() => {
-      async function loadMaterials() {
-        try {
-          const res = await fetch(`${API_BASE}/api/teacher/materials`);
-          if (!res.ok) throw new Error("Failed to fetch materials");
-          const json = await res.json();
-          setData(json);
-        } catch (err) {
-          console.error("Failed to fetch from Teacher API, using fallback data:", err);
-          setError("Offline Mode: Server connection failed. Using template offline data.");
-          setData(fallbackMaterials);
-        } finally {
-          setLoading(false);
-        }
-      }
       loadMaterials();
     }, []);
+
+    async function loadMaterials() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`${API_BASE}/api/teacher/materials`);
+        if (!res.ok) throw new Error("Failed to fetch materials");
+        const json = await res.json();
+        setData(json);
+      } catch (err) {
+        console.error("Failed to fetch from Teacher API:", err);
+        setError("Offline Mode: Server connection failed. Using template offline data.");
+        setData([
+          { subject: 'English Communication (Offline)', lessons: ['Lesson 1: Greetings & Introductions', 'Lesson 2: Daily Routines', 'Lesson 3: Ordering Food'] },
+          { subject: 'Fundamental Grammar (Offline)', lessons: ['Lesson 1: Present Simple Tense', 'Lesson 2: Past Simple Tense'] }
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    const handleAddMaterial = async (e) => {
+      e.preventDefault();
+      if (!subjectInput.trim() || !lessonInput.trim()) return;
+      setAdding(true);
+      try {
+        const res = await fetch(`${API_BASE}/api/teacher/materials`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subject: subjectInput.trim(),
+            lessonName: lessonInput.trim()
+          })
+        });
+        if (!res.ok) throw new Error("Failed to add material");
+        const updated = await res.json();
+        setData(updated);
+        setLessonInput('');
+        setError(null);
+      } catch (err) {
+        alert("Error adding material: " + err.message);
+      } finally {
+        setAdding(false);
+      }
+    };
+
+    const handleDeleteMaterial = async (subject, lesson) => {
+      if (!window.confirm(`Are you sure you want to delete "${lesson}" from "${subject}"?`)) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/teacher/materials?subject=${encodeURIComponent(subject)}&lesson=${encodeURIComponent(lesson)}`, {
+          method: 'DELETE'
+        });
+        if (!res.ok) throw new Error("Failed to delete material");
+        const updated = await res.json();
+        setData(updated);
+        setError(null);
+      } catch (err) {
+        alert("Error deleting material: " + err.message);
+      }
+    };
 
     if (loading) {
       return (
@@ -2075,32 +2315,117 @@ function CourseRunsView() {
       );
     }
 
-    const currentMaterials = data.length > 0 ? data : fallbackMaterials;
+    const filteredMaterials = data.filter(m => {
+      const matchSubject = m.subject.toLowerCase().includes(search.toLowerCase());
+      const matchLessons = m.lessons.some(l => l.toLowerCase().includes(search.toLowerCase()));
+      return matchSubject || matchLessons;
+    });
 
     return (
       <div className="fade-up" style={{ padding: '28px 28px 40px' }}>
-        <ACard>
-          <ACardHead icon={<FileText size={13}/>} title="Teaching Resources" accent="pink" gradient />
-          <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {error && (
-              <div style={{ background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#b45309' }}>
-                ⚠️ {error}
-              </div>
-            )}
-            {currentMaterials.map((m, i) => (
-              <div key={i} style={{ border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden' }}>
-                <div style={{ background: '#f8fafc', padding: '12px 16px', fontWeight: 700, borderBottom: '1px solid #e2e8f0' }}>{m.subject}</div>
-                <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {m.lessons.map((l, j) => (
-                    <div key={j} style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#3b82f6', cursor: 'pointer', fontWeight: 600, fontSize: 14 }}>
-                      <FileText size={14} /> <span>{l}</span>
-                    </div>
-                  ))}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20 }}>
+          
+          <ACard>
+            <ACardHead icon={<FileText size={15}/>} title="Teaching Resources Directory" accent="pink" gradient />
+            <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 20 }}>
+              {error && (
+                <div style={{ background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#b45309' }}>
+                  ⚠️ {error}
                 </div>
+              )}
+
+              <input 
+                type="text" 
+                value={search} 
+                onChange={e => setSearch(e.target.value)} 
+                placeholder="🔍 Filter resources by subject or lesson..." 
+                style={{ padding: '10px 14px', borderRadius: 10, border: '1px solid #cbd5e1', fontSize: 13.5 }}
+              />
+
+              <div style={{ display: 'grid', gap: 16 }}>
+                {filteredMaterials.map((m, i) => (
+                  <div key={i} style={{ border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden', background: '#fff', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+                    <div style={{ background: '#f8fafc', padding: '12px 16px', fontWeight: 800, borderBottom: '1px solid #e2e8f0', color: '#1e293b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span>📚 {m.subject}</span>
+                      <ABadge accent="pink">{m.lessons.length} lessons</ABadge>
+                    </div>
+                    <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {m.lessons.map((l, j) => (
+                        <div key={j} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: '#f8fafc', borderRadius: 8, border: '1px solid #f1f5f9' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#1e3a8a', fontWeight: 600, fontSize: 13.5 }}>
+                            <FileText size={14} style={{ color: '#ec4899' }} /> <span>{l}</span>
+                          </div>
+                          <button 
+                            onClick={() => handleDeleteMaterial(m.subject, l)} 
+                            style={{ border: 'none', background: 'transparent', color: '#f87171', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 4 }}
+                            onMouseEnter={e => e.currentTarget.style.color = '#dc2626'}
+                            onMouseLeave={e => e.currentTarget.style.color = '#f87171'}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {filteredMaterials.length === 0 && (
+                  <div style={{ padding: 40, textAlign: 'center', border: '1px dashed #cbd5e1', borderRadius: 12, color: '#94a3b8', fontSize: 13.5 }}>
+                    No materials found. Try adding a new subject or lesson.
+                  </div>
+                )}
               </div>
-            ))}
+            </div>
+          </ACard>
+
+          <div className="fade-in">
+            <ACard>
+              <ACardHead icon={<Plus size={15}/>} title="Create Resource" accent="blue" gradient />
+              <form onSubmit={handleAddMaterial} style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6 }}>SUBJECT / COURSE</label>
+                  <input 
+                    type="text" 
+                    value={subjectInput} 
+                    onChange={e => setSubjectInput(e.target.value)} 
+                    placeholder="e.g. English Communication..." 
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13.5 }}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6 }}>LESSON TITLE</label>
+                  <input 
+                    type="text" 
+                    value={lessonInput} 
+                    onChange={e => setLessonInput(e.target.value)} 
+                    placeholder="e.g. Lesson 4: Family Members..." 
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13.5 }}
+                    required
+                  />
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={adding || !subjectInput.trim() || !lessonInput.trim()} 
+                  style={{
+                    width: '100%', padding: '11px 0', borderRadius: 10, border: 'none',
+                    background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+                    color: '#fff', fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(99,102,241,0.3)', transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-1px)'}
+                  onMouseLeave={e => e.currentTarget.style.transform = ''}
+                >
+                  {adding ? 'Creating...' : '✨ Publish Resource'}
+                </button>
+
+              </form>
+            </ACard>
           </div>
-        </ACard>
+
+        </div>
       </div>
     );
   }

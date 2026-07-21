@@ -12,9 +12,9 @@ public class UserDAO {
 
     private static final List<User> memoryUsers = new CopyOnWriteArrayList<>();
     static {
-        memoryUsers.add(new User(1, "admin", "admin@lucy.edu.vn", "hash", "System Admin", "", "admin", 1000, true));
-        memoryUsers.add(new User(2, "teacher1", "teacher@lucy.edu.vn", "hash", "Sarah Jenkins", "", "teacher", 500, true));
-        memoryUsers.add(new User(3, "student1", "student1@gmail.com", "hash", "Nguyen Van A", "", "student", 120, true));
+        memoryUsers.add(new User(1, "super_creator", "super@lucy.edu.vn", "hash", "LUCY Super", "", "super", 1000, true));
+        memoryUsers.add(new User(2, "mentor_pro", "pro@lucy.edu.vn", "hash", "Sarah Jenkins", "", "pro", 500, true));
+        memoryUsers.add(new User(3, "learner1", "learner@gmail.com", "hash", "Nguyen Van A", "", "lucy", 120, true));
     }
 
     public User getUserByEmail(String email) {

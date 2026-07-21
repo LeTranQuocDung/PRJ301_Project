@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 @WebServlet(urlPatterns = {
     "/api/agent/coach",
@@ -47,27 +48,31 @@ public class AgentServlet extends HttpServlet {
 
     private String loadApiKey() {
         String key = System.getenv("GEMINI_API_KEY");
-        if (key == null || key.trim().isEmpty()) {
-            key = System.getProperty("GEMINI_API_KEY");
-        }
-        if (key == null || key.trim().isEmpty()) {
-            try {
-                java.io.File envFile = new java.io.File("../.env");
-                if (!envFile.exists()) envFile = new java.io.File(".env");
-                if (envFile.exists()) {
-                    try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(envFile))) {
+        if (key != null && !key.trim().isEmpty()) return key.trim();
+
+        key = System.getProperty("GEMINI_API_KEY");
+        if (key != null && !key.trim().isEmpty()) return key.trim();
+
+        try {
+            java.io.File cur = new java.io.File(".").getAbsoluteFile();
+            for (int i = 0; i < 6 && cur != null; i++) {
+                java.io.File f = new java.io.File(cur, ".env");
+                if (f.exists() && f.isFile()) {
+                    try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(f))) {
                         String line;
                         while ((line = reader.readLine()) != null) {
                             if (line.trim().startsWith("GEMINI_API_KEY=")) {
-                                key = line.trim().substring("GEMINI_API_KEY=".length()).trim();
-                                break;
+                                String val = line.trim().substring("GEMINI_API_KEY=".length()).trim();
+                                if (!val.isEmpty()) return val;
                             }
                         }
                     }
                 }
-            } catch (Exception ignored) {}
-        }
-        return key != null ? key.trim() : "";
+                cur = cur.getParentFile();
+            }
+        } catch (Exception ignored) {}
+
+        return "";
     }
 
     private String cleanJsonString(String raw) {
@@ -91,67 +96,78 @@ public class AgentServlet extends HttpServlet {
         try {
             // Support direct official Google Gemini API if key starts with AIzaSy or AQ.
             if (geminiApiKey.trim().startsWith("AIzaSy") || geminiApiKey.trim().startsWith("AQ.")) {
-                java.net.URL url = new java.net.URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + geminiApiKey.trim());
-                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setRequestProperty("Content-Type", "application/json");
-                conn.setDoOutput(true);
-                conn.setConnectTimeout(8000);
-                conn.setReadTimeout(15000);
-
-                JsonObject requestBody = new JsonObject();
-
-                // Set system instructions
-                JsonObject systemInstruction = new JsonObject();
-                com.google.gson.JsonArray sysParts = new com.google.gson.JsonArray();
-                JsonObject sysPartObj = new JsonObject();
-                sysPartObj.addProperty("text", systemPrompt);
-                sysParts.add(sysPartObj);
-                systemInstruction.add("parts", sysParts);
-                requestBody.add("systemInstruction", systemInstruction);
-
-                // Set contents
-                com.google.gson.JsonArray contents = new com.google.gson.JsonArray();
-                JsonObject userContentObj = new JsonObject();
-                userContentObj.addProperty("role", "user");
-                com.google.gson.JsonArray userParts = new com.google.gson.JsonArray();
-                JsonObject userPartObj = new JsonObject();
-                userPartObj.addProperty("text", userPrompt);
-                userParts.add(userPartObj);
-                userContentObj.add("parts", userParts);
-                contents.add(userContentObj);
-                requestBody.add("contents", contents);
-
-                // Generation config for JSON output
-                JsonObject generationConfig = new JsonObject();
-                generationConfig.addProperty("responseMimeType", "application/json");
-                generationConfig.addProperty("temperature", 0.9);
-                requestBody.add("generationConfig", generationConfig);
-
-                try (java.io.OutputStream os = conn.getOutputStream()) {
-                    byte[] input = requestBody.toString().getBytes("utf-8");
-                    os.write(input, 0, input.length);
+                String[] modelsToTry = {"gemini-2.0-flash-exp", "gemini-1.5-flash-latest", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"};
+                if (llmModel != null && !llmModel.trim().isEmpty() && !llmModel.contains("2.5")) {
+                    modelsToTry = new String[]{llmModel.trim(), "gemini-2.0-flash-exp", "gemini-1.5-flash-latest", "gemini-2.0-flash"};
                 }
 
-                int code = conn.getResponseCode();
-                if (code >= 200 && code < 300) {
-                    try (java.io.BufferedReader br = new java.io.BufferedReader(
-                            new java.io.InputStreamReader(conn.getInputStream(), "utf-8"))) {
-                        StringBuilder sb = new StringBuilder();
-                        String line;
-                        while ((line = br.readLine()) != null) {
-                            sb.append(line);
+                for (String model : modelsToTry) {
+                    try {
+                        java.net.URL url = new java.net.URL("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + geminiApiKey.trim());
+                        java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                        conn.setRequestMethod("POST");
+                        conn.setRequestProperty("Content-Type", "application/json");
+                        conn.setDoOutput(true);
+                        conn.setConnectTimeout(8000);
+                        conn.setReadTimeout(15000);
+
+                        JsonObject requestBody = new JsonObject();
+
+                        // Set system instructions
+                        JsonObject systemInstruction = new JsonObject();
+                        com.google.gson.JsonArray sysParts = new com.google.gson.JsonArray();
+                        JsonObject sysPartObj = new JsonObject();
+                        sysPartObj.addProperty("text", systemPrompt);
+                        sysParts.add(sysPartObj);
+                        systemInstruction.add("parts", sysParts);
+                        requestBody.add("systemInstruction", systemInstruction);
+
+                        // Set contents
+                        com.google.gson.JsonArray contents = new com.google.gson.JsonArray();
+                        JsonObject userContentObj = new JsonObject();
+                        userContentObj.addProperty("role", "user");
+                        com.google.gson.JsonArray userParts = new com.google.gson.JsonArray();
+                        JsonObject userPartObj = new JsonObject();
+                        userPartObj.addProperty("text", userPrompt);
+                        userParts.add(userPartObj);
+                        userContentObj.add("parts", userParts);
+                        contents.add(userContentObj);
+                        requestBody.add("contents", contents);
+
+                        // Generation config for JSON output
+                        JsonObject generationConfig = new JsonObject();
+                        generationConfig.addProperty("responseMimeType", "application/json");
+                        generationConfig.addProperty("temperature", 0.7);
+                        requestBody.add("generationConfig", generationConfig);
+
+                        try (java.io.OutputStream os = conn.getOutputStream()) {
+                            byte[] input = requestBody.toString().getBytes("utf-8");
+                            os.write(input, 0, input.length);
                         }
-                        JsonObject responseJson = com.google.gson.JsonParser.parseString(sb.toString()).getAsJsonObject();
-                        return responseJson.getAsJsonArray("candidates")
-                                .get(0).getAsJsonObject()
-                                .getAsJsonObject("content")
-                                .getAsJsonArray("parts")
-                                .get(0).getAsJsonObject()
-                                .get("text").getAsString();
+
+                        int code = conn.getResponseCode();
+                        if (code >= 200 && code < 300) {
+                            try (java.io.BufferedReader br = new java.io.BufferedReader(
+                                    new java.io.InputStreamReader(conn.getInputStream(), "utf-8"))) {
+                                StringBuilder sb = new StringBuilder();
+                                String line;
+                                while ((line = br.readLine()) != null) {
+                                    sb.append(line);
+                                }
+                                JsonObject responseJson = com.google.gson.JsonParser.parseString(sb.toString()).getAsJsonObject();
+                                return responseJson.getAsJsonArray("candidates")
+                                        .get(0).getAsJsonObject()
+                                        .getAsJsonObject("content")
+                                        .getAsJsonArray("parts")
+                                        .get(0).getAsJsonObject()
+                                        .get("text").getAsString();
+                            }
+                        } else {
+                            System.err.println("Gemini API call (" + model + ") returned code: " + code);
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Gemini API error (" + model + "): " + e.getMessage());
                     }
-                } else {
-                    System.err.println("Gemini API call returned code: " + code);
                 }
                 return null;
             }
@@ -281,19 +297,16 @@ public class AgentServlet extends HttpServlet {
 
         if (path.contains("coach")) {
             String userIdStr = req.getParameter("userId");
-            int userId = 0;
+            int userId = 1;
             try {
-                if (userIdStr != null) {
-                    userId = Integer.parseInt(userIdStr);
+                if (userIdStr != null && !userIdStr.trim().isEmpty()) {
+                    userId = Integer.parseInt(userIdStr.trim());
                 }
             } catch (NumberFormatException e) {
-                // Ignore
+                userId = 1;
             }
 
-            if (userId <= 0) {
-                sendError(resp, HttpServletResponse.SC_BAD_REQUEST, "Validation failed: userId must be a positive integer");
-                return;
-            }
+            if (userId <= 0) userId = 1;
 
             // Call LLM for coaching plan
             double randomSeed = Math.random();
@@ -403,17 +416,19 @@ public class AgentServlet extends HttpServlet {
                 return;
             }
 
-            if (!json.has("userId") || !json.has("answerText") || !json.has("lessonCode")) {
-                sendError(resp, HttpServletResponse.SC_BAD_REQUEST, "Validation failed: userId, answerText, and lessonCode are required");
-                return;
+            int userId = 1;
+            if (json.has("userId")) {
+                try {
+                    userId = json.get("userId").getAsInt();
+                } catch (Exception e) {
+                    userId = 1;
+                }
             }
+            String answerText = json.has("answerText") ? json.get("answerText").getAsString().trim() : "";
+            String lessonCode = json.has("lessonCode") ? json.get("lessonCode").getAsString().trim() : "";
 
-            int userId = json.get("userId").getAsInt();
-            String answerText = json.get("answerText").getAsString().trim();
-            String lessonCode = json.get("lessonCode").getAsString().trim();
-
-            if (userId <= 0 || answerText.isEmpty() || lessonCode.isEmpty()) {
-                sendError(resp, HttpServletResponse.SC_BAD_REQUEST, "Validation failed: userId must be positive, answerText and lessonCode must not be empty");
+            if (answerText.isEmpty() || lessonCode.isEmpty()) {
+                sendError(resp, HttpServletResponse.SC_BAD_REQUEST, "Validation failed: answerText and lessonCode must not be empty");
                 return;
             }
 
@@ -491,47 +506,95 @@ public class AgentServlet extends HttpServlet {
         feedbackData.put("lessonCode", lessonCode);
         feedbackData.put("apiKeyConfigured", !geminiApiKey.isEmpty());
 
-        String lower = answerText.toLowerCase();
-        String feedback = "";
-        String corrections = "None";
-        String speakingTips = "";
-        int score = 85;
-
+        String text = answerText.trim();
+        String lower = text.toLowerCase();
         String langName = "English";
         if (lessonCode.startsWith("ZH")) langName = "Chinese";
         if (lessonCode.startsWith("JA")) langName = "Japanese";
 
-        // Analyze sentence length & content intelligently
-        int wordCount = answerText.trim().split("\\s+").length;
+        // Filter profanity / inappropriate words
+        if (lower.contains("fuck") || lower.contains("shit") || lower.contains("bitch") || lower.contains("asshole") || lower.contains("damn") || lower.contains("crap")) {
+            feedbackData.put("feedback", "Inappropriate content detected. Please use polite language for language practice.");
+            feedbackData.put("corrections", "Avoid offensive words in learning responses.");
+            feedbackData.put("speakingTips", "Maintain a respectful tone in conversational practice.");
+            feedbackData.put("confidenceScore", 0);
+            return feedbackData;
+        }
+
+        String[] words = text.split("\\s+");
+        int wordCount = words.length;
+
+        // Generate deterministic seed based on text content + length
+        int textHash = Math.abs(text.hashCode());
+        Random rand = new Random(textHash);
+
+        int baseScore;
+        String feedback;
+        String corrections;
+        String speakingTips;
 
         if (wordCount < 3) {
-            feedback = "Short response! While clear, try expanding into a full sentence to practice conversational fluency.";
-            corrections = "Try extending to a full phrase, e.g.: '" + answerText + ", nice to meet you!'";
-            speakingTips = "Maintain clear, steady intonation when stating key words.";
-            score = 72;
-        } else if (lower.contains("yesterday") && (lower.contains(" go ") || lower.contains(" is ") || lower.contains(" am "))) {
-            feedback = "Good effort! Remember to use simple past tense verbs when talking about past events ('yesterday').";
-            corrections = lower.replace("go", "went").replace(" is ", " was ").replace(" am ", " was ");
-            corrections = "Change present tense verb to past form: '" + corrections + "'";
-            speakingTips = "Stress the past verb to emphasize completed actions.";
-            score = 78;
-        } else if (lower.contains(" i is ") || lower.contains(" he go ") || lower.contains(" she go ")) {
-            feedback = "Notice the subject-verb agreement in your sentence.";
-            corrections = lower.replace(" i is ", " I am ").replace(" he go ", " he goes ").replace(" she go ", " she goes ");
-            corrections = "Correct subject-verb agreement: '" + corrections + "'";
-            speakingTips = "Keep your voice natural and articulate verb endings clearly.";
-            score = 80;
+            baseScore = 60 + rand.nextInt(15); // 60-74
+            feedback = String.format("Short %s response ('%s'). While understandable, try building a complete clause to improve your score.", langName, text);
+            corrections = String.format("Expand into a full sentence, e.g.: '%s, thank you for your help!'", text);
+            speakingTips = String.format("Emphasize the pitch contour on key words like '%s'.", words[0]);
         } else {
-            feedback = "Great job! Your sentence is grammatically clear and effectively communicates your idea in " + langName + ".";
-            corrections = "None";
-            speakingTips = "Focus on natural pauses between thought groups to sound more fluent.";
-            score = Math.min(98, 85 + (wordCount * 2));
+            // Check for specific grammar patterns
+            boolean hasCapital = Character.isUpperCase(text.charAt(0));
+            boolean hasPunctuation = text.endsWith(".") || text.endsWith("!") || text.endsWith("?");
+            boolean hasPastTenseError = lower.contains("yesterday") && (lower.contains(" go ") || lower.contains(" is ") || lower.contains(" am "));
+            boolean hasSubjectVerbError = lower.contains(" i is ") || lower.contains(" he go ") || lower.contains(" she go ");
+
+            if (hasPastTenseError) {
+                baseScore = 70 + rand.nextInt(8); // 70-77
+                feedback = "Good effort! Remember to use simple past tense verbs when referring to past events ('yesterday').";
+                corrections = "Change present verb to past form: '" + lower.replace("go", "went").replace(" is ", " was ").replace(" am ", " was ") + "'";
+                speakingTips = "Stress the past verb form to clearly signal past time to listeners.";
+            } else if (hasSubjectVerbError) {
+                baseScore = 72 + rand.nextInt(8); // 72-79
+                feedback = "Notice the subject-verb agreement in your sentence structure.";
+                corrections = "Correction: '" + lower.replace(" i is ", " I am ").replace(" he go ", " he goes ").replace(" she go ", " she goes ") + "'";
+                speakingTips = "Articulate third-person verb endings clearly.";
+            } else {
+                // Calculate dynamic score based on sentence complexity, length & formatting
+                int scoreBonus = Math.min(20, wordCount * 2) + (hasCapital ? 3 : 0) + (hasPunctuation ? 3 : 0);
+                baseScore = Math.min(98, 70 + scoreBonus + rand.nextInt(7));
+
+                String firstWord = words[0];
+                String lastWord = words[words.length - 1].replaceAll("[^a-zA-Z0-9]", "");
+
+                // Dynamic varied feedback templates
+                String[] feedbackTemplates = {
+                    String.format("Excellent %s response! Your use of '%s' and '%s' creates a clear and natural sentence.", langName, firstWord, lastWord),
+                    String.format("Well structured! Communicating '%s' demonstrates good conversational fluency in %s.", text.length() > 30 ? text.substring(0, 30) + "..." : text, langName),
+                    String.format("Great accuracy! Your sentence opening with '%s' flows smoothly and naturally.", firstWord),
+                    String.format("Strong expression! You used %d words effectively to convey a complete idea in %s.", wordCount, langName)
+                };
+
+                String[] correctionTemplates = {
+                    "None — your grammar and word choice are accurate!",
+                    String.format("Optional enhancement: Try adding a connector (e.g. 'because' or 'and') after '%s' to expand your thought.", lastWord),
+                    "No major errors detected. Your sentence structure is clean.",
+                    String.format("Perfect! To sound even more natural, you could add an descriptive adjective before '%s'.", lastWord)
+                };
+
+                String[] tipTemplates = {
+                    String.format("Focus on smooth linking between '%s' and '%s'.", firstWord, words.length > 1 ? words[1] : firstWord),
+                    String.format("Keep a steady rhythm and pause naturally after '%s'.", words[words.length / 2]),
+                    "Practice stressing content words (nouns/verbs) more than function words.",
+                    String.format("Articulate the final consonant sound in '%s' clearly.", lastWord)
+                };
+
+                feedback = feedbackTemplates[rand.nextInt(feedbackTemplates.length)];
+                corrections = correctionTemplates[rand.nextInt(correctionTemplates.length)];
+                speakingTips = tipTemplates[rand.nextInt(tipTemplates.length)];
+            }
         }
 
         feedbackData.put("feedback", feedback);
         feedbackData.put("corrections", corrections);
         feedbackData.put("speakingTips", speakingTips);
-        feedbackData.put("confidenceScore", score);
+        feedbackData.put("confidenceScore", baseScore);
 
         return feedbackData;
     }

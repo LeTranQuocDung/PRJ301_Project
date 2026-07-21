@@ -42,27 +42,31 @@ public class AIServlet extends HttpServlet {
 
     private String loadApiKey() {
         String key = System.getenv("GEMINI_API_KEY");
-        if (key == null || key.trim().isEmpty()) {
-            key = System.getProperty("GEMINI_API_KEY");
-        }
-        if (key == null || key.trim().isEmpty()) {
-            try {
-                java.io.File envFile = new java.io.File("../.env");
-                if (!envFile.exists()) envFile = new java.io.File(".env");
-                if (envFile.exists()) {
-                    try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(envFile))) {
+        if (key != null && !key.trim().isEmpty()) return key.trim();
+
+        key = System.getProperty("GEMINI_API_KEY");
+        if (key != null && !key.trim().isEmpty()) return key.trim();
+
+        try {
+            java.io.File cur = new java.io.File(".").getAbsoluteFile();
+            for (int i = 0; i < 6 && cur != null; i++) {
+                java.io.File f = new java.io.File(cur, ".env");
+                if (f.exists() && f.isFile()) {
+                    try (java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.FileReader(f))) {
                         String line;
                         while ((line = reader.readLine()) != null) {
                             if (line.trim().startsWith("GEMINI_API_KEY=")) {
-                                key = line.trim().substring("GEMINI_API_KEY=".length()).trim();
-                                break;
+                                String val = line.trim().substring("GEMINI_API_KEY=".length()).trim();
+                                if (!val.isEmpty()) return val;
                             }
                         }
                     }
                 }
-            } catch (Exception ignored) {}
-        }
-        return key != null ? key.trim() : "";
+                cur = cur.getParentFile();
+            }
+        } catch (Exception ignored) {}
+
+        return "";
     }
 
     private String cleanJsonString(String raw) {
@@ -86,67 +90,78 @@ public class AIServlet extends HttpServlet {
         try {
             // Support direct official Google Gemini API if key starts with AIzaSy or AQ.
             if (geminiApiKey.trim().startsWith("AIzaSy") || geminiApiKey.trim().startsWith("AQ.")) {
-                java.net.URL url = new java.net.URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + geminiApiKey.trim());
-                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setRequestProperty("Content-Type", "application/json");
-                conn.setDoOutput(true);
-                conn.setConnectTimeout(8000);
-                conn.setReadTimeout(15000);
-
-                JsonObject requestBody = new JsonObject();
-
-                // Set system instructions
-                JsonObject systemInstruction = new JsonObject();
-                com.google.gson.JsonArray sysParts = new com.google.gson.JsonArray();
-                JsonObject sysPartObj = new JsonObject();
-                sysPartObj.addProperty("text", systemPrompt);
-                sysParts.add(sysPartObj);
-                systemInstruction.add("parts", sysParts);
-                requestBody.add("systemInstruction", systemInstruction);
-
-                // Set contents
-                com.google.gson.JsonArray contents = new com.google.gson.JsonArray();
-                JsonObject userContentObj = new JsonObject();
-                userContentObj.addProperty("role", "user");
-                com.google.gson.JsonArray userParts = new com.google.gson.JsonArray();
-                JsonObject userPartObj = new JsonObject();
-                userPartObj.addProperty("text", userPrompt);
-                userParts.add(userPartObj);
-                userContentObj.add("parts", userParts);
-                contents.add(userContentObj);
-                requestBody.add("contents", contents);
-
-                // Generation config for JSON output
-                JsonObject generationConfig = new JsonObject();
-                generationConfig.addProperty("responseMimeType", "application/json");
-                generationConfig.addProperty("temperature", 0.9);
-                requestBody.add("generationConfig", generationConfig);
-
-                try (java.io.OutputStream os = conn.getOutputStream()) {
-                    byte[] input = requestBody.toString().getBytes("utf-8");
-                    os.write(input, 0, input.length);
+                String[] modelsToTry = {"gemini-1.5-flash", "gemini-2.0-flash", "gemini-1.5-pro"};
+                if (llmModel != null && !llmModel.trim().isEmpty() && !llmModel.contains("2.5")) {
+                    modelsToTry = new String[]{llmModel.trim(), "gemini-1.5-flash", "gemini-2.0-flash"};
                 }
 
-                int code = conn.getResponseCode();
-                if (code >= 200 && code < 300) {
-                    try (java.io.BufferedReader br = new java.io.BufferedReader(
-                            new java.io.InputStreamReader(conn.getInputStream(), "utf-8"))) {
-                        StringBuilder sb = new StringBuilder();
-                        String line;
-                        while ((line = br.readLine()) != null) {
-                            sb.append(line);
+                for (String model : modelsToTry) {
+                    try {
+                        java.net.URL url = new java.net.URL("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + geminiApiKey.trim());
+                        java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
+                        conn.setRequestMethod("POST");
+                        conn.setRequestProperty("Content-Type", "application/json");
+                        conn.setDoOutput(true);
+                        conn.setConnectTimeout(8000);
+                        conn.setReadTimeout(15000);
+
+                        JsonObject requestBody = new JsonObject();
+
+                        // Set system instructions
+                        JsonObject systemInstruction = new JsonObject();
+                        com.google.gson.JsonArray sysParts = new com.google.gson.JsonArray();
+                        JsonObject sysPartObj = new JsonObject();
+                        sysPartObj.addProperty("text", systemPrompt);
+                        sysParts.add(sysPartObj);
+                        systemInstruction.add("parts", sysParts);
+                        requestBody.add("systemInstruction", systemInstruction);
+
+                        // Set contents
+                        com.google.gson.JsonArray contents = new com.google.gson.JsonArray();
+                        JsonObject userContentObj = new JsonObject();
+                        userContentObj.addProperty("role", "user");
+                        com.google.gson.JsonArray userParts = new com.google.gson.JsonArray();
+                        JsonObject userPartObj = new JsonObject();
+                        userPartObj.addProperty("text", userPrompt);
+                        userParts.add(userPartObj);
+                        userContentObj.add("parts", userParts);
+                        contents.add(userContentObj);
+                        requestBody.add("contents", contents);
+
+                        // Generation config for JSON output
+                        JsonObject generationConfig = new JsonObject();
+                        generationConfig.addProperty("responseMimeType", "application/json");
+                        generationConfig.addProperty("temperature", 0.7);
+                        requestBody.add("generationConfig", generationConfig);
+
+                        try (java.io.OutputStream os = conn.getOutputStream()) {
+                            byte[] input = requestBody.toString().getBytes("utf-8");
+                            os.write(input, 0, input.length);
                         }
-                        JsonObject responseJson = JsonParser.parseString(sb.toString()).getAsJsonObject();
-                        return responseJson.getAsJsonArray("candidates")
-                                .get(0).getAsJsonObject()
-                                .getAsJsonObject("content")
-                                .getAsJsonArray("parts")
-                                .get(0).getAsJsonObject()
-                                .get("text").getAsString();
+
+                        int code = conn.getResponseCode();
+                        if (code >= 200 && code < 300) {
+                            try (java.io.BufferedReader br = new java.io.BufferedReader(
+                                    new java.io.InputStreamReader(conn.getInputStream(), "utf-8"))) {
+                                StringBuilder sb = new StringBuilder();
+                                String line;
+                                while ((line = br.readLine()) != null) {
+                                    sb.append(line);
+                                }
+                                JsonObject responseJson = JsonParser.parseString(sb.toString()).getAsJsonObject();
+                                return responseJson.getAsJsonArray("candidates")
+                                        .get(0).getAsJsonObject()
+                                        .getAsJsonObject("content")
+                                        .getAsJsonArray("parts")
+                                        .get(0).getAsJsonObject()
+                                        .get("text").getAsString();
+                            }
+                        } else {
+                            System.err.println("Gemini API call (" + model + ") returned code: " + code);
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Gemini API error (" + model + "): " + e.getMessage());
                     }
-                } else {
-                    System.err.println("Gemini API call returned code: " + code);
                 }
                 return null;
             }

@@ -32,6 +32,45 @@ export default function LiveRoomView({ canRecord = false }) {
   const recordStartedRef = useRef(null)
   const recordSessionRef = useRef(null)
 
+  const [schedules, setSchedules] = useState(() => {
+    try {
+      const stored = localStorage.getItem('lucy_scheduled_rooms');
+      if (stored) return JSON.parse(stored);
+    } catch (e) {}
+    return [
+      { id: 1, topic: 'English Speaking Practice - Stage 1', time: new Date(Date.now() + 24*3600*1000).toISOString().slice(0, 16), lang: 'EN', mentor: 'Sarah Jenkins' },
+      { id: 2, topic: 'Chinese Tones & Pinyin Drill', time: new Date(Date.now() + 48*3600*1000).toISOString().slice(0, 16), lang: 'ZH', mentor: 'Mr. Wang' }
+    ];
+  });
+
+  const [schedTopic, setSchedTopic] = useState('');
+  const [schedTime, setSchedTime] = useState('');
+  const [schedLang, setSchedLang] = useState('EN');
+
+  useEffect(() => {
+    localStorage.setItem('lucy_scheduled_rooms', JSON.stringify(schedules));
+  }, [schedules]);
+
+  const handleScheduleRoom = (e) => {
+    e.preventDefault();
+    if (!schedTopic.trim() || !schedTime) return;
+    const newSched = {
+      id: Date.now(),
+      topic: schedTopic.trim(),
+      time: schedTime,
+      lang: schedLang,
+      mentor: canRecord ? 'Mentor Teacher' : 'Guest Host'
+    };
+    setSchedules(prev => [...prev, newSched]);
+    setSchedTopic('');
+    setSchedTime('');
+  };
+
+  const handleDeleteSchedule = (id) => {
+    if (!window.confirm("Delete this scheduled room?")) return;
+    setSchedules(prev => prev.filter(x => x.id !== id));
+  };
+
   const request = async (path, options) => {
     const res = await fetch(`${API_BASE}${path}`, options)
     const data = await res.json().catch(() => ({}))
@@ -231,31 +270,162 @@ export default function LiveRoomView({ canRecord = false }) {
   }
 
   if (!room) return (
-    <div className="fade-up" style={{ padding:28, maxWidth:760 }}>
-      <h1 style={{ margin:'0 0 5px', fontSize:24, color:'#0f172a' }}>Live Rooms</h1>
-      <p style={{ margin:'0 0 22px', color:'#64748b', fontSize:13.5 }}>Create a room or join in a room.</p>
-      {error && <div style={{ marginBottom:14, padding:12, borderRadius:10, background:'#fef2f2', color:'#b91c1c' }}><AlertCircle size={14}/> {error}</div>}
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
-        <div style={{ padding:22, border:'1px solid #e2e8f0', borderRadius:16, background:'#fff' }}>
-          <h3 style={{ margin:'0 0 8px' }}>Create a room</h3>
-          <div style={{ display:'flex', gap:7, marginBottom:11 }}>
-            {[true,false].map(value=><button key={String(value)} onClick={()=>setNewRoomPublic(value)} style={{ flex:1,padding:'8px 6px',border:`1px solid ${newRoomPublic===value?'#6366f1':'#e2e8f0'}`,borderRadius:8,background:newRoomPublic===value?'#eef2ff':'#fff',color:newRoomPublic===value?'#4338ca':'#64748b',fontWeight:700,cursor:'pointer' }}>{value?'Public':'Private'}</button>)}
-          </div>
-          <button disabled={busy} onClick={createRoom} style={primaryButton}>Create Room</button>
-        </div>
-        <div style={{ padding:22, border:'1px solid #e2e8f0', borderRadius:16, background:'#fff' }}>
-          <h3 style={{ margin:'0 0 8px' }}>Join a room</h3>
-          <input value={roomInput} onChange={e => setRoomInput(e.target.value.toUpperCase())} onKeyDown={e => e.key === 'Enter' && enterRoom(roomInput, false)} placeholder="Enter room ID" maxLength={12} style={{ width:'100%', boxSizing:'border-box', padding:11, border:'1px solid #cbd5e1', borderRadius:9, marginBottom:10, textTransform:'uppercase' }}/>
-          <button disabled={busy} onClick={() => enterRoom(roomInput, false)} style={primaryButton}>{busy ? 'Connecting...' : 'Join Room'}</button>
-        </div>
+    <div className="fade-up" style={{ padding: 28, maxWidth: 1100 }}>
+      <div style={{ marginBottom: 24 }}>
+        <h1 style={{ margin: '0 0 5px', fontSize: 24, color: '#0f172a', fontFamily: "'Outfit',sans-serif", fontWeight: 800 }}>Live Audio Rooms</h1>
+        <p style={{ margin: 0, color: '#64748b', fontSize: 13.5 }}>Join active rooms or schedule future collaborative voice sessions.</p>
       </div>
-      <div style={{ marginTop:22 }}>
-        <h2 style={{ fontSize:17,margin:'0 0 4px',color:'#0f172a' }}>Public rooms</h2>
-        <p style={{ margin:'0 0 12px',fontSize:12.5,color:'#64748b' }}>Join an open room without entering its ID.</p>
-        <div style={{ display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:10 }}>
-          {publicRooms.map(publicRoom=><div key={publicRoom.id} style={{ padding:14,border:'1px solid #e2e8f0',borderRadius:12,background:'#fff',display:'flex',justifyContent:'space-between',alignItems:'center',gap:10 }}><div><div style={{ fontWeight:800,color:'#0f172a' }}>{publicRoom.id}</div><div style={{ marginTop:4,fontSize:11.5,color:'#64748b' }}>Owner: {publicRoom.creator} · {publicRoom.memberCount||0} joined</div></div><button disabled={busy} onClick={()=>enterRoom(publicRoom.id,false)} style={{...smallButton,color:'#4f46e5'}}>Join</button></div>)}
-          {publicRooms.length===0&&<div style={{ gridColumn:'1/-1',padding:24,textAlign:'center',border:'1px dashed #cbd5e1',borderRadius:12,color:'#94a3b8',fontSize:13 }}>No public rooms are open.</div>}
+      
+      {error && <div style={{ marginBottom: 14, padding: 12, borderRadius: 10, background: '#fef2f2', color: '#b91c1c', display: 'flex', gap: 6, alignItems: 'center', fontSize: 13 }}><AlertCircle size={14}/> {error}</div>}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 20 }}>
+        
+        {/* Left Side: Create/Join & Public Rooms */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            <div style={{ padding: 22, border: '1px solid #e2e8f0', borderRadius: 16, background: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.01)' }}>
+              <h3 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 800, color: '#1e293b' }}>🎙️ Create dynamic room</h3>
+              <div style={{ display: 'flex', gap: 7, marginBottom: 11 }}>
+                {[true, false].map(value => (
+                  <button 
+                    key={String(value)} 
+                    onClick={() => setNewRoomPublic(value)} 
+                    style={{ flex: 1, padding: '8px 6px', border: `1.5px solid ${newRoomPublic === value ? '#6366f1' : '#e2e8f0'}`, borderRadius: 8, background: newRoomPublic === value ? '#eef2ff' : '#fff', color: newRoomPublic === value ? '#4338ca' : '#64748b', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}
+                  >
+                    {value ? 'Public' : 'Private'}
+                  </button>
+                ))}
+              </div>
+              <button disabled={busy} onClick={createRoom} style={primaryButton}>Create Room</button>
+            </div>
+
+            <div style={{ padding: 22, border: '1px solid #e2e8f0', borderRadius: 16, background: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.01)' }}>
+              <h3 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 800, color: '#1e293b' }}>🔑 Join by Room ID</h3>
+              <input 
+                value={roomInput} 
+                onChange={e => setRoomInput(e.target.value.toUpperCase())} 
+                onKeyDown={e => e.key === 'Enter' && enterRoom(roomInput, false)} 
+                placeholder="Enter room ID..." 
+                maxLength={12} 
+                style={{ width: '100%', boxSizing: 'border-box', padding: 11, border: '1px solid #cbd5e1', borderRadius: 9, marginBottom: 10, textTransform: 'uppercase', fontSize: 13 }}
+              />
+              <button disabled={busy} onClick={() => enterRoom(roomInput, false)} style={primaryButton}>{busy ? 'Connecting...' : 'Join Room'}</button>
+            </div>
+          </div>
+
+          <div>
+            <h2 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 6px', color: '#0f172a' }}>🟢 Active Voice Rooms</h2>
+            <p style={{ margin: '0 0 12px', fontSize: 12.5, color: '#64748b' }}>Connect directly to any open public session.</p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(220px,1fr))', gap: 10 }}>
+              {publicRooms.map(publicRoom => (
+                <div key={publicRoom.id} style={{ padding: 14, border: '1px solid #e2e8f0', borderRadius: 12, background: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, boxShadow: '0 2px 6px rgba(0,0,0,0.01)' }}>
+                  <div>
+                    <div style={{ fontWeight: 800, color: '#4f46e5' }}>{publicRoom.id}</div>
+                    <div style={{ marginTop: 4, fontSize: 11, color: '#64748b' }}>Host: {publicRoom.creator} · {publicRoom.memberCount || 0} online</div>
+                  </div>
+                  <button disabled={busy} onClick={() => enterRoom(publicRoom.id, false)} style={{ ...smallButton, color: '#4f46e5', fontWeight: 800 }}>Join</button>
+                </div>
+              ))}
+              {publicRooms.length === 0 && (
+                <div style={{ gridColumn: '1/-1', padding: 24, textAlign: 'center', border: '1px dashed #cbd5e1', borderRadius: 12, color: '#94a3b8', fontSize: 13 }}>
+                  No active public rooms right now. Create one to get started!
+                </div>
+              )}
+            </div>
+          </div>
+
         </div>
+
+        {/* Right Side: Schedules */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          
+          {/* Scheduled Rooms list */}
+          <div style={{ padding: 22, border: '1px solid #e2e8f0', borderRadius: 16, background: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.01)' }}>
+            <h3 style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 800, color: '#1e293b' }}>📅 Scheduled Live Rooms</h3>
+            <p style={{ margin: '0 0 16px', color: '#64748b', fontSize: 12 }}>Check upcoming speaker events and practice sessions.</p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 300, overflowY: 'auto' }}>
+              {schedules.map(sched => (
+                <div key={sched.id} style={{ padding: 12, border: '1px solid #f1f5f9', borderRadius: 10, background: '#f8fafc', position: 'relative' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: 6 }}>
+                    <span style={{ fontSize: 11, fontWeight: 800, background: sched.lang === 'EN' ? '#eff6ff' : (sched.lang === 'ZH' ? '#fef2f2' : '#fdf2f8'), color: sched.lang === 'EN' ? '#2563eb' : (sched.lang === 'ZH' ? '#dc2626' : '#db2777'), padding: '2px 8px', borderRadius: 20 }}>
+                      {sched.lang === 'EN' ? '🇬🇧 English' : (sched.lang === 'ZH' ? '🇨🇳 Chinese' : '🇯🇵 Japanese')}
+                    </span>
+                    <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>
+                      {sched.time.replace('T', ' ')}
+                    </span>
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: '#1e293b', paddingRight: 24 }}>{sched.topic}</div>
+                  <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 4 }}>Host: {sched.mentor}</div>
+                  
+                  {canRecord && (
+                    <button 
+                      onClick={() => handleDeleteSchedule(sched.id)} 
+                      style={{ position: 'absolute', right: 10, bottom: 10, background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: 4 }}
+                    >
+                      🗑️
+                    </button>
+                  )}
+                </div>
+              ))}
+              {schedules.length === 0 && (
+                <div style={{ padding: 24, textAlign: 'center', border: '1px dashed #cbd5e1', borderRadius: 10, color: '#94a3b8', fontSize: 12.5 }}>
+                  No sessions scheduled yet.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Schedule form (mentors only) */}
+          {canRecord && (
+            <div style={{ padding: 22, border: '1.5px solid #818cf8', borderRadius: 16, background: '#fff', boxShadow: '0 4px 12px rgba(129,140,248,0.1)' }}>
+              <h3 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 800, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                🕒 Schedule New Session
+              </h3>
+              <form onSubmit={handleScheduleRoom} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#475569', marginBottom: 4 }}>TOPIC NAME</label>
+                  <input 
+                    type="text" 
+                    value={schedTopic} 
+                    onChange={e => setSchedTopic(e.target.value)} 
+                    placeholder="e.g. Daily English Conversations..." 
+                    style={{ width: '100%', boxSizing: 'border-box', padding: 9, borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13 }}
+                    required
+                  />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 10 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#475569', marginBottom: 4 }}>DATE & TIME</label>
+                    <input 
+                      type="datetime-local" 
+                      value={schedTime} 
+                      onChange={e => setSchedTime(e.target.value)} 
+                      style={{ width: '100%', boxSizing: 'border-box', padding: 8, borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 12.5 }}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#475569', marginBottom: 4 }}>LANGUAGE</label>
+                    <select 
+                      value={schedLang} 
+                      onChange={e => setSchedLang(e.target.value)} 
+                      style={{ width: '100%', boxSizing: 'border-box', padding: 8, borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 12.5, background: '#fff' }}
+                    >
+                      <option value="EN">English</option>
+                      <option value="ZH">Chinese</option>
+                      <option value="JA">Japanese</option>
+                    </select>
+                  </div>
+                </div>
+                <button type="submit" disabled={!schedTopic.trim() || !schedTime} style={{ ...primaryButton, padding: '10px 0', fontSize: 13 }}>Schedule Event</button>
+              </form>
+            </div>
+          )}
+
+        </div>
+
       </div>
     </div>
   )

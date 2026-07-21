@@ -77,7 +77,7 @@ function Navbar({ active, setActive, user, xp, streak, onLogout }) {
           }}>🎵</div>
           <div>
             <div style={{ fontWeight: 900, fontSize: 18, color: '#fff', fontFamily: "'Outfit',sans-serif", letterSpacing: '-0.03em', lineHeight: 1 }}>LUCY</div>
-            <div style={{ fontSize: 9, color: '#94a3b8', letterSpacing: '0.08em', fontWeight: 600, marginTop: 4 }}>STUDENT PORTAL</div>
+            <div style={{ fontSize: 9, color: '#94a3b8', letterSpacing: '0.08em', fontWeight: 600, marginTop: 4 }}>LUCY PORTAL</div>
           </div>
         </div>
 
