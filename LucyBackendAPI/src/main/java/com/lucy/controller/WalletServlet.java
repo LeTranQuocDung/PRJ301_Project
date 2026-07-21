@@ -63,11 +63,6 @@ public class WalletServlet extends HttpServlet {
         return (env != null && !env.trim().isEmpty()) ? env.trim() : "PcY4iZIKFCIdgZvA6ueMcGsEw2GaIcBh";
     }
 
-    private String getZaloPayKey2() {
-        String env = System.getenv("ZALOPAY_KEY2");
-        return (env != null && !env.trim().isEmpty()) ? env.trim() : "kLfiRAWhA7AEbMeetKMuEc5W07nCfjfl";
-    }
-
     private String getZaloPayEndpoint() {
         String env = System.getenv("ZALOPAY_ENDPOINT");
         if (env != null && !env.trim().isEmpty()) return env.trim();
