@@ -755,46 +755,38 @@ export default function LiveRoomView({ canRecord = false, userRole = 'lucy', use
         <div style={{ display:'grid', gap:14, alignContent:'start' }}>
 
           {/* Raise Hand Panel */}
-          <Panel title="Raise Hand" icon={<Hand size={15}/>}>
-            {/* My hand toggle — lucy users */}
-            {userRole === 'lucy' && (
-              <div style={{ marginBottom:14 }}>
+          <Panel title="Raise Hand Queue" icon={<Hand size={15}/>}>
+            {/* Student: Show Raise/Lower Hand button */}
+            {!isRoomOwner && (
+              <div>
                 <button onClick={toggleHand}
-                  style={{ ...primaryButton, background:handRaised?'linear-gradient(135deg,#f59e0b,#ef4444)':'linear-gradient(135deg,#6366f1,#8b5cf6)', fontSize:14 }}>
+                  style={{ ...primaryButton, background:handRaised?'linear-gradient(135deg,#f59e0b,#ef4444)':'linear-gradient(135deg,#6366f1,#8b5cf6)', fontSize:13 }}>
                   {handRaised ? '✋ Hạ tay' : '🙋 Giơ tay phát biểu'}
                 </button>
                 {handRaised && <div style={{ marginTop:8, fontSize:12, color:'#f59e0b', fontWeight:700, textAlign:'center' }}>Mentor đang thấy tay của bạn!</div>}
               </div>
             )}
 
-            {/* Hands queue — visible to owner */}
+            {/* Mentor / Room Owner: Manage raised hands queue */}
             {isRoomOwner && (
               <div>
                 <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
-                  <span style={{ fontWeight:700, fontSize:12, color:'#475569' }}>🙋 {raisedHandsList.length} người giơ tay</span>
+                  <span style={{ fontWeight:700, fontSize:12, color:'#475569' }}>🙋 {raisedHandsList.length} học viên giơ tay</span>
                   {raisedHandsList.length > 0 && (
                     <button onClick={clearHands} style={{ ...smallButton, fontSize:11, padding:'4px 8px', color:'#dc2626' }}>Xóa tất cả</button>
                   )}
                 </div>
                 {raisedHandsList.length === 0
-                  ? <div style={{ color:'#94a3b8', fontSize:12, textAlign:'center', padding:'12px 0' }}>Chưa có ai giơ tay</div>
+                  ? <div style={{ color:'#94a3b8', fontSize:12, textAlign:'center', padding:'12px 0' }}>Chưa có học viên nào giơ tay</div>
                   : raisedHandsList.map((h, i) => (
                       <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 10px', borderRadius:9, background:i===0?'#fef3c7':'#f8fafc', border:`1px solid ${i===0?'#fde68a':'#e2e8f0'}`, marginBottom:6 }}>
                         <span style={{ fontWeight:800, color:i===0?'#92400e':'#475569', fontSize:12 }}>#{i+1}</span>
                         <span style={{ flex:1, fontSize:12.5, fontWeight:700 }}>{h.name}</span>
-                        {i === 0 && <span style={{ fontSize:10, color:'#d97706', fontWeight:700 }}>▶ Gọi</span>}
+                        {i === 0 && <span style={{ fontSize:10, color:'#d97706', fontWeight:700 }}>▶ Mời phát biểu</span>}
                       </div>
                     ))
                 }
               </div>
-            )}
-
-            {/* Pro/super: also show raise hand button */}
-            {!isRoomOwner && userRole !== 'lucy' && (
-              <button onClick={toggleHand}
-                style={{ ...primaryButton, background:handRaised?'linear-gradient(135deg,#f59e0b,#ef4444)':'linear-gradient(135deg,#6366f1,#8b5cf6)', fontSize:13 }}>
-                {handRaised ? '✋ Hạ tay' : '🙋 Giơ tay'}
-              </button>
             )}
           </Panel>
 
