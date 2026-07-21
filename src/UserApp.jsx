@@ -1480,10 +1480,39 @@ function PremiumView({ user, setActive, setLearnLang }) {
         </div>
       )}
       {/* Title Header matching ELSA */}
-      <div style={{ textAlign: 'center', marginBottom: 36 }}>
-        <h1 style={{ fontSize: 32, fontWeight: 900, color: '#0f172a', margin: '0 0 10px', letterSpacing: '-0.02em' }}>Học Ngoại Ngữ cùng LUCY</h1>
-        <p style={{ color: '#64748b', fontSize: 15, margin: '0 auto', maxWidth: 650, lineHeight: 1.6 }}>
-          Học ngoại ngữ trực tuyến cùng LUCY để rèn luyện các kỹ năng Anh - Trung - Nhật với kho tài liệu học đầy đủ nhất.
+      <div style={{ textAlign: 'center', marginBottom: 38 }}>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 7,
+          padding: '6px 16px', borderRadius: 30,
+          background: 'linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 100%)',
+          border: '1px solid #c7d2fe', marginBottom: 14,
+          fontSize: 12, fontWeight: 800, color: '#4338ca', letterSpacing: '0.04em'
+        }}>
+          <span>✨ NỀN TẢNG HỌC NGOẠI NGỮ THÔNG MINH</span>
+        </div>
+        <h1 style={{
+          fontFamily: "'Plus Jakarta Sans', 'Outfit', sans-serif",
+          fontSize: 38, fontWeight: 900, color: '#0f172a', margin: '0 0 12px',
+          letterSpacing: '-0.03em', lineHeight: 1.25
+        }}>
+          Học Ngoại Ngữ{' '}
+          <span style={{
+            background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #ec4899 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            display: 'inline-block'
+          }}>
+            cùng LUCY
+          </span>
+        </h1>
+        <p style={{
+          fontFamily: "'Inter', sans-serif",
+          color: '#64748b', fontSize: 15, margin: '0 auto', maxWidth: 650, lineHeight: 1.65, fontWeight: 500
+        }}>
+          Rèn luyện toàn diện các kỹ năng{' '}
+          <span style={{ color: '#4338ca', fontWeight: 700, background: '#eef2ff', padding: '2px 8px', borderRadius: 6 }}>Anh 🇬🇧</span>{' '}
+          <span style={{ color: '#b91c1c', fontWeight: 700, background: '#fef2f2', padding: '2px 8px', borderRadius: 6 }}>Trung 🇨🇳</span>{' '}
+          <span style={{ color: '#047857', fontWeight: 700, background: '#ecfdf5', padding: '2px 8px', borderRadius: 6 }}>Nhật 🇯🇵</span> với kho tài liệu học tập đầy đủ nhất.
         </p>
       </div>
 
