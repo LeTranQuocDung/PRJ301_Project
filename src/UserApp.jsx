@@ -1446,34 +1446,30 @@ function PremiumView({ user, setActive, setLearnLang }) {
               Mã thanh toán còn hiệu lực: {String(Math.floor(topupSecondsLeft / 60)).padStart(2, '0')}:{String(topupSecondsLeft % 60).padStart(2, '0')}
             </div>
 
-            {(() => {
-              const activePaymentInfo = sepayPaymentInfo || {
-                bankName: bankId || 'Ngân hàng MB',
-                accountNumber: bankAccountNo || '0987654321',
-                accountName: bankAccountName || 'LUCY EDUCATION',
-                qrImageUrl: `https://img.vietqr.io/image/${encodeURIComponent(bankId)}-${encodeURIComponent(bankAccountNo)}-compact2.png?amount=${topupAmount}&addInfo=${encodeURIComponent(paymentReference)}&accountName=${encodeURIComponent(bankAccountName)}`
-              }
-              return sepayPaymentLoading ? (
-                <div style={{ padding: 28, textAlign: 'center', color: '#64748b' }}>Đang tạo mã VietQR...</div>
-              ) : (
-                <>
-                  <div style={{ textAlign: 'center', border: '1px solid #e2e8f0', borderRadius: 16, padding: 14, background: '#f8fafc' }}>
-                    <img src={activePaymentInfo.qrImageUrl} alt="Mã VietQR" style={{ display: 'block', width: '100%', maxWidth: 310, margin: '0 auto', borderRadius: 10 }} />
-                  </div>
-                  <div style={{ marginTop: 14, display: 'grid', gap: 7, fontSize: 13, color: '#334155' }}>
-                    <div><strong>Ngân hàng:</strong> {activePaymentInfo.bankName}</div>
-                    <div><strong>Chủ tài khoản:</strong> {activePaymentInfo.accountName}</div>
-                    <div><strong>Số tài khoản:</strong> {activePaymentInfo.accountNumber}</div>
-                    <div><strong>Số tiền:</strong> {topupAmount.toLocaleString('vi-VN')} VND</div>
-                    <div><strong>Nội dung:</strong> <span style={{ color: '#4f46e5', fontWeight: 800 }}>{paymentReference}</span></div>
-                  </div>
-                  <button onClick={handleTransferSubmitted} disabled={topupLoading} style={{ width: '100%', marginTop: 18, padding: '12px 16px', border: 0, borderRadius: 11, background: '#059669', color: '#fff', fontWeight: 800, cursor: topupLoading ? 'wait' : 'pointer' }}>
-                    {topupLoading ? 'Đang kiểm tra giao dịch...' : 'Tôi đã nạp tiền'}
-                  </button>
-                  <div style={{ marginTop: 10, fontSize: 11.5, lineHeight: 1.5, color: '#64748b', textAlign: 'center' }}>Không đổi số tiền hoặc nội dung chuyển khoản. Ví chỉ được cộng sau khi giao dịch được xác nhận.</div>
-                </>
-              )
-            })()}
+            {sepayPaymentLoading ? (
+              <div style={{ padding:28,textAlign:'center',color:'#64748b' }}>Đang lấy tài khoản ngân hàng từ SePay...</div>
+            ) : sepayPaymentInfo ? (
+              <>
+                <div style={{ textAlign:'center', border:'1px solid #e2e8f0', borderRadius:16, padding:14, background:'#f8fafc' }}>
+                  <img src={sepayPaymentInfo.qrImageUrl} alt="Mã VietQR từ tài khoản SePay" style={{ display:'block', width:'100%', maxWidth:310, margin:'0 auto', borderRadius:10 }} />
+                </div>
+                <div style={{ marginTop:14, display:'grid', gap:7, fontSize:13, color:'#334155' }}>
+                  <div><strong>Ngân hàng:</strong> {sepayPaymentInfo.bankName}</div>
+                  <div><strong>Chủ tài khoản:</strong> {sepayPaymentInfo.accountName}</div>
+                  <div><strong>Số tài khoản:</strong> {sepayPaymentInfo.accountNumber}</div>
+                  <div><strong>Số tiền:</strong> {topupAmount.toLocaleString('vi-VN')} VND</div>
+                  <div><strong>Nội dung:</strong> <span style={{ color:'#4f46e5', fontWeight:800 }}>{paymentReference}</span></div>
+                </div>
+                <button onClick={handleTransferSubmitted} disabled={topupLoading} style={{ width:'100%', marginTop:18, padding:'12px 16px', border:0, borderRadius:11, background:'#059669', color:'#fff', fontWeight:800, cursor:topupLoading?'wait':'pointer' }}>
+                  {topupLoading ? 'Đang kiểm tra giao dịch...' : 'Tôi đã nạp tiền'}
+                </button>
+                <div style={{ marginTop:10, fontSize:11.5, lineHeight:1.5, color:'#64748b', textAlign:'center' }}>Không đổi số tiền hoặc nội dung chuyển khoản. Ví chỉ được cộng sau khi giao dịch được xác nhận.</div>
+              </>
+            ) : (
+              <div style={{ padding:16, borderRadius:12, background:'#fff7ed', border:'1px solid #fed7aa', color:'#9a3412', fontSize:13, lineHeight:1.6 }}>
+                Không thể lấy tài khoản ngân hàng từ SePay: {sepayPaymentError || 'Chưa có dữ liệu'}. Kiểm tra <code>SEPAY_API_TOKEN</code> ở backend và tài khoản đã liên kết trên SePay.
+              </div>
+            )}
           </div>
         </div>
       )}
