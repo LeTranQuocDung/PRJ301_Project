@@ -36,11 +36,27 @@ public class WalletServlet extends HttpServlet {
     private Gson gson;
     private static final Map<Integer, Double> balances = new HashMap<>();
 
-    // ZaloPay Sandbox Defaults
-    private static final String ZALOPAY_APP_ID = "2553";
-    private static final String ZALOPAY_KEY1 = "PcY4iZIKFCIdgZvA6ueMcGsEw2GaIcBh";
-    private static final String ZALOPAY_KEY2 = "kLfiRAWhA7AEbMeetKMuEc5W07nCfjfl";
-    private static final String ZALOPAY_ENDPOINT = "https://sb-openapi.zalopay.vn/v2/create";
+    private String getZaloPayAppId() {
+        String env = System.getenv("ZALOPAY_APP_ID");
+        return (env != null && !env.trim().isEmpty()) ? env.trim() : "2553";
+    }
+
+    private String getZaloPayKey1() {
+        String env = System.getenv("ZALOPAY_KEY1");
+        return (env != null && !env.trim().isEmpty()) ? env.trim() : "PcY4iZIKFCIdgZvA6ueMcGsEw2GaIcBh";
+    }
+
+    private String getZaloPayKey2() {
+        String env = System.getenv("ZALOPAY_KEY2");
+        return (env != null && !env.trim().isEmpty()) ? env.trim() : "kLfiRAWhA7AEbMeetKMuEc5W07nCfjfl";
+    }
+
+    private String getZaloPayEndpoint() {
+        String env = System.getenv("ZALOPAY_ENDPOINT");
+        if (env != null && !env.trim().isEmpty()) return env.trim();
+        String appId = getZaloPayAppId();
+        return "2553".equals(appId) ? "https://sb-openapi.zalopay.vn/v2/create" : "https://openapi.zalopay.vn/v2/create";
+    }
 
     static {
         // Seed default wallet balances for demo users
@@ -185,7 +201,14 @@ public class WalletServlet extends HttpServlet {
 
         } else if (path.contains("zalopay-create")) {
             // ── ZaloPay Order Creation ───────────────────────────────────────
-            int userId = json.has("userId") ? json.get("userId").getAsInt() : 1;
+            String userIdStr = "1";
+            if (json.has("userId")) {
+                try {
+                    userIdStr = json.get("userId").getAsString();
+                } catch (Exception e) {
+                    userIdStr = "1";
+                }
+            }
             long amount = json.has("amount") ? json.get("amount").getAsLong() : 50000;
             String title = json.has("title") ? json.get("title").getAsString() : "Thanh toan LUCY Premium";
 
@@ -197,13 +220,17 @@ public class WalletServlet extends HttpServlet {
             String item = "[{\"itemid\":\"lucy_premium\",\"itemname\":\"" + title + "\",\"itemprice\":" + amount + ",\"itemquantity\":1}]";
             String description = "LUCY - " + title + " #" + appTransId;
 
+            String appId = getZaloPayAppId();
+            String key1 = getZaloPayKey1();
+            String endpoint = getZaloPayEndpoint();
+
             // Compute ZaloPay HMAC SHA256 MAC
-            String macInput = ZALOPAY_APP_ID + "|" + appTransId + "|lucy_user_" + userId + "|" + amount + "|" + appTime + "|" + embedData + "|" + item;
-            String mac = hmacSHA256(macInput, ZALOPAY_KEY1);
+            String macInput = appId + "|" + appTransId + "|lucy_user_" + userIdStr + "|" + amount + "|" + appTime + "|" + embedData + "|" + item;
+            String mac = hmacSHA256(macInput, key1);
 
             JsonObject zpReq = new JsonObject();
-            zpReq.addProperty("app_id", Integer.parseInt(ZALOPAY_APP_ID));
-            zpReq.addProperty("app_user", "lucy_user_" + userId);
+            zpReq.addProperty("app_id", Integer.parseInt(appId));
+            zpReq.addProperty("app_user", "lucy_user_" + userIdStr);
             zpReq.addProperty("app_time", appTime);
             zpReq.addProperty("amount", amount);
             zpReq.addProperty("app_trans_id", appTransId);
@@ -217,7 +244,7 @@ public class WalletServlet extends HttpServlet {
             String zpTransToken = null;
 
             try {
-                URL url = new URL(ZALOPAY_ENDPOINT);
+                URL url = new URL(endpoint);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Content-Type", "application/json");
@@ -249,12 +276,12 @@ public class WalletServlet extends HttpServlet {
 
             // Fallback ZaloPay order URL for localhost offline/sandbox testing if direct gateway call is unreachable
             if (orderUrl == null || orderUrl.isEmpty()) {
-                orderUrl = "https://qcgateway.zalopay.vn/openinapp/order?app_id=" + ZALOPAY_APP_ID + "&app_trans_id=" + appTransId;
+                orderUrl = "https://qcgateway.zalopay.vn/openinapp/order?app_id=" + appId + "&app_trans_id=" + appTransId;
             }
 
             Map<String, Object> result = new HashMap<>();
             result.put("status", "success");
-            result.put("appId", ZALOPAY_APP_ID);
+            result.put("appId", appId);
             result.put("appTransId", appTransId);
             result.put("zpTransToken", zpTransToken != null ? zpTransToken : "ZPT_" + System.currentTimeMillis());
             result.put("amount", amount);
