@@ -25,6 +25,9 @@ public class LiveRoomServlet extends HttpServlet {
     private Gson gson;
     private static final Map<String, RoomState> rooms = new ConcurrentHashMap<>();
 
+    // ──────────────────────────────────────────────────────────────────
+    // Room State
+    // ──────────────────────────────────────────────────────────────────
     private static class RoomState {
         String id;
         String creator;
@@ -33,6 +36,22 @@ public class LiveRoomServlet extends HttpServlet {
         Set<String> members = ConcurrentHashMap.newKeySet();
         List<Map<String, Object>> messages = new ArrayList<>();
         Map<String, Object> pinnedLesson;
+
+        // ─── New fields ───────────────────────────────────────────────
+        /** Stage: "beginner" | "intermediate" | "advanced" */
+        String stage = "beginner";
+        /** Total room duration in minutes (60 / 90 / 120) */
+        int durationMin = 60;
+        /** Each sub-level duration in minutes (10 / 15 / 20) */
+        int subLevelDuration = 15;
+        /** ISO timestamp when the room session started */
+        String startedAt;
+
+        /** Raised hands: [{name, raisedAt}] in order */
+        List<Map<String, Object>> raisedHands = new ArrayList<>();
+
+        /** Recent gifts: [{from, giftType, sentAt}] (max 30) */
+        List<Map<String, Object>> recentGifts = new ArrayList<>();
     }
 
     @Override
@@ -61,6 +80,8 @@ public class LiveRoomServlet extends HttpServlet {
                     summary.put("memberCount", candidate.members.size());
                     summary.put("isPublic", candidate.isPublic);
                     summary.put("createdAt", candidate.createdAt);
+                    summary.put("stage", candidate.stage);
+                    summary.put("durationMin", candidate.durationMin);
                     publicRooms.add(summary);
                 }
             }
@@ -119,6 +140,10 @@ public class LiveRoomServlet extends HttpServlet {
                     return;
                 }
                 room.members.remove(name);
+                // Also remove from raised hands on leave
+                synchronized (room.raisedHands) {
+                    room.raisedHands.removeIf(h -> name.equals(h.get("name")));
+                }
                 break;
             case "message":
                 addMessage(room, name, text(body, "text"), resp);
@@ -156,6 +181,57 @@ public class LiveRoomServlet extends HttpServlet {
                 }
                 room.isPublic = body.get("isPublic").getAsBoolean();
                 break;
+
+            // ─── Raise Hand ──────────────────────────────────────────
+            case "raise-hand":
+                if (name.isEmpty()) {
+                    error(resp, 400, "name is required");
+                    return;
+                }
+                synchronized (room.raisedHands) {
+                    boolean alreadyRaised = room.raisedHands.stream()
+                            .anyMatch(h -> name.equals(h.get("name")));
+                    if (alreadyRaised) {
+                        // Toggle off — lower hand
+                        room.raisedHands.removeIf(h -> name.equals(h.get("name")));
+                    } else {
+                        // Raise hand
+                        Map<String, Object> handEntry = new LinkedHashMap<>();
+                        handEntry.put("name", name);
+                        handEntry.put("raisedAt", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                        room.raisedHands.add(handEntry);
+                    }
+                }
+                break;
+            case "clear-hands":
+                if (!room.creator.equals(name)) {
+                    error(resp, 403, "Only the room owner can clear raised hands");
+                    return;
+                }
+                synchronized (room.raisedHands) {
+                    room.raisedHands.clear();
+                }
+                break;
+
+            // ─── Virtual Gift ─────────────────────────────────────────
+            case "gift":
+                if (name.isEmpty()) {
+                    error(resp, 400, "name is required");
+                    return;
+                }
+                String giftType = text(body, "giftType");
+                if (giftType.isEmpty()) giftType = "⭐";
+                synchronized (room.recentGifts) {
+                    Map<String, Object> giftEntry = new LinkedHashMap<>();
+                    giftEntry.put("from", name);
+                    giftEntry.put("giftType", giftType);
+                    giftEntry.put("sentAt", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                    giftEntry.put("id", System.nanoTime());
+                    room.recentGifts.add(giftEntry);
+                    if (room.recentGifts.size() > 30) room.recentGifts.remove(0);
+                }
+                break;
+
             default:
                 error(resp, HttpServletResponse.SC_NOT_FOUND, "Room action not found");
                 return;
@@ -178,8 +254,32 @@ public class LiveRoomServlet extends HttpServlet {
         room.id = id;
         room.creator = creator;
         room.createdAt = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        room.startedAt = room.createdAt;
         room.isPublic = !body.has("isPublic") || body.get("isPublic").getAsBoolean();
         room.members.add(creator);
+
+        // Stage & timing config
+        if (body.has("stage")) {
+            String stageVal = text(body, "stage").toLowerCase();
+            if (stageVal.equals("intermediate") || stageVal.equals("advanced")) {
+                room.stage = stageVal;
+            } else {
+                room.stage = "beginner";
+            }
+        }
+        if (body.has("durationMin")) {
+            try {
+                int dur = body.get("durationMin").getAsInt();
+                room.durationMin = (dur == 90 || dur == 120) ? dur : 60;
+            } catch (Exception ignored) {}
+        }
+        if (body.has("subLevelDuration")) {
+            try {
+                int sub = body.get("subLevelDuration").getAsInt();
+                room.subLevelDuration = (sub == 10 || sub == 15 || sub == 20) ? sub : 15;
+            } catch (Exception ignored) {}
+        }
+
         rooms.put(id, room);
         resp.setStatus(HttpServletResponse.SC_CREATED);
         resp.getWriter().write(gson.toJson(view(room)));
@@ -207,12 +307,22 @@ public class LiveRoomServlet extends HttpServlet {
         result.put("id", room.id);
         result.put("creator", room.creator);
         result.put("createdAt", room.createdAt);
+        result.put("startedAt", room.startedAt);
         result.put("isPublic", room.isPublic);
+        result.put("stage", room.stage);
+        result.put("durationMin", room.durationMin);
+        result.put("subLevelDuration", room.subLevelDuration);
         result.put("members", new ArrayList<>(room.members));
         synchronized (room.messages) {
             result.put("messages", new ArrayList<>(room.messages));
         }
         result.put("pinnedLesson", room.pinnedLesson);
+        synchronized (room.raisedHands) {
+            result.put("raisedHands", new ArrayList<>(room.raisedHands));
+        }
+        synchronized (room.recentGifts) {
+            result.put("recentGifts", new ArrayList<>(room.recentGifts));
+        }
         return result;
     }
 

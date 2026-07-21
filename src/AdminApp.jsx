@@ -701,8 +701,8 @@ const AGORA_APP_ID   = import.meta.env.VITE_AGORA_APP_ID || 'ca82570aa4a3464aadc
 const AGORA_CHANNEL  = 'lucy_room_1'
 const AGORA_TOKEN = null; // Will fetch dynamically
 
-function LiveRoomsView({ role }) {
-  return <LiveRoomView canRecord={role === 'super'} />
+function LiveRoomsView({ role, user }) {
+  return <LiveRoomView canRecord={role === 'super'} userRole={role} userName={user?.name || user?.username || ''} />
 }
 
 function LegacyLiveRoomsView({ role }) {
@@ -2594,7 +2594,7 @@ export default function AdminApp({ user, onLogout }) {
       case 'course-runs':        return <CourseRunsView/>
       case 'chapters':           return <ChaptersView/>
       case 'lessons':            return <LessonsView/>
-      case 'live-rooms':         return <LiveRoomsView role={user?.role}/>
+      case 'live-rooms':         return <LiveRoomsView role={user?.role} user={user}/>
       case 'podcasts':           return <PodcastsView/>
       case 'premium':            return <PremiumView/>
       case 'import':             return <ImportFilesView/>

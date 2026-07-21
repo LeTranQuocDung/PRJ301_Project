@@ -21,7 +21,8 @@ import java.util.Random;
 @WebServlet(urlPatterns = {
     "/api/agent/coach",
     "/api/agent/mentor-feedback",
-    "/api/agent/admin-insights"
+    "/api/agent/admin-insights",
+    "/api/agent/suggest-questions"
 })
 public class AgentServlet extends HttpServlet {
 
@@ -456,6 +457,68 @@ public class AgentServlet extends HttpServlet {
                 Map<String, Object> feedbackData = generateSmartMentorFeedback(userId, lessonCode, answerText);
                 resp.getWriter().write(gson.toJson(feedbackData));
             }
+        } else if (path.contains("suggest-questions")) {
+            // ── AI Discussion Question Suggestions ────────────────────────
+            StringBuilder sb2 = new StringBuilder();
+            try (BufferedReader reader2 = req.getReader()) {
+                String line;
+                while ((line = reader2.readLine()) != null) sb2.append(line);
+            } catch (Exception e) {
+                sendError(resp, HttpServletResponse.SC_BAD_REQUEST, "Invalid request body");
+                return;
+            }
+
+            JsonObject json2 = new JsonObject();
+            if (sb2.length() > 0) {
+                try { json2 = gson.fromJson(sb2.toString(), JsonObject.class); } catch (Exception ignored) {}
+            }
+
+            String lessonTitle   = json2.has("lessonTitle")   ? json2.get("lessonTitle").getAsString().trim()   : "";
+            String lessonContent = json2.has("lessonContent") ? json2.get("lessonContent").getAsString().trim() : "";
+            String stage         = json2.has("stage")         ? json2.get("stage").getAsString().trim()         : "beginner";
+            String language      = json2.has("language")      ? json2.get("language").getAsString().trim()      : "EN";
+
+            String sysPromptQ = "You are the LUCY AI Discussion Coach. Generate exactly 5 engaging discussion questions for a live language room." +
+                " The questions must match the learner's proficiency stage (beginner/intermediate/advanced) and be appropriate for the given language." +
+                " Return a JSON object with a single field 'questions' which is an array of exactly 5 question strings." +
+                " Return ONLY the raw JSON object, no markdown.";
+            String userPromptQ = String.format(
+                "Lesson title: '%s'. Lesson summary: '%s'. Stage: %s. Language: %s." +
+                " Generate discussion questions that naturally arise from this lesson content.",
+                lessonTitle.isEmpty() ? "General Language Practice" : lessonTitle,
+                lessonContent.isEmpty() ? "General conversational vocabulary" : (lessonContent.length() > 400 ? lessonContent.substring(0, 400) : lessonContent),
+                stage, language
+            );
+
+            String llmResultQ = callLLM(sysPromptQ, userPromptQ);
+            List<String> questions = null;
+
+            if (llmResultQ != null) {
+                try {
+                    JsonObject qJson = com.google.gson.JsonParser.parseString(cleanJsonString(llmResultQ)).getAsJsonObject();
+                    if (qJson.has("questions")) {
+                        questions = new ArrayList<>();
+                        for (com.google.gson.JsonElement el : qJson.getAsJsonArray("questions")) {
+                            questions.add(el.getAsString());
+                        }
+                    }
+                } catch (Exception e) {
+                    System.err.println("Failed to parse suggest-questions output: " + e.getMessage());
+                }
+            }
+
+            if (questions == null || questions.isEmpty()) {
+                questions = generateSuggestedQuestions(stage, language, lessonTitle);
+            }
+
+            Map<String, Object> qResult = new HashMap<>();
+            qResult.put("questions", questions);
+            qResult.put("stage", stage);
+            qResult.put("language", language);
+            qResult.put("lessonTitle", lessonTitle.isEmpty() ? "General Practice" : lessonTitle);
+            qResult.put("apiKeyConfigured", !geminiApiKey.isEmpty());
+            resp.getWriter().write(gson.toJson(qResult));
+
         } else {
             resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
             resp.getWriter().write("{\"error\":\"Endpoint not found\"}");
@@ -597,6 +660,83 @@ public class AgentServlet extends HttpServlet {
         feedbackData.put("confidenceScore", baseScore);
 
         return feedbackData;
+    }
+
+    /**
+     * Fallback discussion questions generator when Gemini API is unavailable.
+     * Returns 5 curated questions per stage + language combination.
+     */
+    private List<String> generateSuggestedQuestions(String stage, String language, String lessonTitle) {
+        List<String> qs = new ArrayList<>();
+        boolean isZH = "ZH".equalsIgnoreCase(language);
+        boolean isJA = "JA".equalsIgnoreCase(language);
+        boolean isAdv = "advanced".equalsIgnoreCase(stage);
+        boolean isMid = "intermediate".equalsIgnoreCase(stage);
+
+        if (isZH) {
+            if (isAdv) {
+                qs.add("在中国文化中，面子（面子）的概念如何影响日常沟通？");
+                qs.add("你认为普通话和粤语有哪些主要区别？");
+                qs.add("讨论一个你最近阅读的中文新闻，并分享你的看法。");
+                qs.add("你如何在正式和非正式的汉语书写风格之间做出区分？");
+                qs.add("中国的成语文化对现代语言有什么影响？");
+            } else if (isMid) {
+                qs.add("请用中文描述你的一天是怎么过的。");
+                qs.add("你喜欢吃什么中国食物？为什么？");
+                qs.add("你最喜欢去哪里旅行？请告诉我们那个地方。");
+                qs.add("你怎么学习汉字？有什么好方法吗？");
+                qs.add("中国的传统节日中，你最喜欢哪一个？");
+            } else {
+                qs.add("你叫什么名字？你来自哪里？");
+                qs.add("你喜欢什么颜色？为什么？");
+                qs.add("你家里有几口人？");
+                qs.add("你每天几点起床？");
+                qs.add("这是你第一次学中文吗？");
+            }
+        } else if (isJA) {
+            if (isAdv) {
+                qs.add("日本の敬語文化は現代のビジネスにどのような影響を与えていますか？");
+                qs.add("アニメや漫画は日本語学習においてどのような役割を果たしていると思いますか？");
+                qs.add("最近読んだ日本のニュースについて、あなたの意見を述べてください。");
+                qs.add("関西弁と標準語の主な違いは何ですか？");
+                qs.add("日本の若者言葉が正式な言語にどのような影響を与えていますか？");
+            } else if (isMid) {
+                qs.add("あなたの趣味は何ですか？日本語で説明してみましょう。");
+                qs.add("日本のどこに行ってみたいですか？理由も教えてください。");
+                qs.add("好きな日本料理は何ですか？");
+                qs.add("日本語を勉強して、一番難しいと思うことは何ですか？");
+                qs.add("週末はどんなことをしていますか？");
+            } else {
+                qs.add("お名前は何ですか？");
+                qs.add("どこから来ましたか？");
+                qs.add("今日はどんな天気ですか？");
+                qs.add("好きな食べ物は何ですか？");
+                qs.add("何時に起きますか？");
+            }
+        } else {
+            // English default
+            String topic = lessonTitle.isEmpty() ? "today's lesson" : lessonTitle;
+            if (isAdv) {
+                qs.add("How does \"" + topic + "\" relate to real-world professional communication?");
+                qs.add("Can you think of any idiomatic expressions connected to this topic? Use one in a sentence.");
+                qs.add("What cultural nuances should a non-native speaker be aware of when discussing \"" + topic + "\"?");
+                qs.add("Compare two different perspectives on \"" + topic + "\". Which do you agree with and why?");
+                qs.add("How would you explain \"" + topic + "\" to someone who has never studied English before?");
+            } else if (isMid) {
+                qs.add("Can you give an example of \"" + topic + "\" from your own life?");
+                qs.add("What vocabulary words from \"" + topic + "\" do you find hardest to remember and why?");
+                qs.add("Describe a time when \"" + topic + "\" came up in a real conversation.");
+                qs.add("What questions would you ask someone about \"" + topic + "\" to start a natural conversation?");
+                qs.add("How is \"" + topic + "\" discussed differently in formal vs. informal English?");
+            } else {
+                qs.add("What is your name and where are you from?");
+                qs.add("Can you say one new word you learned from \"" + topic + "\" today?");
+                qs.add("How do you say 'hello' and 'goodbye' in a polite way?");
+                qs.add("What is one thing you do every day? Describe it using simple words.");
+                qs.add("Can you repeat after me and try to use it in a short sentence?");
+            }
+        }
+        return qs;
     }
 
     private void sendError(HttpServletResponse resp, int status, String msg) throws IOException {
