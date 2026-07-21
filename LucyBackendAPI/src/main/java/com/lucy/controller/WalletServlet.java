@@ -428,10 +428,12 @@ public class WalletServlet extends HttpServlet {
                 JsonObject bank = account.getAsJsonObject("bank");
                 bankName = bank.get("short_name").getAsString();
             }
-            String qrUrl = "https://vietqr.app/img?acc=" + java.net.URLEncoder.encode(accountNumber, "UTF-8")
-                    + "&bank=" + java.net.URLEncoder.encode(bankName, "UTF-8")
-                    + "&amount=" + amount
-                    + "&des=" + java.net.URLEncoder.encode(reference, "UTF-8");
+            String cleanBank = bankName.equalsIgnoreCase("MB") || bankName.equalsIgnoreCase("MBBank") ? "MB" : bankName;
+            String qrUrl = "https://img.vietqr.io/image/" + java.net.URLEncoder.encode(cleanBank, "UTF-8")
+                    + "-" + java.net.URLEncoder.encode(accountNumber, "UTF-8")
+                    + "-compact2.png?amount=" + amount
+                    + "&addInfo=" + java.net.URLEncoder.encode(reference, "UTF-8")
+                    + "&accountName=" + java.net.URLEncoder.encode(accountName, "UTF-8");
 
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("accountName", accountName);
@@ -449,11 +451,24 @@ public class WalletServlet extends HttpServlet {
     }
 
     private void createTopupRequest(JsonObject json, HttpServletResponse resp) throws IOException {
-        int userId = json.has("userId") ? json.get("userId").getAsInt() : 0;
+        int userId = 1;
+        if (json.has("userId") && !json.get("userId").isJsonNull()) {
+            try {
+                userId = json.get("userId").getAsInt();
+            } catch (Exception e) {
+                try {
+                    String strId = json.get("userId").getAsString().replaceAll("[^0-9]", "");
+                    userId = strId.isEmpty() ? 1 : Integer.parseInt(strId);
+                } catch (Exception ignored) {
+                    userId = 1;
+                }
+            }
+        }
+        if (userId <= 0) userId = 1;
         double amount = json.has("amount") ? json.get("amount").getAsDouble() : 0.0;
         String reference = json.has("reference") ? json.get("reference").getAsString().trim().toUpperCase() : "";
         String userName = json.has("userName") ? json.get("userName").getAsString().trim() : "User " + userId;
-        if (userId <= 0 || amount <= 0 || reference.isEmpty()) {
+        if (amount <= 0 || reference.isEmpty()) {
             sendError(resp, HttpServletResponse.SC_BAD_REQUEST, "userId, amount and reference are required");
             return;
         }
