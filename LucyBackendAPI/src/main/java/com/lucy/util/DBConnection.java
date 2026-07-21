@@ -10,13 +10,31 @@ import java.sql.SQLException;
 public class DBConnection {
 
     private static java.io.File findEnvFile() {
-        java.io.File current = new java.io.File(System.getProperty("user.dir", "."));
-        for (int depth = 0; current != null && depth < 8; depth++) {
-            java.io.File candidate = new java.io.File(current, ".env");
-            if (candidate.isFile() && candidate.canRead()) return candidate;
-            candidate = new java.io.File(current, "LucyBackendAPI/.env");
-            if (candidate.isFile() && candidate.canRead()) return candidate;
-            current = current.getParentFile();
+        String configuredPath = System.getenv("LUCY_ENV_FILE");
+        if (configuredPath == null || configuredPath.trim().isEmpty()) {
+            configuredPath = System.getProperty("LUCY_ENV_FILE");
+        }
+        if (configuredPath != null && !configuredPath.trim().isEmpty()) {
+            java.io.File configured = new java.io.File(configuredPath.trim());
+            if (configured.isFile() && configured.canRead()) return configured;
+        }
+
+        java.util.List<java.io.File> roots = new java.util.ArrayList<>();
+        roots.add(new java.io.File(System.getProperty("user.dir", ".")));
+        try {
+            java.net.URL classLocation = DBConnection.class.getProtectionDomain().getCodeSource().getLocation();
+            if (classLocation != null) roots.add(new java.io.File(classLocation.toURI()));
+        } catch (Exception ignored) { }
+
+        for (java.io.File root : roots) {
+            java.io.File current = root;
+            for (int depth = 0; current != null && depth < 10; depth++) {
+                java.io.File candidate = new java.io.File(current, ".env");
+                if (candidate.isFile() && candidate.canRead()) return candidate;
+                candidate = new java.io.File(current, "LucyBackendAPI/.env");
+                if (candidate.isFile() && candidate.canRead()) return candidate;
+                current = current.getParentFile();
+            }
         }
         return new java.io.File(".env");
     }
