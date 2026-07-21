@@ -14,6 +14,7 @@ start "Agora Token Server" cmd /k "cd AgoraTokenServer && npm install && node se
 echo.
 echo [2/2] Dang khoi dong server Web React...
 echo Web cua ban se mo tai: http://localhost:5173
+echo De chay SePay webhook tunnel, mo rieng file start_ngrok.bat.
 echo ==============================================
 echo.
 call npm run dev

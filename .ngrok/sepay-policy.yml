@@ -1,0 +1,8 @@
+on_http_request:
+  - name: Block every route except the SePay webhook
+    expressions:
+      - "req.url.path != '/LucyBackendAPI/api/wallet/sepay-webhook' || req.method != 'POST'"
+    actions:
+      - type: deny
+        config:
+          status_code: 404

@@ -1055,6 +1055,11 @@ function PremiumView({ user, setActive, setLearnLang }) {
   const [zaloPayData, setZaloPayData] = useState(null)
   const [zaloPayLoading, setZaloPayLoading] = useState(false)
   const [paymentReference, setPaymentReference] = useState('')
+  const [sepayPaymentInfo, setSepayPaymentInfo] = useState(null)
+  const [sepayPaymentLoading, setSepayPaymentLoading] = useState(false)
+  const [sepayPaymentError, setSepayPaymentError] = useState('')
+  const [topupExpiresAt, setTopupExpiresAt] = useState('')
+  const [topupSecondsLeft, setTopupSecondsLeft] = useState(300)
   const [promoCode, setPromoCode] = useState('')
   const [couponApplied, setCouponApplied] = useState(false)
   
@@ -1099,24 +1104,31 @@ function PremiumView({ user, setActive, setLearnLang }) {
     loadPremium()
   }, [])
 
-  useEffect(() => {
-    async function loadBalance() {
-      try {
-        const res = await fetch(`${API_BASE}/api/wallet/balance?userId=${user?.id || 1}`)
-        if (res.ok) {
-          const data = await res.json()
-          if (data && typeof data.balance === 'number' && !isNaN(data.balance)) {
-            setBalance(data.balance)
-            if (data.currency) setCurrency(data.currency)
-            localStorage.setItem('lucy_wallet_balance', data.balance)
-          }
+  const loadBalance = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/wallet/balance?userId=${user?.id || 1}&_=${Date.now()}`, {
+        cache:'no-store'
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data && typeof data.balance === 'number' && !isNaN(data.balance)) {
+          setBalance(data.balance)
+          if (data.currency) setCurrency(data.currency)
+          localStorage.setItem('lucy_wallet_balance', data.balance)
+          return data.balance
         }
-      } catch (err) {
-        console.warn("Failed to load wallet balance from server, using local balance:", err)
       }
+    } catch (err) {
+      console.warn("Failed to load wallet balance from server, using local balance:", err)
     }
+    return null
+  }
+
+  useEffect(() => {
     loadBalance()
-  }, [user])
+    const timer = window.setInterval(loadBalance, 3000)
+    return () => window.clearInterval(timer)
+  }, [user?.id])
 
   const handleApplyCoupon = () => {
     if (promoCode.trim().toUpperCase() === 'LUCY26') {
@@ -1128,27 +1140,94 @@ function PremiumView({ user, setActive, setLearnLang }) {
     }
   }
 
-  const bankId = import.meta.env.VITE_PAYMENT_BANK_ID || ''
-  const bankAccountNo = import.meta.env.VITE_PAYMENT_ACCOUNT_NO || ''
-  const bankAccountName = import.meta.env.VITE_PAYMENT_ACCOUNT_NAME || ''
-  const bankConfigured = Boolean(bankId && bankAccountNo && bankAccountName)
-  const qrImageUrl = bankConfigured && paymentReference
-    ? `https://img.vietqr.io/image/${encodeURIComponent(bankId)}-${encodeURIComponent(bankAccountNo)}-compact2.png?amount=${topupAmount}&addInfo=${encodeURIComponent(paymentReference)}&accountName=${encodeURIComponent(bankAccountName)}`
-    : ''
-
   const handleTopup = () => {
     const userId = user?.id || 1
+    setSepayPaymentInfo(null)
+    setSepayPaymentError('')
+    setTopupExpiresAt('')
+    setTopupSecondsLeft(300)
     setPaymentReference(`LUCY${userId}${Date.now().toString().slice(-8)}`)
     setTopupOpen(true)
   }
 
-  const handleTransferSubmitted = () => {
+  useEffect(() => {
+    if (!topupOpen || !paymentReference) return
+    let active = true
+    setSepayPaymentLoading(true)
+    setSepayPaymentError('')
+    ;(async () => {
+      try {
+        const pendingRes = await fetch(`${API_BASE}/api/wallet/topup-request`, {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json; charset=UTF-8' },
+          body:JSON.stringify({
+            userId:user?.id || 1,
+            userName:user?.fullName || user?.name || user?.username || `User ${user?.id || 1}`,
+            amount:topupAmount,
+            reference:paymentReference
+          })
+        })
+        const pendingData = await pendingRes.json()
+        if (!pendingRes.ok && pendingRes.status !== 409) {
+          throw new Error(pendingData.error || 'Không thể tạo yêu cầu nạp tiền')
+        }
+        if (pendingRes.ok && pendingData.expiresAt && active) {
+          setTopupExpiresAt(pendingData.expiresAt)
+        }
+
+        const res = await fetch(`${API_BASE}/api/wallet/sepay-payment-info?amount=${topupAmount}&reference=${encodeURIComponent(paymentReference)}`)
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Không thể lấy tài khoản từ SePay')
+        if (active) setSepayPaymentInfo(data)
+      } catch (err) {
+        if (active) { setSepayPaymentInfo(null); setSepayPaymentError(err.message) }
+      } finally {
+        if (active) setSepayPaymentLoading(false)
+      }
+    })()
+    return () => { active = false }
+  }, [topupOpen, topupAmount, paymentReference, user])
+
+  useEffect(() => {
+    if (!topupOpen || !topupExpiresAt) return
+    const updateCountdown = () => {
+      const seconds = Math.max(0, Math.ceil((new Date(topupExpiresAt).getTime() - Date.now()) / 1000))
+      setTopupSecondsLeft(seconds)
+      if (seconds === 0) {
+        setSepayPaymentInfo(null)
+        setSepayPaymentError('Mã QR đã hết hạn. Đóng và mở lại để tạo yêu cầu mới.')
+      }
+    }
+    updateCountdown()
+    const timer = window.setInterval(updateCountdown, 1000)
+    return () => window.clearInterval(timer)
+  }, [topupOpen, topupExpiresAt])
+
+  const handleTransferSubmitted = async () => {
     setTopupLoading(true)
-    window.setTimeout(() => {
+    try {
+      const statusRes = await fetch(`${API_BASE}/api/wallet/topup-status?userId=${user?.id || 1}&reference=${encodeURIComponent(paymentReference)}&_=${Date.now()}`, {
+        cache:'no-store'
+      })
+      const topup = await statusRes.json()
+      if (!statusRes.ok) throw new Error(topup.error || 'Không thể kiểm tra giao dịch')
+
+      if (topup.status === 'approved') {
+        const latestBalance = await loadBalance()
+        alert(`Đã nhận ${Number(topup.amount).toLocaleString('vi-VN')} VND. Số dư mới nhất: ${Number(latestBalance ?? topup.newBalance ?? 0).toLocaleString('vi-VN')} VND.`)
+        setTopupOpen(false)
+      } else if (topup.status === 'expired') {
+        alert('Yêu cầu nạp tiền đã hết hạn. Vui lòng đóng và tạo mã QR mới.')
+      } else if (topup.status === 'rejected') {
+        alert('Yêu cầu nạp tiền đã bị từ chối.')
+      } else {
+        alert('SePay chưa xác nhận nhận tiền. Vui lòng chờ vài giây rồi bấm lại.')
+      }
       setTopupLoading(false)
-      setTopupOpen(false)
-      alert('Đã ghi nhận yêu cầu. Số dư chỉ được cập nhật sau khi hệ thống xác nhận giao dịch ngân hàng.')
-    }, 500)
+    } catch (err) {
+      setTopupLoading(false)
+      alert(`Không thể gửi yêu cầu: ${err.message}`)
+    }
   }
 
   const handleOpenZaloPay = async (amount = 200000) => {
@@ -1435,29 +1514,36 @@ function PremiumView({ user, setActive, setLearnLang }) {
             </div>
 
             <label style={{ display:'block', fontSize:12, fontWeight:800, color:'#475569', marginBottom:7 }}>Số tiền nạp</label>
-            <select value={topupAmount} onChange={e => setTopupAmount(Number(e.target.value))} style={{ width:'100%', padding:'11px 12px', border:'1px solid #cbd5e1', borderRadius:10, fontFamily:'inherit', marginBottom:16 }}>
+            <select value={topupAmount} onChange={e => { setTopupAmount(Number(e.target.value)); setTopupExpiresAt(''); setTopupSecondsLeft(300); setPaymentReference(`LUCY${user?.id || 1}${Date.now().toString().slice(-8)}`) }} style={{ width:'100%', padding:'11px 12px', border:'1px solid #cbd5e1', borderRadius:10, fontFamily:'inherit', marginBottom:12 }}>
               {[100000, 200000, 500000, 1000000, 2000000].map(amount => <option key={amount} value={amount}>{amount.toLocaleString('vi-VN')} VND</option>)}
             </select>
 
-            {bankConfigured ? (
+            <div style={{ marginBottom:16, padding:'10px 12px', borderRadius:10, textAlign:'center', background:topupSecondsLeft <= 60 ? '#fff1f2' : '#eef2ff', color:topupSecondsLeft <= 60 ? '#be123c' : '#4338ca', fontSize:13, fontWeight:800 }}>
+              Mã thanh toán còn hiệu lực: {String(Math.floor(topupSecondsLeft / 60)).padStart(2, '0')}:{String(topupSecondsLeft % 60).padStart(2, '0')}
+            </div>
+
+            {sepayPaymentLoading ? (
+              <div style={{ padding:28,textAlign:'center',color:'#64748b' }}>Đang lấy tài khoản ngân hàng từ SePay...</div>
+            ) : sepayPaymentInfo ? (
               <>
                 <div style={{ textAlign:'center', border:'1px solid #e2e8f0', borderRadius:16, padding:14, background:'#f8fafc' }}>
-                  <img src={qrImageUrl} alt="Mã VietQR chuyển khoản ngân hàng" style={{ display:'block', width:'100%', maxWidth:310, margin:'0 auto', borderRadius:10 }} />
+                  <img src={sepayPaymentInfo.qrImageUrl} alt="Mã VietQR từ tài khoản SePay" style={{ display:'block', width:'100%', maxWidth:310, margin:'0 auto', borderRadius:10 }} />
                 </div>
                 <div style={{ marginTop:14, display:'grid', gap:7, fontSize:13, color:'#334155' }}>
-                  <div><strong>Chủ tài khoản:</strong> {bankAccountName}</div>
-                  <div><strong>Số tài khoản:</strong> {bankAccountNo}</div>
+                  <div><strong>Ngân hàng:</strong> {sepayPaymentInfo.bankName}</div>
+                  <div><strong>Chủ tài khoản:</strong> {sepayPaymentInfo.accountName}</div>
+                  <div><strong>Số tài khoản:</strong> {sepayPaymentInfo.accountNumber}</div>
                   <div><strong>Số tiền:</strong> {topupAmount.toLocaleString('vi-VN')} VND</div>
                   <div><strong>Nội dung:</strong> <span style={{ color:'#4f46e5', fontWeight:800 }}>{paymentReference}</span></div>
                 </div>
                 <button onClick={handleTransferSubmitted} disabled={topupLoading} style={{ width:'100%', marginTop:18, padding:'12px 16px', border:0, borderRadius:11, background:'#059669', color:'#fff', fontWeight:800, cursor:topupLoading?'wait':'pointer' }}>
-                  {topupLoading ? 'Đang ghi nhận...' : 'Tôi đã chuyển khoản'}
+                  {topupLoading ? 'Đang kiểm tra giao dịch...' : 'Tôi đã nạp tiền'}
                 </button>
                 <div style={{ marginTop:10, fontSize:11.5, lineHeight:1.5, color:'#64748b', textAlign:'center' }}>Không đổi số tiền hoặc nội dung chuyển khoản. Ví chỉ được cộng sau khi giao dịch được xác nhận.</div>
               </>
             ) : (
               <div style={{ padding:16, borderRadius:12, background:'#fff7ed', border:'1px solid #fed7aa', color:'#9a3412', fontSize:13, lineHeight:1.6 }}>
-                Chưa cấu hình tài khoản nhận tiền. Hãy thêm <code>VITE_PAYMENT_BANK_ID</code>, <code>VITE_PAYMENT_ACCOUNT_NO</code> và <code>VITE_PAYMENT_ACCOUNT_NAME</code> vào file <code>.env</code>, sau đó chạy lại frontend.
+                Không thể lấy tài khoản ngân hàng từ SePay: {sepayPaymentError || 'Chưa có dữ liệu'}. Kiểm tra <code>SEPAY_API_TOKEN</code> ở backend và tài khoản đã liên kết trên SePay.
               </div>
             )}
           </div>

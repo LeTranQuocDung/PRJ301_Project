@@ -240,3 +240,21 @@ The role check uses isolated session headers per role, runs scenarios concurrent
 * Log in as teacher/mentor, navigate to "Classrooms" and "Materials" views, and verify that the classroom and material tables successfully fetch data from the Teacher API (or fallback to offline seed data when server is down).
 * Log in as student, navigate to the "AI Coach" tab, verify the personalized plan loads, and submit a practice text response to get AI corrections/feedback.
 * Log in as admin, navigate to the "AI Insights" tab under the AI section, and verify system metrics and health alerts.
+
+---
+
+## 8. Local SePay Webhook Tunnel
+
+The project uses the existing `.tools/ngrok/ngrok.exe`. Add the token from the ngrok dashboard to the ignored project `.env` file:
+
+```dotenv
+NGROK_AUTHTOKEN=YOUR_NGROK_AUTHTOKEN
+```
+
+Start Tomcat on port 8080, then run:
+
+```powershell
+npm run ngrok
+```
+
+The tunnel policy only permits `POST /LucyBackendAPI/api/wallet/sepay-webhook`; all other public paths are rejected. Copy the HTTPS forwarding address printed by ngrok and append that path when configuring the webhook in SePay. Never commit ngrok or SePay tokens.

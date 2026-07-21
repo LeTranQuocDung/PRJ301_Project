@@ -1844,7 +1844,116 @@ function UsersView({ user }) {
   }
 
 // Premium Content View
+function TopupOrdersView({ embedded=false }) {
+  const [orders, setOrders] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+
+  const loadOrders = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const res = await fetch(`${API_BASE}/api/wallet/topup-requests?_=${Date.now()}`, {
+        cache:'no-store',
+        headers:{ 'X-LUCY-ROLE':'ADMIN' }
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Không thể tải danh sách đơn nạp')
+      setOrders(Array.isArray(data) ? data : [])
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => { loadOrders() }, [])
+
+  const approvedAmount = orders.filter(o => o.status === 'approved').reduce((sum, o) => sum + Number(o.amount || 0), 0)
+  const formatDate = value => {
+    if (!value) return '-'
+    const date = new Date(value)
+    return Number.isNaN(date.getTime()) ? value : date.toLocaleString('vi-VN')
+  }
+
+  const reviewOrder = async (requestId, approve) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/wallet/${approve ? 'topup-approve' : 'topup-reject'}`, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json', 'X-LUCY-ROLE':'ADMIN' },
+        body:JSON.stringify({ requestId })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Không thể cập nhật đơn nạp')
+      await loadOrders()
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+
+  const statusBadge = status => {
+    const config = {
+      pending:['amber','Chờ thanh toán'],
+      approved:['green','Đã nhận tiền'],
+      rejected:['red','Đã từ chối'],
+      expired:['gray','Hết hạn']
+    }[status] || ['gray',status]
+    return <ABadge accent={config[0]}>{config[1]}</ABadge>
+  }
+
+  return (
+    <div className="fade-up" style={{ padding:embedded?'0':'28px 28px 40px' }}>
+      <div style={{ display:'flex',justifyContent:'space-between',alignItems:'start',gap:16,marginBottom:22 }}>
+        <div>
+          <h1 style={{ fontSize:24,fontWeight:800,color:S.text,fontFamily:"'Outfit',sans-serif",margin:'0 0 4px' }}>Đơn nạp tiền của người dùng</h1>
+          <p style={{ color:S.muted,fontSize:13.5,margin:0 }}>Theo dõi yêu cầu nạp VietQR và trạng thái xác nhận từ SePay</p>
+        </div>
+        <ABtn variant="outline" accent="blue" onClick={loadOrders} disabled={loading}><RefreshCw size={13}/> Làm mới</ABtn>
+      </div>
+
+      <div style={{ display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:14,marginBottom:18 }}>
+        <StatCard icon="💳" value={orders.length} label="Tổng đơn nạp" accent="blue" />
+        <StatCard icon="⏳" value={orders.filter(o=>o.status==='pending').length} label="Đang chờ" accent="amber" />
+        <StatCard icon="💰" value={`${approvedAmount.toLocaleString('vi-VN')}đ`} label="Đã nhận" accent="green" />
+      </div>
+
+      {error && <div style={{ background:ACCENTS.red.l,border:`1px solid ${ACCENTS.red.b}`,borderRadius:10,padding:'12px 16px',color:'#991b1b',fontSize:13,marginBottom:16 }}>{error}</div>}
+
+      <ACard>
+        <div style={{ overflowX:'auto' }}>
+          <table style={{ width:'100%',borderCollapse:'collapse',fontSize:13,minWidth:1050 }}>
+            <thead>
+              <tr style={{ background:'#f8fafc',borderBottom:`1px solid ${S.border}` }}>
+                {['Mã đơn','Người nạp','Mã chuyển khoản','Số tiền','Trạng thái','Nguồn duyệt','Thời gian','Thao tác'].map(h=><th key={h} style={{ padding:'12px 14px',textAlign:'left',fontSize:11,fontWeight:700,color:S.light,textTransform:'uppercase' }}>{h}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan="8" style={{ padding:36,textAlign:'center',color:S.muted }}>Đang tải đơn nạp...</td></tr>
+              ) : orders.length === 0 ? (
+                <tr><td colSpan="8" style={{ padding:36,textAlign:'center',color:S.muted }}>Chưa có đơn nạp nào.</td></tr>
+              ) : orders.map(order => (
+                <tr key={order.requestId} style={{ borderBottom:`1px solid ${S.borderLight}` }}>
+                  <td style={{ padding:'13px 14px',fontFamily:'monospace',fontSize:11.5,color:S.muted }}>{order.requestId}</td>
+                  <td style={{ padding:'13px 14px' }}><div style={{ fontWeight:700,color:S.text }}>{order.userName}</div><div style={{ fontSize:11,color:S.light }}>ID: {order.userId}</div></td>
+                  <td style={{ padding:'13px 14px',fontFamily:'monospace',fontWeight:700,color:ACCENTS.blue.c }}>{order.reference}</td>
+                  <td style={{ padding:'13px 14px',fontWeight:800,color:ACCENTS.green.c }}>{Number(order.amount || 0).toLocaleString('vi-VN')}đ</td>
+                  <td style={{ padding:'13px 14px' }}>{statusBadge(order.status)}</td>
+                  <td style={{ padding:'13px 14px',color:S.muted }}>{order.approvalSource === 'sepay_webhook' ? 'SePay' : order.approvalSource === 'admin' ? 'Admin' : order.approvalSource === 'timeout' ? 'Hết giờ' : '-'}</td>
+                  <td style={{ padding:'13px 14px',color:S.muted,fontSize:12 }}>{formatDate(order.createdAt)}</td>
+                  <td style={{ padding:'13px 14px' }}>{order.status === 'pending' ? <div style={{ display:'flex',gap:6 }}><ABtn sm accent="green" onClick={()=>reviewOrder(order.requestId,true)}>Duyệt</ABtn><ABtn sm variant="outline" accent="red" onClick={()=>reviewOrder(order.requestId,false)}>Từ chối</ABtn></div> : <span style={{ color:S.light }}>—</span>}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </ACard>
+    </div>
+  )
+}
+
 function PremiumView() {
+  const [section, setSection] = useState('content')
   const [items, setItems] = useState([
     { title:'Advanced Business English',    lang:'[GB]', accent:'blue',  locked:true },
     { title:'JLPT N5 Prep Course',          lang:'[JP]', accent:'pink',  locked:true },
@@ -1856,10 +1965,29 @@ function PremiumView() {
     setItems(prev => prev.map((item,i) => i===idx ? {...item, locked:!item.locked} : item))
   }
 
+  const sectionTabs = (
+    <div style={{ display:'flex',gap:8,marginBottom:22,padding:5,background:'#e2e8f0',borderRadius:12,width:'fit-content' }}>
+      <button onClick={()=>setSection('content')} style={{ border:0,borderRadius:9,padding:'9px 16px',cursor:'pointer',fontWeight:700,fontSize:13,background:section==='content'?'#fff':'transparent',color:section==='content'?ACCENTS.blue.c:S.muted,boxShadow:section==='content'?'0 2px 8px rgba(15,23,42,0.08)':'none' }}>⭐ Nội dung Premium</button>
+      <button onClick={()=>setSection('topups')} style={{ border:0,borderRadius:9,padding:'9px 16px',cursor:'pointer',fontWeight:700,fontSize:13,background:section==='topups'?'#fff':'transparent',color:section==='topups'?ACCENTS.green.c:S.muted,boxShadow:section==='topups'?'0 2px 8px rgba(15,23,42,0.08)':'none' }}>💳 Đơn nạp</button>
+    </div>
+  )
+
+  if (section === 'topups') {
+    return (
+      <div className="fade-up" style={{ padding:'28px 28px 40px' }}>
+        <h1 style={{ fontSize:24,fontWeight:800,color:S.text,fontFamily:"'Outfit',sans-serif",margin:'0 0 4px' }}>Premium</h1>
+        <p style={{ color:S.muted,fontSize:13.5,margin:'0 0 18px' }}>Quản lý nội dung Premium và các đơn nạp tiền</p>
+        {sectionTabs}
+        <TopupOrdersView embedded />
+      </div>
+    )
+  }
+
   return (
     <div className="fade-up" style={{ padding:'28px 28px 40px' }}>
       <h1 style={{ fontSize:24,fontWeight:800,color:S.text,fontFamily:"'Outfit',sans-serif",margin:'0 0 4px' }}>Premium Content</h1>
-      <p style={{ color:S.muted,fontSize:13.5,margin:'0 0 24px' }}>Premium content for Premium learners — click lock icon to toggle</p>
+      <p style={{ color:S.muted,fontSize:13.5,margin:'0 0 18px' }}>Premium content for Premium learners — click lock icon to toggle</p>
+      {sectionTabs}
       <div style={{ display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:14 }}>
         {items.map((t,i)=>{
           const a = ACCENTS[t.accent]
