@@ -1049,6 +1049,7 @@ function PremiumView({ user, setActive, setLearnLang }) {
   const safeBalance = (typeof balance === 'number' && !isNaN(balance)) ? balance : 5000000
   const [currency, setCurrency] = useState('VND')
   const [topupOpen, setTopupOpen] = useState(false)
+  const [topupLoading, setTopupLoading] = useState(false)
   const [topupAmount, setTopupAmount] = useState(1000000)
   const [zaloPayOpen, setZaloPayOpen] = useState(false)
   const [zaloPayData, setZaloPayData] = useState(null)
