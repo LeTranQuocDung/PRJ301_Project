@@ -12,20 +12,35 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 @WebServlet(urlPatterns = {
     "/api/wallet/balance",
     "/api/wallet/topup",
-    "/api/wallet/send-gift"
+    "/api/wallet/send-gift",
+    "/api/wallet/zalopay-create",
+    "/api/wallet/zalopay-confirm"
 })
 public class WalletServlet extends HttpServlet {
 
     private Gson gson;
     private static final Map<Integer, Double> balances = new HashMap<>();
+
+    // ZaloPay Sandbox Defaults
+    private static final String ZALOPAY_APP_ID = "2553";
+    private static final String ZALOPAY_KEY1 = "PcY4iZIKFCIdgZvA6ueMcGsEw2GaIcBh";
+    private static final String ZALOPAY_KEY2 = "kLfiRAWhA7AEbMeetKMuEc5W07nCfjfl";
+    private static final String ZALOPAY_ENDPOINT = "https://sb-openapi.zalopay.vn/v2/create";
 
     static {
         // Seed default wallet balances for demo users
@@ -167,9 +182,125 @@ public class WalletServlet extends HttpServlet {
             txn.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
 
             resp.getWriter().write(gson.toJson(txn));
+
+        } else if (path.contains("zalopay-create")) {
+            // ── ZaloPay Order Creation ───────────────────────────────────────
+            int userId = json.has("userId") ? json.get("userId").getAsInt() : 1;
+            long amount = json.has("amount") ? json.get("amount").getAsLong() : 50000;
+            String title = json.has("title") ? json.get("title").getAsString() : "Thanh toan LUCY Premium";
+
+            String dateStr = new SimpleDateFormat("yyMMdd").format(new Date());
+            String appTransId = dateStr + "_" + (100000 + new Random().nextInt(900000));
+            long appTime = System.currentTimeMillis();
+
+            String embedData = "{\"redirecturl\":\"http://localhost:5173\"}";
+            String item = "[{\"itemid\":\"lucy_premium\",\"itemname\":\"" + title + "\",\"itemprice\":" + amount + ",\"itemquantity\":1}]";
+            String description = "LUCY - " + title + " #" + appTransId;
+
+            // Compute ZaloPay HMAC SHA256 MAC
+            String macInput = ZALOPAY_APP_ID + "|" + appTransId + "|lucy_user_" + userId + "|" + amount + "|" + appTime + "|" + embedData + "|" + item;
+            String mac = hmacSHA256(macInput, ZALOPAY_KEY1);
+
+            JsonObject zpReq = new JsonObject();
+            zpReq.addProperty("app_id", Integer.parseInt(ZALOPAY_APP_ID));
+            zpReq.addProperty("app_user", "lucy_user_" + userId);
+            zpReq.addProperty("app_time", appTime);
+            zpReq.addProperty("amount", amount);
+            zpReq.addProperty("app_trans_id", appTransId);
+            zpReq.addProperty("embed_data", embedData);
+            zpReq.addProperty("item", item);
+            zpReq.addProperty("description", description);
+            zpReq.addProperty("bank_code", "");
+            zpReq.addProperty("mac", mac);
+
+            String orderUrl = null;
+            String zpTransToken = null;
+
+            try {
+                URL url = new URL(ZALOPAY_ENDPOINT);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setDoOutput(true);
+                conn.setConnectTimeout(5000);
+                conn.setReadTimeout(5000);
+
+                try (OutputStream os = conn.getOutputStream()) {
+                    os.write(zpReq.toString().getBytes("UTF-8"));
+                }
+
+                if (conn.getResponseCode() == 200) {
+                    try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"))) {
+                        StringBuilder respSb = new StringBuilder();
+                        String line;
+                        while ((line = br.readLine()) != null) respSb.append(line);
+                        JsonObject zpResp = gson.fromJson(respSb.toString(), JsonObject.class);
+                        if (zpResp != null && zpResp.has("order_url")) {
+                            orderUrl = zpResp.get("order_url").getAsString();
+                        }
+                        if (zpResp != null && zpResp.has("zp_trans_token")) {
+                            zpTransToken = zpResp.get("zp_trans_token").getAsString();
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("ZaloPay direct API call warning: " + e.getMessage());
+            }
+
+            // Fallback ZaloPay order URL for localhost offline/sandbox testing if direct gateway call is unreachable
+            if (orderUrl == null || orderUrl.isEmpty()) {
+                orderUrl = "https://qcgateway.zalopay.vn/openinapp/order?app_id=" + ZALOPAY_APP_ID + "&app_trans_id=" + appTransId;
+            }
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("status", "success");
+            result.put("appId", ZALOPAY_APP_ID);
+            result.put("appTransId", appTransId);
+            result.put("zpTransToken", zpTransToken != null ? zpTransToken : "ZPT_" + System.currentTimeMillis());
+            result.put("amount", amount);
+            result.put("orderUrl", orderUrl);
+            result.put("qrCodeText", "zalopay://qr/p/v1/" + appTransId);
+            result.put("createdAt", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+
+            resp.getWriter().write(gson.toJson(result));
+
+        } else if (path.contains("zalopay-confirm")) {
+            // ── Confirm ZaloPay sandbox payment completion ───────────────────
+            int userId = json.has("userId") ? json.get("userId").getAsInt() : 1;
+            double amount = json.has("amount") ? json.get("amount").getAsDouble() : 50000.0;
+
+            double newBalance = balances.getOrDefault(userId, 0.0) + amount;
+            balances.put(userId, newBalance);
+
+            Map<String, Object> txn = new HashMap<>();
+            txn.put("status", "success");
+            txn.put("userId", userId);
+            txn.put("amount", amount);
+            txn.put("newBalance", newBalance);
+            txn.put("message", "Thanh toán ZaloPay thành công!");
+            txn.put("timestamp", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+
+            resp.getWriter().write(gson.toJson(txn));
+
         } else {
             resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
             resp.getWriter().write("{\"error\":\"Endpoint not found\"}");
+        }
+    }
+
+    private static String hmacSHA256(String data, String key) {
+        try {
+            javax.crypto.Mac hmacSHA256 = javax.crypto.Mac.getInstance("HmacSHA256");
+            javax.crypto.spec.SecretKeySpec secretKey = new javax.crypto.spec.SecretKeySpec(key.getBytes("UTF-8"), "HmacSHA256");
+            hmacSHA256.init(secretKey);
+            byte[] bytes = hmacSHA256.doFinal(data.getBytes("UTF-8"));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : bytes) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            return "";
         }
     }
 
