@@ -1858,7 +1858,7 @@ function CourseRunsView() {
 // Main AdminApp
 
   // --- TEACHER WORKSPACE ---
-  function TeacherProfileView() {
+  function TeacherProfileView({ user }) {
     const [oldPass, setOldPass] = useState('');
     const [newPass, setNewPass] = useState('');
     const doChangePass = async (e) => {
@@ -2239,7 +2239,11 @@ export default function AdminApp({ user, onLogout }) {
       case 'templates':          return <PromptTemplatesView/>
       case 'questions':          return <GeneratedQuestionsView/>
       case 'users':              return <UsersView user={user}/>
+<<<<<<< HEAD
       case 'teacher-profile':    return <TeacherProfileView/>
+=======
+      case 'teacher-profile':    return <TeacherProfileView user={user}/>
+>>>>>>> c2a4573 (Fix ReferenceError: user is undefined in Admin UsersView and TeacherProfileView)
       case 'teacher-classrooms': return <TeacherClassroomsView/>
       case 'teacher-materials':  return <TeacherMaterialsView/>
       default:                   return <DashboardView setActive={setActive}/>
