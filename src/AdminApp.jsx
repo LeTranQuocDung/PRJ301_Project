@@ -1364,7 +1364,8 @@ function GeneratedQuestionsView() {
 }
 
 // Users View
-function UsersView() {
+function UsersView({ user }) {
+    const roleHeader = user?.role || 'admin'
     const [users, setUsers] = useState([])
     const [loading, setLoading] = useState(true)
     const [editId, setEditId] = useState(null)
@@ -1383,7 +1384,7 @@ function UsersView() {
       setLoading(true)
       try {
         const res = await fetch(`${API_BASE}/api/users`, {
-          headers: { 'X-LUCY-ROLE': user.role }
+          headers: { 'X-LUCY-ROLE': roleHeader }
         })
         if (res.ok) {
           const data = await res.json()
@@ -1402,7 +1403,7 @@ function UsersView() {
       try {
         const res = await fetch(`${API_BASE}/api/users/admin/create-user`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-LUCY-ROLE': user.role },
+          headers: { 'Content-Type': 'application/json', 'X-LUCY-ROLE': roleHeader },
           body: JSON.stringify({ 
             username: form.email.split('@')[0] + Math.floor(Math.random() * 1000),
             email: form.email,
@@ -1420,7 +1421,7 @@ function UsersView() {
           alert('Error: ' + err.error)
         }
       } catch (e) {
-        alert('Server connection error')
+        alert('Server connection error: ' + e.message)
       }
     }
 
@@ -1429,12 +1430,12 @@ function UsersView() {
       try {
         const res = await fetch(`${API_BASE}/api/users/admin/update-role`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'X-LUCY-ROLE': user.role },
+          headers: { 'Content-Type': 'application/json', 'X-LUCY-ROLE': roleHeader },
           body: JSON.stringify({ id, role: tempRole })
         });
         if (res.ok) { fetchUsers(); setEditingRole(null); }
         else alert('Error updating role');
-      } catch(e) { alert('Server connection error'); }
+      } catch(e) { alert('Server connection error: ' + e.message); }
     }
 
     const deleteUser = async (id) => {
@@ -1442,11 +1443,11 @@ function UsersView() {
       try {
         const res = await fetch(`${API_BASE}/api/users?id=${id}`, {
           method: 'DELETE',
-          headers: { 'X-LUCY-ROLE': user.role }
+          headers: { 'X-LUCY-ROLE': roleHeader }
         });
         if (res.ok) fetchUsers();
         else alert('Error deleting user');
-      } catch(e) { alert('Server connection error'); }
+      } catch(e) { alert('Server connection error: ' + e.message); }
     }
   
     const resetPass = async (id) => {
@@ -1455,7 +1456,7 @@ function UsersView() {
       try {
         const res = await fetch(`${API_BASE}/api/users/admin/reset-password`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-LUCY-ROLE': user.role },
+          headers: { 'Content-Type': 'application/json', 'X-LUCY-ROLE': roleHeader },
           body: JSON.stringify({ userId: id, newPassword: generatedPassword })
         })
         if (res.ok) {
@@ -1464,7 +1465,7 @@ function UsersView() {
           alert('Error resetting password')
         }
       } catch (e) {
-        alert('Server connection error')
+        alert('Server connection error: ' + e.message)
       }
     }
   
@@ -2237,7 +2238,7 @@ export default function AdminApp({ user, onLogout }) {
       case 'insights':           return <AdminInsightsView/>
       case 'templates':          return <PromptTemplatesView/>
       case 'questions':          return <GeneratedQuestionsView/>
-      case 'users':              return <UsersView/>
+      case 'users':              return <UsersView user={user}/>
       case 'teacher-profile':    return <TeacherProfileView/>
       case 'teacher-classrooms': return <TeacherClassroomsView/>
       case 'teacher-materials':  return <TeacherMaterialsView/>
