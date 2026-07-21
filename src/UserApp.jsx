@@ -1533,21 +1533,6 @@ function PremiumView({ user, setActive, setLearnLang }) {
           >
             Nạp qua VietQR
           </button>
-
-          <button 
-            onClick={() => handleOpenZaloPay(200000)} 
-            disabled={zaloPayLoading}
-            style={{
-              padding: '12px 20px', borderRadius: 12,
-              background: 'linear-gradient(135deg,#0068ff,#0044bb)', color: '#fff', border: 'none',
-              fontSize: 13, fontWeight: 700, cursor: 'pointer', transition: 'transform 0.15s',
-              boxShadow: '0 4px 14px rgba(0,104,255,0.3)', display: 'inline-flex', alignItems: 'center', gap: 6
-            }}
-            onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.03)'}
-            onMouseLeave={e => e.currentTarget.style.transform = ''}
-          >
-            💙 {zaloPayLoading ? 'Đang tạo đơn ZaloPay...' : 'Nạp qua Ví ZaloPay (Sandbox)'}
-          </button>
         </div>
       </div>
 
