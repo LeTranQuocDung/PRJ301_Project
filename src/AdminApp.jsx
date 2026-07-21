@@ -156,30 +156,57 @@ const NAV_GROUPS = [
 
 function Sidebar({ active, setActive, user, onLogout }) {
   const [hov, setHov] = useState(null)
+  const sidebarBorder = 'rgba(255,255,255,0.07)';
+  const isMentor = user.role === 'teacher' || user.role === 'mentor';
+  
   return (
-    <aside style={{
-      width: 220, minWidth: 220, background: S.sidebar,
-      display: 'flex', flexDirection: 'column', height: '100vh',
-      overflowY: 'auto', flexShrink: 0,
-      borderRight: '1px solid rgba(255,255,255,0.06)',
+    <nav style={{
+      width: 230, minWidth: 230, flexShrink: 0,
+      background: '#0f172a',
+      borderRight: `1px solid ${sidebarBorder}`,
+      display: 'flex', flexDirection: 'column',
+      height: '100vh', overflowY: 'auto',
     }}>
-      {/* Logo */}
-      <div style={{ padding: '20px 18px 16px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      {/* Logo & Portal Header */}
+      <div style={{ padding: '24px 20px 20px', borderBottom: `1px solid ${sidebarBorder}` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
           <div style={{
-            width: 38, height: 38, borderRadius: 11,
-            background: 'linear-gradient(135deg,#6366f1,#06b6d4)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0,
-            boxShadow: '0 0 16px rgba(99,102,241,0.5)',
+            width: 36, height: 36, borderRadius: 10,
+            background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+            boxShadow: '0 4px 16px rgba(99,102,241,0.4)',
           }}>🎵</div>
           <div>
-            <div style={{ fontWeight: 900, fontSize: 18, color: '#fff', letterSpacing: '-0.03em', fontFamily: "'Outfit',sans-serif" }}>LUCY</div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', marginTop: 0, letterSpacing: '0.08em' }}>ADMIN PANEL</div>
+            <div style={{ fontWeight: 900, fontSize: 18, color: '#fff', fontFamily: "'Outfit',sans-serif", letterSpacing: '-0.03em', lineHeight: 1 }}>LUCY</div>
+            <div style={{ fontSize: 9, color: '#94a3b8', letterSpacing: '0.08em', fontWeight: 600, marginTop: 4 }}>
+              {isMentor ? 'MENTOR PORTAL' : 'ADMIN PORTAL'}
+            </div>
+          </div>
+        </div>
+
+        {/* User Card */}
+        <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: '12px 14px', border: `1px solid ${sidebarBorder}`, color: '#fff' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 32, height: 32, borderRadius: 8,
+              background: isMentor ? 'linear-gradient(135deg,#8b5cf6,#d946ef)' : 'linear-gradient(135deg,#6366f1,#06b6d4)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0
+            }}>
+              {isMentor ? '👨‍🏫' : '👑'}
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {user.displayName || user.username || user.name}
+              </div>
+              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 2, fontWeight: 600 }}>
+                {isMentor ? 'Mentor / Teacher' : 'Administrator'}
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Nav */}
+      {/* Nav Link List */}
       <div style={{ flex: 1, padding: '8px 0' }}>
         {NAV_GROUPS.filter(g => !(g.hideFor && g.hideFor.includes(user?.role)) && (!g.showOnlyFor || g.showOnlyFor.includes(user?.role))).map((g, gi) => (
           <div key={gi} style={{ marginBottom: 2 }}>
@@ -203,7 +230,8 @@ function Sidebar({ active, setActive, user, onLogout }) {
                     border: 'none', borderLeft: on ? '3px solid #6366f1' : '3px solid transparent',
                     cursor: 'pointer', textAlign: 'left', fontSize: 13, fontWeight: on ? 600 : 400,
                     transition: 'all 0.15s', fontFamily: 'inherit',
-                  }}>
+                  }}
+                >
                   <span style={{ opacity: on ? 1 : 0.7 }}>{item.icon}</span>
                   {item.label}
                   {on && <div style={{ marginLeft: 'auto', width: 6, height: 6, borderRadius: '50%', background: '#6366f1' }} />}
@@ -214,33 +242,26 @@ function Sidebar({ active, setActive, user, onLogout }) {
         ))}
       </div>
 
-      {/* Footer */}
-      <div style={{ padding: '12px 14px 16px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 10, background: 'rgba(255,255,255,0.05)', marginBottom: 8 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#6366f1,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>{(user.role === 'teacher' || user.role === 'mentor') ? '👨‍🏫' : '👑'}</div>
-          <div style={{ flex: 1, overflow: 'hidden' }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.name}</div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>{(user.role === 'teacher' || user.role === 'mentor') ? 'Teacher' : 'Admin'}</div>
-          </div>
-        </div>
+      {/* Logout Footer Section */}
+      <div style={{ padding: '20px 16px', borderTop: `1px solid ${sidebarBorder}` }}>
         <button onClick={onLogout} style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          width: '100%', padding: '8px 0', borderRadius: 8,
-          background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
-          color: '#f87171', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-          transition: 'all 0.2s',
+          width: '100%', padding: '12px 0', borderRadius: 10,
+          background: 'transparent', color: '#f87171', border: `1px solid rgba(248,113,113,0.3)`,
+          fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+          transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
         }}
-          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.2)' }}
-          onMouseLeave={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)' }}
-        ><LogOut size={13} /> Logout</button>
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.transform = '' }}
+        ><LogOut size={13} /> Đăng xuất</button>
       </div>
-    </aside>
+    </nav>
   )
 }
 
 // ─── Dashboard View ─────────────────────────────────────────────────────────
-function DashboardView({ setActive }) {
+function DashboardView({ setActive, user }) {
   const [liveRoomStats, setLiveRoomStats] = useState({ total:0, publicCount:0 })
+  const isMentor = user?.role === 'teacher' || user?.role === 'mentor';
 
   useEffect(() => {
     let active = true
@@ -275,9 +296,28 @@ function DashboardView({ setActive }) {
 
   return (
     <div className="fade-up" style={{ padding:'28px 28px 40px' }}>
-      <div style={{ marginBottom:24 }}>
-        <h1 style={{ fontSize:24, fontWeight:800, color:S.text, fontFamily:"'Outfit',sans-serif", margin:'0 0 4px' }}>Dashboard</h1>
-        <p style={{ color:S.muted, fontSize:13.5, margin:0 }}>Platform Overview — LUCY Portal</p>
+      {/* Welcome Banner */}
+      <div style={{
+        background: isMentor 
+          ? 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 50%, #f43f5e 100%)'
+          : 'linear-gradient(135deg, #4f46e5 0%, #6366f1 50%, #06b6d4 100%)',
+        borderRadius: 20, padding: '28px 32px', color: '#fff', marginBottom: 24,
+        position: 'relative', overflow: 'hidden',
+        boxShadow: '0 8px 32px rgba(99,102,241,0.15)'
+      }}>
+        <div style={{ position: 'absolute', top: -30, right: -30, width: 150, height: 150, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
+        <div style={{ position: 'absolute', bottom: -20, right: 60, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
+        <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 6, fontWeight: 700, letterSpacing: '0.1em' }}>
+          {isMentor ? 'MENTOR WORKSPACE' : 'SYSTEM ADMINISTRATION'}
+        </div>
+        <h1 style={{ fontSize: 28, fontWeight: 900, margin: '0 0 8px', fontFamily: "'Outfit',sans-serif", letterSpacing: '-0.03em' }}>
+          Welcome back, {user?.displayName || user?.username || 'User'}! 👋
+        </h1>
+        <div style={{ display: 'flex', gap: 20, fontSize: 14, opacity: 0.9, fontWeight: 500 }}>
+          <span>📚 {stats[0].value} Courses</span>
+          <span>🎓 {stats[1].value} Active Students</span>
+          <span>🎙️ {stats[3].value} Live Voice Rooms</span>
+        </div>
       </div>
 
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16, marginBottom:24 }}>
@@ -1364,7 +1404,8 @@ function GeneratedQuestionsView() {
 }
 
 // Users View
-function UsersView() {
+function UsersView({ user }) {
+    const roleHeader = user?.role || 'admin'
     const [users, setUsers] = useState([])
     const [loading, setLoading] = useState(true)
     const [editId, setEditId] = useState(null)
@@ -1383,7 +1424,7 @@ function UsersView() {
       setLoading(true)
       try {
         const res = await fetch(`${API_BASE}/api/users`, {
-          headers: { 'X-LUCY-ROLE': user.role }
+          headers: { 'X-LUCY-ROLE': roleHeader }
         })
         if (res.ok) {
           const data = await res.json()
@@ -1402,7 +1443,7 @@ function UsersView() {
       try {
         const res = await fetch(`${API_BASE}/api/users/admin/create-user`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-LUCY-ROLE': user.role },
+          headers: { 'Content-Type': 'application/json', 'X-LUCY-ROLE': roleHeader },
           body: JSON.stringify({ 
             username: form.email.split('@')[0] + Math.floor(Math.random() * 1000),
             email: form.email,
@@ -1420,7 +1461,7 @@ function UsersView() {
           alert('Error: ' + err.error)
         }
       } catch (e) {
-        alert('Server connection error')
+        alert('Server connection error: ' + e.message)
       }
     }
 
@@ -1429,12 +1470,12 @@ function UsersView() {
       try {
         const res = await fetch(`${API_BASE}/api/users/admin/update-role`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'X-LUCY-ROLE': user.role },
+          headers: { 'Content-Type': 'application/json', 'X-LUCY-ROLE': roleHeader },
           body: JSON.stringify({ id, role: tempRole })
         });
         if (res.ok) { fetchUsers(); setEditingRole(null); }
         else alert('Error updating role');
-      } catch(e) { alert('Server connection error'); }
+      } catch(e) { alert('Server connection error: ' + e.message); }
     }
 
     const deleteUser = async (id) => {
@@ -1442,11 +1483,11 @@ function UsersView() {
       try {
         const res = await fetch(`${API_BASE}/api/users?id=${id}`, {
           method: 'DELETE',
-          headers: { 'X-LUCY-ROLE': user.role }
+          headers: { 'X-LUCY-ROLE': roleHeader }
         });
         if (res.ok) fetchUsers();
         else alert('Error deleting user');
-      } catch(e) { alert('Server connection error'); }
+      } catch(e) { alert('Server connection error: ' + e.message); }
     }
   
     const resetPass = async (id) => {
@@ -1455,7 +1496,7 @@ function UsersView() {
       try {
         const res = await fetch(`${API_BASE}/api/users/admin/reset-password`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-LUCY-ROLE': user.role },
+          headers: { 'Content-Type': 'application/json', 'X-LUCY-ROLE': roleHeader },
           body: JSON.stringify({ userId: id, newPassword: generatedPassword })
         })
         if (res.ok) {
@@ -1464,7 +1505,7 @@ function UsersView() {
           alert('Error resetting password')
         }
       } catch (e) {
-        alert('Server connection error')
+        alert('Server connection error: ' + e.message)
       }
     }
   
@@ -1857,7 +1898,7 @@ function CourseRunsView() {
 // Main AdminApp
 
   // --- TEACHER WORKSPACE ---
-  function TeacherProfileView() {
+  function TeacherProfileView({ user }) {
     const [oldPass, setOldPass] = useState('');
     const [newPass, setNewPass] = useState('');
     const doChangePass = async (e) => {
@@ -2223,7 +2264,7 @@ export default function AdminApp({ user, onLogout }) {
 
   const renderView = () => {
     switch(active) {
-      case 'dashboard':          return <DashboardView setActive={setActive}/>
+      case 'dashboard':          return <DashboardView setActive={setActive} user={user}/>
       case 'courses':            return <CoursesView/>
       case 'course-runs':        return <CourseRunsView/>
       case 'chapters':           return <ChaptersView/>
@@ -2237,11 +2278,11 @@ export default function AdminApp({ user, onLogout }) {
       case 'insights':           return <AdminInsightsView/>
       case 'templates':          return <PromptTemplatesView/>
       case 'questions':          return <GeneratedQuestionsView/>
-      case 'users':              return <UsersView/>
-      case 'teacher-profile':    return <TeacherProfileView/>
+      case 'users':              return <UsersView user={user}/>
+      case 'teacher-profile':    return <TeacherProfileView user={user}/>
       case 'teacher-classrooms': return <TeacherClassroomsView/>
       case 'teacher-materials':  return <TeacherMaterialsView/>
-      default:                   return <DashboardView setActive={setActive}/>
+      default:                   return <DashboardView setActive={setActive} user={user}/>
     }
   }
 
