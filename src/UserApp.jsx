@@ -1143,32 +1143,36 @@ function PremiumView({ user, setActive, setLearnLang }) {
   const handleConfirmZaloPaySuccess = async () => {
     if (!zaloPayData) return
     setZaloPayLoading(true)
+    const payAmount = zaloPayData.amount || 200000
     try {
       const res = await fetch(`${API_BASE}/api/wallet/zalopay-confirm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: user?.id || 1,
-          amount: zaloPayData.amount || 200000
+          amount: payAmount
         })
       })
       const data = await res.json()
-      if (res.ok && data.newBalance !== undefined) {
-        setBalance(data.newBalance)
-        localStorage.setItem('lucy_wallet_balance', data.newBalance)
-      } else {
-        const newBal = balance + (zaloPayData.amount || 200000)
-        setBalance(newBal)
-        localStorage.setItem('lucy_wallet_balance', newBal)
-      }
+      const newBal = (res.ok && data.newBalance !== undefined) ? data.newBalance : (balance + payAmount)
+      setBalance(newBal)
+      localStorage.setItem('lucy_wallet_balance', newBal)
     } catch {
-      const newBal = balance + (zaloPayData.amount || 200000)
+      const newBal = balance + payAmount
       setBalance(newBal)
       localStorage.setItem('lucy_wallet_balance', newBal)
     }
     setZaloPayLoading(false)
     setZaloPayOpen(false)
-    alert(`🎉 Thanh toán ZaloPay Sandbox thành công! Đã cộng ${(zaloPayData.amount||200000).toLocaleString('vi-VN')}đ vào tài khoản của bạn!`)
+    
+    // Auto unlock Premium if payment corresponds to a plan or high amount
+    if (payAmount >= 800000 && subType === 'Free') {
+      setSubType('Premium Lifetime')
+      localStorage.setItem('lucy_sub_type', 'Premium Lifetime')
+      alert(`🎉 Thanh toán ZaloPay Sandbox thành công! Bạn đã được tự động nâng cấp lên gói LUCY Premium Trọn Đời!`)
+    } else {
+      alert(`🎉 Thanh toán ZaloPay Sandbox thành công! Đã cộng ${payAmount.toLocaleString('vi-VN')}đ vào tài khoản của bạn!`)
+    }
   }
 
   const handleSubscribe = async (planName, cost) => {
@@ -1178,11 +1182,17 @@ function PremiumView({ user, setActive, setLearnLang }) {
     }
 
     if (balance < cost) {
-      alert(`Số dư không đủ! Gói này có giá ${cost.toLocaleString()} ${currency}, nhưng ví của bạn chỉ còn ${balance.toLocaleString()} ${currency}. Vui lòng nạp thêm tiền ảo.`);
+      const wantZaloPay = window.confirm(
+        `Số dư ví hiện tại (${balance.toLocaleString('vi-VN')}đ) chưa đủ để mua gói ${planName} (${cost.toLocaleString('vi-VN')}đ).\n\n` +
+        `Bạn có muốn mở cổng thanh toán Ví ZaloPay Sandbox để đăng ký ngay không?`
+      );
+      if (wantZaloPay) {
+        handleOpenZaloPay(cost);
+      }
       return;
     }
 
-    const confirmSub = window.confirm(`Xác nhận đăng ký gói ${planName} với giá ${cost.toLocaleString()} ${currency}?`);
+    const confirmSub = window.confirm(`Xác nhận đăng ký gói ${planName} với giá ${cost.toLocaleString('vi-VN')}đ?`);
     if (!confirmSub) return;
 
     try {
