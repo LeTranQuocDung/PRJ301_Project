@@ -19,12 +19,14 @@ function generatePersona(seed) {
 
 // ─── Virtual Gift types ───────────────────────────────────────────────────────
 const GIFTS = [
-  { id:'star',    emoji:'⭐', label:'Star',    color:'#f59e0b' },
-  { id:'diamond', emoji:'💎', label:'Diamond', color:'#06b6d4' },
-  { id:'fire',    emoji:'🔥', label:'Fire',    color:'#ef4444' },
-  { id:'party',   emoji:'🎉', label:'Party',   color:'#8b5cf6' },
-  { id:'heart',   emoji:'❤️', label:'Love',    color:'#ec4899' },
+  { id:'star',    emoji:'⭐', label:'Star',    color:'#f59e0b', price: 5000,  mentorCut: 4000 },
+  { id:'fire',    emoji:'🔥', label:'Fire',    color:'#ef4444', price: 10000, mentorCut: 8000 },
+  { id:'heart',   emoji:'❤️', label:'Love',    color:'#ec4899', price: 20000, mentorCut: 16000 },
+  { id:'diamond', emoji:'💎', label:'Diamond', color:'#06b6d4', price: 50000, mentorCut: 40000 },
+  { id:'party',   emoji:'🎉', label:'Party',   color:'#8b5cf6', price: 100000, mentorCut: 80000 },
 ]
+
+const formatVND = num => num ? num.toLocaleString('vi-VN') : '0'
 
 const randomRoomId = () => Math.random().toString(36).slice(2, 8).toUpperCase()
 
@@ -315,12 +317,46 @@ export default function LiveRoomView({ canRecord = false, userRole = 'lucy', use
   }
 
   // ─── Virtual Gift ────────────────────────────────────────────────────────────
-  const sendGift = async (giftType) => {
-    setShowGiftPicker(false)
+  const [myBalance, setMyBalance] = useState(150000)
+  const fetchMyBalance = async () => {
     try {
-      await request(`/api/rooms/${room.id}/gift`, { method:'POST', headers:{'Content-Type':'application/json; charset=UTF-8'}, body: JSON.stringify({ name, giftType }) })
-      // Show local animation too
-      setFloatingGifts(prev => [...prev, { id: Date.now(), from: name, giftType, own: true }].slice(-6))
+      const res = await fetch(`${API_BASE}/api/wallet/balance?userId=1`)
+      if (res.ok) {
+        const data = await res.json()
+        if (data.balance !== undefined) setMyBalance(data.balance)
+      }
+    } catch (ignored) {}
+  }
+  useEffect(() => { fetchMyBalance() }, [])
+
+  const sendGift = async (gDef) => {
+    setShowGiftPicker(false)
+    if (myBalance < gDef.price) {
+      setError(`Số dư ví không đủ (${formatVND(myBalance)}đ). Bạn cần ${formatVND(gDef.price)}đ để tặng ${gDef.label}!`)
+      return
+    }
+    try {
+      // 1. Deduct balance from Student (id=1) and credit Mentor (id=2)
+      const walletRes = await fetch(`${API_BASE}/api/wallet/send-gift`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fromUserId: 1, toMentorId: 2, giftCode: gDef.id, amount: gDef.price })
+      })
+      const walletData = await walletRes.json()
+      if (walletRes.ok && walletData.fromBalance !== undefined) {
+        setMyBalance(walletData.fromBalance)
+      }
+
+      // 2. Broadcast gift event to room
+      const latest = await request(`/api/rooms/${room.id}/gift`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+        body: JSON.stringify({ name, giftType: gDef.emoji, giftId: gDef.id, amount: gDef.price })
+      })
+      setRoom(latest)
+
+      // 3. Show floating gift animation
+      setFloatingGifts(prev => [...prev, { id: Date.now(), from: name, giftType: gDef.emoji, own: true }].slice(-6))
     } catch (e) { setError(e.message) }
   }
 
@@ -587,13 +623,23 @@ export default function LiveRoomView({ canRecord = false, userRole = 'lucy', use
 
       {/* Floating Gift Animations */}
       {floatingGifts.length > 0 && (
-        <div style={{ position:'fixed', bottom:80, right:30, zIndex:9999, display:'flex', flexDirection:'column', gap:8, pointerEvents:'none' }}>
-          {floatingGifts.map((g, i) => (
-            <div key={g.id} style={{ display:'flex', alignItems:'center', gap:8, padding:'8px 14px', background:'rgba(255,255,255,0.95)', backdropFilter:'blur(8px)', borderRadius:30, boxShadow:'0 8px 24px rgba(0,0,0,0.12)', animation:`giftFloat 3.5s ease forwards`, fontSize:14, fontWeight:700, color:'#1e293b', opacity:1 }}>
-              <span style={{ fontSize:22 }}>{g.giftType}</span>
-              <span style={{ fontSize:12, color:'#64748b' }}>{g.own ? 'You sent' : `${g.from} sent`}</span>
-            </div>
-          ))}
+        <div style={{ position:'fixed', bottom:80, right:30, zIndex:9999, display:'flex', flexDirection:'column', gap:10, pointerEvents:'none' }}>
+          {floatingGifts.map((g, i) => {
+            const gDef = GIFTS.find(x => x.emoji === g.giftType) || { label:'Gift', color:'#6366f1', price:0 }
+            return (
+              <div key={g.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 18px', background:'rgba(255,255,255,0.97)', backdropFilter:'blur(12px)', borderRadius:30, boxShadow:`0 8px 28px ${gDef.color}33, 0 2px 8px rgba(0,0,0,0.08)`, animation:`giftFloat 3.5s ease forwards`, border:`1.5px solid ${gDef.color}33` }}>
+                <span style={{ fontSize:28, filter:'drop-shadow(0 2px 4px rgba(0,0,0,0.15))' }}>{g.giftType}</span>
+                <div>
+                  <div style={{ fontSize:13, fontWeight:800, color:'#1e293b' }}>
+                    {g.own ? 'Bạn' : g.from} <span style={{ fontWeight:400, color:'#64748b' }}>tặng</span> <span style={{ color: gDef.color }}>{gDef.label}</span>
+                  </div>
+                  {gDef.price > 0 && (
+                    <div style={{ fontSize:11, color:'#10b981', fontWeight:700 }}>💰 {formatVND(gDef.price)}đ</div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
 
@@ -754,35 +800,64 @@ export default function LiveRoomView({ canRecord = false, userRole = 'lucy', use
 
           {/* Virtual Gift Panel */}
           <Panel title="Virtual Gifts" icon={<Gift size={15}/>}>
-            <p style={{ margin:'0 0 10px', fontSize:12, color:'#64748b' }}>
-              {isRoomOwner ? 'Xem quà được tặng từ học viên.' : 'Tặng quà để khen ngợi Mentor!'}
-            </p>
-            {!isRoomOwner && (
+            {!isRoomOwner ? (
               <div>
-                <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:12 }}>
-                  {GIFTS.map(g => (
-                    <button key={g.id} onClick={() => sendGift(g.emoji)}
-                      style={{ flex:1, minWidth:44, padding:'10px 6px', border:`1.5px solid ${g.color}22`, borderRadius:12, background:`${g.color}11`, cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:2, transition:'all 0.15s' }}
-                      onMouseEnter={e => { e.currentTarget.style.transform='scale(1.1)'; e.currentTarget.style.background=`${g.color}22` }}
-                      onMouseLeave={e => { e.currentTarget.style.transform=''; e.currentTarget.style.background=`${g.color}11` }}>
-                      <span style={{ fontSize:22 }}>{g.emoji}</span>
-                      <span style={{ fontSize:9.5, color:g.color, fontWeight:700 }}>{g.label}</span>
-                    </button>
-                  ))}
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10, padding:'6px 10px', background:'#f8fafc', borderRadius:10, border:'1px solid #e2e8f0' }}>
+                  <span style={{ fontSize:12, color:'#64748b', fontWeight:700 }}>💰 Ví của bạn:</span>
+                  <span style={{ fontSize:13, fontWeight:900, color:'#10b981' }}>{formatVND(myBalance)}đ</span>
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(5, 1fr)', gap:6, marginBottom:12 }}>
+                  {GIFTS.map(g => {
+                    const canAfford = myBalance >= g.price
+                    return (
+                      <button key={g.id} onClick={() => sendGift(g)}
+                        title={`Tặng ${g.label} (${formatVND(g.price)}đ)`}
+                        style={{ padding:'8px 4px', border:`1.5px solid ${g.color}${canAfford?'44':'11'}`, borderRadius:12, background:`${g.color}${canAfford?'11':'05'}`, cursor:canAfford?'pointer':'not-allowed', opacity:canAfford?1:0.45, display:'flex', flexDirection:'column', alignItems:'center', gap:2, transition:'all 0.15s' }}
+                        onMouseEnter={e => { if(canAfford){ e.currentTarget.style.transform='scale(1.08)'; e.currentTarget.style.background=`${g.color}22` } }}
+                        onMouseLeave={e => { if(canAfford){ e.currentTarget.style.transform=''; e.currentTarget.style.background=`${g.color}11` } }}>
+                        <span style={{ fontSize:22 }}>{g.emoji}</span>
+                        <span style={{ fontSize:9.5, color:g.color, fontWeight:800 }}>{g.label}</span>
+                        <span style={{ fontSize:9, color:'#64748b', fontWeight:700 }}>{formatVND(g.price)}đ</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div style={{ marginBottom:12, padding:'10px 12px', borderRadius:12, background:'linear-gradient(135deg, #fef3c7, #fde68a)', border:'1px solid #f59e0b44' }}>
+                <div style={{ fontSize:11, color:'#b45309', fontWeight:800, textTransform:'uppercase' }}>🏆 Tổng quà nhận được</div>
+                <div style={{ fontSize:20, fontWeight:900, color:'#78350f', marginTop:2 }}>
+                  💰 {formatVND((room.recentGifts || []).reduce((sum, g) => {
+                    const def = GIFTS.find(x => x.emoji === g.giftType)
+                    return sum + (def ? def.mentorCut : 0)
+                  }, 0))}đ
                 </div>
               </div>
             )}
 
             {/* Recent gifts feed */}
-            <div style={{ maxHeight:120, overflowY:'auto', display:'flex', flexDirection:'column', gap:5 }}>
-              {(room.recentGifts || []).slice(-6).reverse().map((g, i) => (
-                <div key={g.id || i} style={{ display:'flex', alignItems:'center', gap:7, fontSize:12, color:'#64748b' }}>
-                  <span style={{ fontSize:18 }}>{g.giftType}</span>
-                  <span><strong style={{ color:'#1e293b' }}>{g.from}</strong> sent a gift</span>
-                </div>
-              ))}
+            <div style={{ maxHeight:140, overflowY:'auto', display:'flex', flexDirection:'column', gap:6 }}>
+              {(room.recentGifts || []).slice(-6).reverse().map((g, i) => {
+                const gDef = GIFTS.find(x => x.emoji === g.giftType)
+                return (
+                  <div key={g.id || i} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'6px 10px', background:'#f8fafc', borderRadius:10, border:'1px solid #f1f5f9', fontSize:12 }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                      <span style={{ fontSize:20 }}>{g.giftType}</span>
+                      <div>
+                        <div style={{ fontWeight:800, color:'#1e293b' }}>{g.from}</div>
+                        <div style={{ fontSize:10.5, color:'#64748b' }}>đã tặng {gDef?.label || 'quà'}</div>
+                      </div>
+                    </div>
+                    {gDef && (
+                      <span style={{ fontSize:11, fontWeight:800, color:isRoomOwner?'#10b981':'#64748b' }}>
+                        {isRoomOwner ? `+${formatVND(gDef.mentorCut)}đ` : `${formatVND(gDef.price)}đ`}
+                      </span>
+                    )}
+                  </div>
+                )
+              })}
               {(room.recentGifts || []).length === 0 && (
-                <div style={{ color:'#94a3b8', fontSize:12, textAlign:'center', padding:'8px 0' }}>Chưa có quà nào</div>
+                <div style={{ color:'#94a3b8', fontSize:12, textAlign:'center', padding:'8px 0' }}>Chưa có quà nào trong phòng</div>
               )}
             </div>
           </Panel>

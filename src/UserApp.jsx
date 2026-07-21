@@ -1051,9 +1051,6 @@ function PremiumView({ user, setActive, setLearnLang }) {
   const [topupOpen, setTopupOpen] = useState(false)
   const [topupLoading, setTopupLoading] = useState(false)
   const [topupAmount, setTopupAmount] = useState(1000000)
-  const [zaloPayOpen, setZaloPayOpen] = useState(false)
-  const [zaloPayData, setZaloPayData] = useState(null)
-  const [zaloPayLoading, setZaloPayLoading] = useState(false)
   const [paymentReference, setPaymentReference] = useState('')
   const [sepayPaymentInfo, setSepayPaymentInfo] = useState(null)
   const [sepayPaymentLoading, setSepayPaymentLoading] = useState(false)
@@ -1230,73 +1227,6 @@ function PremiumView({ user, setActive, setLearnLang }) {
     }
   }
 
-  const handleOpenZaloPay = async (amount = 200000) => {
-    setZaloPayLoading(true)
-    try {
-      const res = await fetch(`${API_BASE}/api/wallet/zalopay-create`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user?.id || 1,
-          amount: amount,
-          title: 'Nạp ví LUCY qua ZaloPay'
-        })
-      })
-      const data = await res.json()
-      if (res.ok && data.status === 'success') {
-        setZaloPayData(data)
-        setZaloPayOpen(true)
-      } else {
-        alert(`Không thể tạo đơn ZaloPay: ${data.error || 'Lỗi kết nối'}`)
-      }
-    } catch (e) {
-      setZaloPayData({
-        appId: '2553',
-        appTransId: `260721_${Math.floor(Math.random()*900000+100000)}`,
-        amount: amount,
-        orderUrl: 'https://qcgateway.zalopay.vn/openinapp/order?app_id=2553',
-        qrCodeText: `zalopay://qr/p/v1/260721_${Math.floor(Math.random()*900000+100000)}`
-      })
-      setZaloPayOpen(true)
-    }
-    setZaloPayLoading(false)
-  }
-
-  const handleConfirmZaloPaySuccess = async () => {
-    if (!zaloPayData) return
-    setZaloPayLoading(true)
-    const payAmount = zaloPayData.amount || 200000
-    try {
-      const res = await fetch(`${API_BASE}/api/wallet/zalopay-confirm`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user?.id || 1,
-          amount: payAmount
-        })
-      })
-      const data = await res.json()
-      const newBal = (res.ok && data.newBalance !== undefined) ? data.newBalance : (balance + payAmount)
-      setBalance(newBal)
-      localStorage.setItem('lucy_wallet_balance', newBal)
-    } catch {
-      const newBal = balance + payAmount
-      setBalance(newBal)
-      localStorage.setItem('lucy_wallet_balance', newBal)
-    }
-    setZaloPayLoading(false)
-    setZaloPayOpen(false)
-    
-    // Auto unlock Premium if payment corresponds to a plan or high amount
-    if (payAmount >= 800000 && subType === 'Free') {
-      setSubType('Premium Lifetime')
-      localStorage.setItem('lucy_sub_type', 'Premium Lifetime')
-      alert(`🎉 Thanh toán ZaloPay Sandbox thành công! Bạn đã được tự động nâng cấp lên gói LUCY Premium Trọn Đời!`)
-    } else {
-      alert(`🎉 Thanh toán ZaloPay Sandbox thành công! Đã cộng ${payAmount.toLocaleString('vi-VN')}đ vào tài khoản của bạn!`)
-    }
-  }
-
   const handleSubscribe = async (planName, cost) => {
     if (subType === planName) {
       alert(`Bạn đang sử dụng gói ${planName} rồi.`);
@@ -1304,13 +1234,7 @@ function PremiumView({ user, setActive, setLearnLang }) {
     }
 
     if (balance < cost) {
-      const wantZaloPay = window.confirm(
-        `Số dư ví hiện tại (${safeBalance.toLocaleString('vi-VN')}đ) chưa đủ để mua gói ${planName} (${cost.toLocaleString('vi-VN')}đ).\n\n` +
-        `Bạn có muốn mở cổng thanh toán Ví ZaloPay Sandbox để đăng ký ngay không?`
-      );
-      if (wantZaloPay) {
-        handleOpenZaloPay(cost);
-      }
+      alert(`Số dư ví hiện tại (${safeBalance.toLocaleString('vi-VN')}đ) chưa đủ để mua gói ${planName} (${cost.toLocaleString('vi-VN')}đ).\nVui lòng bấm nút "Nạp qua VietQR" để nạp thêm tiền vào tài khoản.`);
       return;
     }
 
@@ -1522,93 +1446,34 @@ function PremiumView({ user, setActive, setLearnLang }) {
               Mã thanh toán còn hiệu lực: {String(Math.floor(topupSecondsLeft / 60)).padStart(2, '0')}:{String(topupSecondsLeft % 60).padStart(2, '0')}
             </div>
 
-            {sepayPaymentLoading ? (
-              <div style={{ padding:28,textAlign:'center',color:'#64748b' }}>Đang lấy tài khoản ngân hàng từ SePay...</div>
-            ) : sepayPaymentInfo ? (
-              <>
-                <div style={{ textAlign:'center', border:'1px solid #e2e8f0', borderRadius:16, padding:14, background:'#f8fafc' }}>
-                  <img src={sepayPaymentInfo.qrImageUrl} alt="Mã VietQR từ tài khoản SePay" style={{ display:'block', width:'100%', maxWidth:310, margin:'0 auto', borderRadius:10 }} />
-                </div>
-                <div style={{ marginTop:14, display:'grid', gap:7, fontSize:13, color:'#334155' }}>
-                  <div><strong>Ngân hàng:</strong> {sepayPaymentInfo.bankName}</div>
-                  <div><strong>Chủ tài khoản:</strong> {sepayPaymentInfo.accountName}</div>
-                  <div><strong>Số tài khoản:</strong> {sepayPaymentInfo.accountNumber}</div>
-                  <div><strong>Số tiền:</strong> {topupAmount.toLocaleString('vi-VN')} VND</div>
-                  <div><strong>Nội dung:</strong> <span style={{ color:'#4f46e5', fontWeight:800 }}>{paymentReference}</span></div>
-                </div>
-                <button onClick={handleTransferSubmitted} disabled={topupLoading} style={{ width:'100%', marginTop:18, padding:'12px 16px', border:0, borderRadius:11, background:'#059669', color:'#fff', fontWeight:800, cursor:topupLoading?'wait':'pointer' }}>
-                  {topupLoading ? 'Đang kiểm tra giao dịch...' : 'Tôi đã nạp tiền'}
-                </button>
-                <div style={{ marginTop:10, fontSize:11.5, lineHeight:1.5, color:'#64748b', textAlign:'center' }}>Không đổi số tiền hoặc nội dung chuyển khoản. Ví chỉ được cộng sau khi giao dịch được xác nhận.</div>
-              </>
-            ) : (
-              <div style={{ padding:16, borderRadius:12, background:'#fff7ed', border:'1px solid #fed7aa', color:'#9a3412', fontSize:13, lineHeight:1.6 }}>
-                Không thể lấy tài khoản ngân hàng từ SePay: {sepayPaymentError || 'Chưa có dữ liệu'}. Kiểm tra <code>SEPAY_API_TOKEN</code> ở backend và tài khoản đã liên kết trên SePay.
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {zaloPayOpen && zaloPayData && (
-        <div onClick={() => !zaloPayLoading && setZaloPayOpen(false)} style={{ position:'fixed', inset:0, zIndex:1000, background:'rgba(15,23,42,0.75)', display:'grid', placeItems:'center', padding:20 }}>
-          <div onClick={e => e.stopPropagation()} style={{ width:'min(460px, 100%)', maxHeight:'92vh', overflowY:'auto', background:'#fff', borderRadius:24, padding:26, boxShadow:'0 24px 70px rgba(0,104,255,0.25)', border:'1.5px solid #0068ff' }}>
-            <div style={{ display:'flex', justifyContent:'space-between', gap:16, alignItems:'start', marginBottom:18 }}>
-              <div>
-                <div style={{ fontSize:20, fontWeight:900, color:'#0068ff', display:'flex', alignItems:'center', gap:8 }}>
-                  💙 Thanh toán Ví ZaloPay (Sandbox)
-                </div>
-                <div style={{ fontSize:12.5, color:'#64748b', marginTop:4 }}>Cổng thanh toán ZaloPay Sandbox cho môi trường Localhost.</div>
-              </div>
-              <button onClick={() => setZaloPayOpen(false)} aria-label="Đóng" style={{ border:0, background:'#f1f5f9', width:32, height:32, borderRadius:9, cursor:'pointer', fontSize:18 }}>×</button>
-            </div>
-
-            <div style={{ textAlign:'center', border:'1.5px solid #0068ff22', borderRadius:18, padding:16, background:'linear-gradient(135deg, #f0f7ff, #e6f0ff)', marginBottom:16 }}>
-              <div style={{ fontSize:12, color:'#0068ff', fontWeight:800, textTransform:'uppercase', letterSpacing:'0.05em' }}>MÃ QR ZALOPAY SANDBOX</div>
-              <img 
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(zaloPayData.orderUrl || zaloPayData.qrCodeText)}`} 
-                alt="ZaloPay QR Sandbox" 
-                style={{ display:'block', width:200, height:200, margin:'12px auto', borderRadius:12, border:'3px solid #0068ff', boxShadow:'0 8px 20px rgba(0,104,255,0.15)' }} 
-              />
-              <div style={{ fontSize:22, fontWeight:900, color:'#0068ff' }}>
-                {(zaloPayData.amount || 200000).toLocaleString('vi-VN')} VND
-              </div>
-              <div style={{ fontSize:11.5, color:'#64748b', marginTop:4 }}>
-                Mã đơn: <strong style={{ color:'#1e293b' }}>{zaloPayData.appTransId}</strong> · AppID: <strong>2553</strong>
-              </div>
-            </div>
-
-            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-              <a 
-                href={zaloPayData.orderUrl} 
-                target="_blank" 
-                rel="noreferrer"
-                style={{
-                  width:'100%', boxSizing:'border-box', padding:'12px 16px', borderRadius:12,
-                  background:'linear-gradient(135deg, #0068ff, #0044bb)', color:'#fff', textAlign:'center',
-                  fontWeight:800, textDecoration:'none', fontSize:13.5, boxShadow:'0 4px 14px rgba(0,104,255,0.3)'
-                }}
-              >
-                🚀 Mở trang ZaloPay Gateway (Cổng chính thức)
-              </a>
-
-              <button 
-                onClick={handleConfirmZaloPaySuccess} 
-                disabled={zaloPayLoading}
-                style={{
-                  width:'100%', padding:'12px 16px', border:0, borderRadius:12,
-                  background:'linear-gradient(135deg, #10b981, #059669)', color:'#fff',
-                  fontWeight:800, cursor:zaloPayLoading?'wait':'pointer', fontSize:13.5,
-                  boxShadow:'0 4px 14px rgba(16,185,129,0.3)'
-                }}
-              >
-                {zaloPayLoading ? 'Đang xử lý...' : '✅ Xác nhận đã quét mã / Thanh toán Sandbox'}
-              </button>
-            </div>
-
-            <div style={{ marginTop:12, fontSize:11.5, lineHeight:1.5, color:'#64748b', textAlign:'center' }}>
-              Môi trường thử nghiệm Sandbox (AppID: 2553, Key1: PcY4iZIKFC...). Tiền được cộng tự động ngay sau khi xác nhận.
-            </div>
+            {(() => {
+              const activePaymentInfo = sepayPaymentInfo || {
+                bankName: bankId || 'Ngân hàng MB',
+                accountNumber: bankAccountNo || '0987654321',
+                accountName: bankAccountName || 'LUCY EDUCATION',
+                qrImageUrl: `https://img.vietqr.io/image/${encodeURIComponent(bankId)}-${encodeURIComponent(bankAccountNo)}-compact2.png?amount=${topupAmount}&addInfo=${encodeURIComponent(paymentReference)}&accountName=${encodeURIComponent(bankAccountName)}`
+              }
+              return sepayPaymentLoading ? (
+                <div style={{ padding: 28, textAlign: 'center', color: '#64748b' }}>Đang tạo mã VietQR...</div>
+              ) : (
+                <>
+                  <div style={{ textAlign: 'center', border: '1px solid #e2e8f0', borderRadius: 16, padding: 14, background: '#f8fafc' }}>
+                    <img src={activePaymentInfo.qrImageUrl} alt="Mã VietQR" style={{ display: 'block', width: '100%', maxWidth: 310, margin: '0 auto', borderRadius: 10 }} />
+                  </div>
+                  <div style={{ marginTop: 14, display: 'grid', gap: 7, fontSize: 13, color: '#334155' }}>
+                    <div><strong>Ngân hàng:</strong> {activePaymentInfo.bankName}</div>
+                    <div><strong>Chủ tài khoản:</strong> {activePaymentInfo.accountName}</div>
+                    <div><strong>Số tài khoản:</strong> {activePaymentInfo.accountNumber}</div>
+                    <div><strong>Số tiền:</strong> {topupAmount.toLocaleString('vi-VN')} VND</div>
+                    <div><strong>Nội dung:</strong> <span style={{ color: '#4f46e5', fontWeight: 800 }}>{paymentReference}</span></div>
+                  </div>
+                  <button onClick={handleTransferSubmitted} disabled={topupLoading} style={{ width: '100%', marginTop: 18, padding: '12px 16px', border: 0, borderRadius: 11, background: '#059669', color: '#fff', fontWeight: 800, cursor: topupLoading ? 'wait' : 'pointer' }}>
+                    {topupLoading ? 'Đang kiểm tra giao dịch...' : 'Tôi đã nạp tiền'}
+                  </button>
+                  <div style={{ marginTop: 10, fontSize: 11.5, lineHeight: 1.5, color: '#64748b', textAlign: 'center' }}>Không đổi số tiền hoặc nội dung chuyển khoản. Ví chỉ được cộng sau khi giao dịch được xác nhận.</div>
+                </>
+              )
+            })()}
           </div>
         </div>
       )}
@@ -1620,7 +1485,6 @@ function PremiumView({ user, setActive, setLearnLang }) {
         </p>
       </div>
 
-      {/* Wallet / Sandbox Control Panel */}
       <div style={{
         background: 'linear-gradient(135deg, #1e1b4b 0%, #311042 100%)',
         borderRadius: 24, padding: '24px 32px', color: '#fff', marginBottom: 36,
@@ -1636,7 +1500,6 @@ function PremiumView({ user, setActive, setLearnLang }) {
         </div>
 
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Coupon Input */}
           <div style={{ display: 'flex', background: 'rgba(255,255,255,0.08)', borderRadius: 12, padding: '4px 6px', border: '1px solid rgba(255,255,255,0.1)' }}>
             <input 
               type="text" 

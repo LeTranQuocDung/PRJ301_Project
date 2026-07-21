@@ -221,10 +221,17 @@ public class LiveRoomServlet extends HttpServlet {
                 }
                 String giftType = text(body, "giftType");
                 if (giftType.isEmpty()) giftType = "⭐";
+                String giftId = text(body, "giftId");
+                double giftAmount = 0;
+                if (body.has("amount")) {
+                    try { giftAmount = body.get("amount").getAsDouble(); } catch (Exception ignored) {}
+                }
                 synchronized (room.recentGifts) {
                     Map<String, Object> giftEntry = new LinkedHashMap<>();
                     giftEntry.put("from", name);
                     giftEntry.put("giftType", giftType);
+                    giftEntry.put("giftId", giftId);
+                    giftEntry.put("amount", giftAmount);
                     giftEntry.put("sentAt", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                     giftEntry.put("id", System.nanoTime());
                     room.recentGifts.add(giftEntry);
