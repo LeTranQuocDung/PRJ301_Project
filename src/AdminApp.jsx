@@ -1,6 +1,37 @@
-import { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { agoraService } from './services/agoraClient'
 import LiveRoomView from './LiveRoomView'
+
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, errorInfo: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, errorInfo: error?.message || 'Có lỗi xảy ra' };
+  }
+  componentDidCatch(error, info) {
+    console.error("React Component Error:", error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: 40, textAlign: 'center', background: '#fff', borderRadius: 20, margin: 30, border: '1px solid #fecaca', boxShadow: '0 10px 30px rgba(239,68,68,0.1)' }}>
+          <div style={{ fontSize: 36, marginBottom: 12 }}>⚠️</div>
+          <h2 style={{ color: '#dc2626', margin: '0 0 8px', fontFamily: "'Outfit', sans-serif", fontWeight: 800 }}>Đã xảy ra lỗi nạp giao diện</h2>
+          <p style={{ color: '#64748b', fontSize: 13, marginBottom: 20 }}>{this.state.errorInfo}</p>
+          <button 
+            onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}
+            style={{ padding: '12px 24px', borderRadius: 12, background: 'linear-gradient(135deg, #4f46e5, #7c3aed)', color: '#fff', border: 0, fontWeight: 700, cursor: 'pointer' }}
+          >
+            🔄 Tải lại trang
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import {
   BookOpen, Play, FileText, Headphones, Upload, Eye, Zap,
   MessageSquare, Mic, Users, Radio, Pin, PhoneOff, Phone,
@@ -2615,7 +2646,9 @@ export default function AdminApp({ user, onLogout }) {
     <div style={{ display:'flex',height:'100vh',fontFamily:"'Inter','Segoe UI',sans-serif",fontSize:14,color:S.text,overflow:'hidden' }}>
       <Sidebar active={active} setActive={setActive} user={user} onLogout={onLogout}/>
       <main style={{ flex:1,overflowY:'auto',background:S.bg }}>
-        {renderView()}
+        <ErrorBoundary>
+          {renderView()}
+        </ErrorBoundary>
       </main>
     </div>
   )
