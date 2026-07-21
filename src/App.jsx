@@ -18,7 +18,15 @@ export default function App() {
     setUser(null)
   }
 
+  const isRoleAdmin = (r) => {
+    if (!r) return false;
+    const str = String(r).toLowerCase();
+    return str === 'super' || str === 'pro' || str === 'admin' || str === 'teacher' || str.includes('super') || str.includes('mentor');
+  };
+
   if (!user) return <LoginPage onLogin={handleLogin} />
-  if (user.role === 'super' || user.role === 'pro') return <AdminApp user={user} onLogout={handleLogout} />
+  if (isRoleAdmin(user.role) || isRoleAdmin(user.roleId)) {
+    return <AdminApp user={user} onLogout={handleLogout} />
+  }
   return <UserApp user={user} onLogout={handleLogout} />
 }

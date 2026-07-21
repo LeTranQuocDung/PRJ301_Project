@@ -275,10 +275,23 @@ function Sidebar({ active, setActive, user, onLogout }) {
 
       {/* Logout Footer Section */}
       <div style={{ padding: '20px 16px', borderTop: `1px solid ${sidebarBorder}` }}>
+        <button onClick={() => {
+          const switched = { ...user, role: 'lucy', roleId: 'lucy' };
+          localStorage.setItem('lucy_user', JSON.stringify(switched));
+          window.location.reload();
+        }} style={{
+          width: '100%', padding: '10px 0', borderRadius: 10, marginBottom: 8,
+          background: 'linear-gradient(135deg, #059669, #10b981)', color: '#fff', border: 0,
+          fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          boxShadow: '0 4px 12px rgba(16,185,129,0.3)'
+        }}>
+          🎓 Chuyển Giao diện Student
+        </button>
         <button onClick={onLogout} style={{
-          width: '100%', padding: '12px 0', borderRadius: 10,
+          width: '100%', padding: '10px 0', borderRadius: 10,
           background: 'transparent', color: '#f87171', border: `1px solid rgba(248,113,113,0.3)`,
-          fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+          fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
           transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
         }}
           onMouseEnter={e => { e.currentTarget.style.background = 'rgba(248,113,113,0.1)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
