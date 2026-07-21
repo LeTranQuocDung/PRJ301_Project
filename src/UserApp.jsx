@@ -1042,7 +1042,12 @@ function PremiumView({ user, setActive, setLearnLang }) {
         const res = await fetch(`${API_BASE}/api/engagement/premium`)
         if (!res.ok) throw new Error('Failed to fetch')
         const data = await res.json()
-        setItems(data)
+        setItems(Array.isArray(data) ? data : [
+          { title: "Advanced Business English", langCode: "GB", accent: "blue" },
+          { title: "JLPT N5 Prep Course", langCode: "JP", accent: "pink" },
+          { title: "HSK 1 Complete Pack", langCode: "CN", accent: "red" },
+          { title: "Conversational English Master", langCode: "GB", accent: "indigo" }
+        ])
       } catch (err) {
         console.warn('Failed to fetch premium perks, using local fallback:', err.message)
         setItems([
@@ -1713,10 +1718,15 @@ function PremiumView({ user, setActive, setLearnLang }) {
       {/* Premium Courses Section */}
       <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', fontFamily: "'Outfit',sans-serif", margin: '0 0 16px' }}>Exclusive Premium Courses</h2>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 18 }}>
-        {items.map((item, idx) => {
-          const isUnlocked = unlockedCourses.includes(item.title) || subType !== 'Free';
-          const flag = { GB: '🇬🇧', CN: '🇨🇳', JP: '🇯🇵' }[item.langCode] || item.langCode || '💎';
-          const accentColor = item.accent === 'blue' ? '#3b82f6' : (item.accent === 'red' ? '#ef4444' : '#ec4899');
+        {(Array.isArray(items) && items.length > 0 ? items : [
+          { title: "Advanced Business English", langCode: "GB", accent: "blue" },
+          { title: "JLPT N5 Prep Course", langCode: "JP", accent: "pink" },
+          { title: "HSK 1 Complete Pack", langCode: "CN", accent: "red" },
+          { title: "Conversational English Master", langCode: "GB", accent: "indigo" }
+        ]).map((item, idx) => {
+          const isUnlocked = (unlockedCourses || []).includes(item?.title) || subType !== 'Free';
+          const flag = { GB: '🇬🇧', CN: '🇨🇳', JP: '🇯🇵' }[item?.langCode] || item?.langCode || '💎';
+          const accentColor = item?.accent === 'blue' ? '#3b82f6' : (item?.accent === 'red' ? '#ef4444' : '#ec4899');
           
           return (
             <div key={idx} style={{
