@@ -1173,7 +1173,13 @@ function PremiumView({ user, setActive, setLearnLang }) {
         }
 
         const res = await fetch(`${API_BASE}/api/wallet/sepay-payment-info?amount=${topupAmount}&reference=${encodeURIComponent(paymentReference)}`)
-        const data = await res.json()
+        let data = {}
+        const rawText = await res.text()
+        try {
+          data = JSON.parse(rawText)
+        } catch {
+          throw new Error('Máy chủ SePay chưa hoàn tất khởi động hoặc tạm thời không phản hồi. Vui lòng thử lại sau.')
+        }
         if (!res.ok) throw new Error(data.error || 'Không thể lấy tài khoản từ SePay')
         if (active) setSepayPaymentInfo(data)
       } catch (err) {
