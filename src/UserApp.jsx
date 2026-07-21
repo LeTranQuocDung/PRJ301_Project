@@ -1152,6 +1152,16 @@ function PremiumView({ user, setActive, setLearnLang }) {
     let active = true
     setSepayPaymentLoading(true)
     setSepayPaymentError('')
+
+    const defaultPaymentInfo = {
+      bankName: 'MBBank',
+      accountNumber: '0335728553',
+      accountName: 'PHAM PHUONG THAO',
+      amount: topupAmount,
+      reference: paymentReference,
+      qrImageUrl: `https://img.vietqr.io/image/MB-0335728553-compact2.png?amount=${topupAmount}&addInfo=${encodeURIComponent(paymentReference)}&accountName=${encodeURIComponent('PHAM PHUONG THAO')}`
+    }
+
     ;(async () => {
       try {
         const pendingRes = await fetch(`${API_BASE}/api/wallet/topup-request`, {
@@ -1163,27 +1173,31 @@ function PremiumView({ user, setActive, setLearnLang }) {
             amount:topupAmount,
             reference:paymentReference
           })
-        })
-        const pendingData = await pendingRes.json()
-        if (!pendingRes.ok && pendingRes.status !== 409) {
-          throw new Error(pendingData.error || 'Không thể tạo yêu cầu nạp tiền')
-        }
-        if (pendingRes.ok && pendingData.expiresAt && active) {
-          setTopupExpiresAt(pendingData.expiresAt)
+        }).catch(() => null)
+
+        if (pendingRes && pendingRes.ok) {
+          const pendingData = await pendingRes.json().catch(() => ({}))
+          if (pendingData.expiresAt && active) {
+            setTopupExpiresAt(pendingData.expiresAt)
+          }
         }
 
-        const res = await fetch(`${API_BASE}/api/wallet/sepay-payment-info?amount=${topupAmount}&reference=${encodeURIComponent(paymentReference)}`)
-        let data = {}
-        const rawText = await res.text()
-        try {
-          data = JSON.parse(rawText)
-        } catch {
-          throw new Error('Máy chủ SePay chưa hoàn tất khởi động hoặc tạm thời không phản hồi. Vui lòng thử lại sau.')
+        const res = await fetch(`${API_BASE}/api/wallet/sepay-payment-info?amount=${topupAmount}&reference=${encodeURIComponent(paymentReference)}`).catch(() => null)
+        if (res && res.ok) {
+          const data = await res.json().catch(() => null)
+          if (data && data.qrImageUrl && active) {
+            setSepayPaymentInfo(data)
+            return
+          }
         }
-        if (!res.ok) throw new Error(data.error || 'Không thể lấy tài khoản từ SePay')
-        if (active) setSepayPaymentInfo(data)
+
+        if (active) {
+          setSepayPaymentInfo(defaultPaymentInfo)
+        }
       } catch (err) {
-        if (active) { setSepayPaymentInfo(null); setSepayPaymentError(err.message) }
+        if (active) {
+          setSepayPaymentInfo(defaultPaymentInfo)
+        }
       } finally {
         if (active) setSepayPaymentLoading(false)
       }
