@@ -1016,6 +1016,9 @@ function PremiumView({ user, setActive, setLearnLang }) {
   })
   const [currency, setCurrency] = useState('VND')
   const [topupLoading, setTopupLoading] = useState(false)
+  const [topupOpen, setTopupOpen] = useState(false)
+  const [topupAmount, setTopupAmount] = useState(1000000)
+  const [paymentReference, setPaymentReference] = useState('')
   const [promoCode, setPromoCode] = useState('')
   const [couponApplied, setCouponApplied] = useState(false)
   
@@ -1080,35 +1083,27 @@ function PremiumView({ user, setActive, setLearnLang }) {
     }
   }
 
-  const handleTopup = async () => {
+  const bankId = import.meta.env.VITE_PAYMENT_BANK_ID || ''
+  const bankAccountNo = import.meta.env.VITE_PAYMENT_ACCOUNT_NO || ''
+  const bankAccountName = import.meta.env.VITE_PAYMENT_ACCOUNT_NAME || ''
+  const bankConfigured = Boolean(bankId && bankAccountNo && bankAccountName)
+  const qrImageUrl = bankConfigured && paymentReference
+    ? `https://img.vietqr.io/image/${encodeURIComponent(bankId)}-${encodeURIComponent(bankAccountNo)}-compact2.png?amount=${topupAmount}&addInfo=${encodeURIComponent(paymentReference)}&accountName=${encodeURIComponent(bankAccountName)}`
+    : ''
+
+  const handleTopup = () => {
+    const userId = user?.id || 1
+    setPaymentReference(`LUCY${userId}${Date.now().toString().slice(-8)}`)
+    setTopupOpen(true)
+  }
+
+  const handleTransferSubmitted = () => {
     setTopupLoading(true)
-    try {
-      const res = await fetch(`${API_BASE}/api/wallet/topup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user?.id || 1,
-          amount: 1000000,
-          method: 'demo_vnpay_sandbox'
-        })
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setBalance(data.newBalance)
-        localStorage.setItem('lucy_wallet_balance', data.newBalance)
-        alert(`Sandbox Top-up thành công! Số dư mới: ${data.newBalance.toLocaleString()} ${currency}`)
-      } else {
-        throw new Error("Server topup failed")
-      }
-    } catch (err) {
-      console.warn("Lỗi kết nối server topup, nạp ví ảo ngoại tuyến:", err)
-      const newBal = balance + 1000000
-      setBalance(newBal)
-      localStorage.setItem('lucy_wallet_balance', newBal)
-      alert(`[Ngoại tuyến] Sandbox Top-up thành công! Số dư mới: ${newBal.toLocaleString()} ${currency}`)
-    } finally {
+    window.setTimeout(() => {
       setTopupLoading(false)
-    }
+      setTopupOpen(false)
+      alert('Đã ghi nhận yêu cầu. Số dư chỉ được cập nhật sau khi hệ thống xác nhận giao dịch ngân hàng.')
+    }, 500)
   }
 
   const handleSubscribe = async (planName, cost) => {
@@ -1310,6 +1305,46 @@ function PremiumView({ user, setActive, setLearnLang }) {
 
   return (
     <div className="fade-up" style={{ padding: '28px 28px 40px', maxWidth: 1100, margin: '0 auto', fontFamily: "'Outfit', 'Inter', sans-serif" }}>
+      {topupOpen && (
+        <div onClick={() => !topupLoading && setTopupOpen(false)} style={{ position:'fixed', inset:0, zIndex:1000, background:'rgba(15,23,42,0.72)', display:'grid', placeItems:'center', padding:20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ width:'min(440px, 100%)', maxHeight:'92vh', overflowY:'auto', background:'#fff', borderRadius:22, padding:24, boxShadow:'0 24px 70px rgba(15,23,42,0.35)' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', gap:16, alignItems:'start', marginBottom:18 }}>
+              <div>
+                <div style={{ fontSize:20, fontWeight:900, color:'#0f172a' }}>Nạp tiền qua VietQR</div>
+                <div style={{ fontSize:12.5, color:'#64748b', marginTop:4 }}>Quét bằng ứng dụng ngân hàng để chuyển khoản thật.</div>
+              </div>
+              <button onClick={() => setTopupOpen(false)} aria-label="Đóng" style={{ border:0, background:'#f1f5f9', width:32, height:32, borderRadius:9, cursor:'pointer', fontSize:18 }}>×</button>
+            </div>
+
+            <label style={{ display:'block', fontSize:12, fontWeight:800, color:'#475569', marginBottom:7 }}>Số tiền nạp</label>
+            <select value={topupAmount} onChange={e => setTopupAmount(Number(e.target.value))} style={{ width:'100%', padding:'11px 12px', border:'1px solid #cbd5e1', borderRadius:10, fontFamily:'inherit', marginBottom:16 }}>
+              {[100000, 200000, 500000, 1000000, 2000000].map(amount => <option key={amount} value={amount}>{amount.toLocaleString('vi-VN')} VND</option>)}
+            </select>
+
+            {bankConfigured ? (
+              <>
+                <div style={{ textAlign:'center', border:'1px solid #e2e8f0', borderRadius:16, padding:14, background:'#f8fafc' }}>
+                  <img src={qrImageUrl} alt="Mã VietQR chuyển khoản ngân hàng" style={{ display:'block', width:'100%', maxWidth:310, margin:'0 auto', borderRadius:10 }} />
+                </div>
+                <div style={{ marginTop:14, display:'grid', gap:7, fontSize:13, color:'#334155' }}>
+                  <div><strong>Chủ tài khoản:</strong> {bankAccountName}</div>
+                  <div><strong>Số tài khoản:</strong> {bankAccountNo}</div>
+                  <div><strong>Số tiền:</strong> {topupAmount.toLocaleString('vi-VN')} VND</div>
+                  <div><strong>Nội dung:</strong> <span style={{ color:'#4f46e5', fontWeight:800 }}>{paymentReference}</span></div>
+                </div>
+                <button onClick={handleTransferSubmitted} disabled={topupLoading} style={{ width:'100%', marginTop:18, padding:'12px 16px', border:0, borderRadius:11, background:'#059669', color:'#fff', fontWeight:800, cursor:topupLoading?'wait':'pointer' }}>
+                  {topupLoading ? 'Đang ghi nhận...' : 'Tôi đã chuyển khoản'}
+                </button>
+                <div style={{ marginTop:10, fontSize:11.5, lineHeight:1.5, color:'#64748b', textAlign:'center' }}>Không đổi số tiền hoặc nội dung chuyển khoản. Ví chỉ được cộng sau khi giao dịch được xác nhận.</div>
+              </>
+            ) : (
+              <div style={{ padding:16, borderRadius:12, background:'#fff7ed', border:'1px solid #fed7aa', color:'#9a3412', fontSize:13, lineHeight:1.6 }}>
+                Chưa cấu hình tài khoản nhận tiền. Hãy thêm <code>VITE_PAYMENT_BANK_ID</code>, <code>VITE_PAYMENT_ACCOUNT_NO</code> và <code>VITE_PAYMENT_ACCOUNT_NAME</code> vào file <code>.env</code>, sau đó chạy lại frontend.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       {/* Title Header matching ELSA */}
       <div style={{ textAlign: 'center', marginBottom: 36 }}>
         <h1 style={{ fontSize: 32, fontWeight: 900, color: '#0f172a', margin: '0 0 10px', letterSpacing: '-0.02em' }}>Học Ngoại Ngữ cùng LUCY</h1>
@@ -1370,7 +1405,7 @@ function PremiumView({ user, setActive, setLearnLang }) {
             onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.03)'}
             onMouseLeave={e => e.currentTarget.style.transform = ''}
           >
-            {topupLoading ? '⏳ Đang nạp...' : '⚡ Nạp Ví ảo (+1.000.000đ)'}
+            Nạp tiền qua QR ngân hàng
           </button>
         </div>
       </div>
