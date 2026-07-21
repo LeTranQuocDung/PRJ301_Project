@@ -212,6 +212,31 @@ public class LiveRoomServlet extends HttpServlet {
                     room.raisedHands.clear();
                 }
                 break;
+            case "invite-speak":
+                if (!room.creator.equals(name)) {
+                    error(resp, 403, "Only the room owner can invite students to speak");
+                    return;
+                }
+                String targetStudent = text(body, "targetStudent");
+                if (targetStudent.isEmpty() && !room.raisedHands.isEmpty()) {
+                    targetStudent = String.valueOf(room.raisedHands.get(0).get("name"));
+                }
+                final String studentToInvite = targetStudent;
+                synchronized (room.raisedHands) {
+                    if (!studentToInvite.isEmpty()) {
+                        room.raisedHands.removeIf(h -> studentToInvite.equals(h.get("name")));
+                    }
+                }
+                // Broadcast announcement message in room chat
+                Map<String, Object> sysMsg = new LinkedHashMap<>();
+                sysMsg.put("id", System.currentTimeMillis());
+                sysMsg.put("name", "📢 Hệ thống");
+                sysMsg.put("text", "🎤 Mentor " + name + " đã mời " + (studentToInvite.isEmpty() ? "học viên" : studentToInvite) + " phát biểu!");
+                sysMsg.put("time", LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm")));
+                synchronized (room.messages) {
+                    room.messages.add(sysMsg);
+                }
+                break;
 
             // ─── Virtual Gift ─────────────────────────────────────────
             case "gift":

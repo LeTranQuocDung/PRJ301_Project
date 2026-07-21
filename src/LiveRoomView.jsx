@@ -316,6 +316,17 @@ export default function LiveRoomView({ canRecord = false, userRole = 'lucy', use
     } catch (e) { setError(e.message) }
   }
 
+  const inviteSpeak = async (targetStudent) => {
+    try {
+      const latest = await request(`/api/rooms/${room.id}/invite-speak`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+        body: JSON.stringify({ name, targetStudent })
+      })
+      setRoom(latest)
+    } catch (e) { setError(e.message) }
+  }
+
   // ─── Virtual Gift ────────────────────────────────────────────────────────────
   const [myBalance, setMyBalance] = useState(150000)
   const fetchMyBalance = async () => {
@@ -782,7 +793,12 @@ export default function LiveRoomView({ canRecord = false, userRole = 'lucy', use
                       <div key={i} style={{ display:'flex', alignItems:'center', gap:8, padding:'7px 10px', borderRadius:9, background:i===0?'#fef3c7':'#f8fafc', border:`1px solid ${i===0?'#fde68a':'#e2e8f0'}`, marginBottom:6 }}>
                         <span style={{ fontWeight:800, color:i===0?'#92400e':'#475569', fontSize:12 }}>#{i+1}</span>
                         <span style={{ flex:1, fontSize:12.5, fontWeight:700 }}>{h.name}</span>
-                        {i === 0 && <span style={{ fontSize:10, color:'#d97706', fontWeight:700 }}>▶ Mời phát biểu</span>}
+                        <button
+                          onClick={() => inviteSpeak(h.name)}
+                          title={`Mời ${h.name} phát biểu`}
+                          style={{ ...smallButton, padding:'4px 8px', fontSize:11, background:i===0?'#f59e0b':'#4f46e5', color:'#fff', border:0, fontWeight:800, cursor:'pointer', borderRadius:7 }}>
+                          🎤 Mời phát biểu
+                        </button>
                       </div>
                     ))
                 }
