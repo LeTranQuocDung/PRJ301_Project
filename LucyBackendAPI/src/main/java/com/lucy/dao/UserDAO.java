@@ -53,9 +53,9 @@ public class UserDAO {
         return null;
     }
 
-    public boolean insertUser(User user) {
+    public boolean insertUser(User user, boolean isActive) {
         String sql = "INSERT INTO Users (username, email, password_hash, display_name, avatar_url, role, total_xp, is_active, is_deleted) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, 0, 1, 0)";
+                     "VALUES (?, ?, ?, ?, ?, ?, 0, ?, 0)";
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, user.getUsername());
@@ -64,6 +64,7 @@ public class UserDAO {
             ps.setString(4, user.getDisplayName());
             ps.setString(5, user.getAvatarUrl());
             ps.setString(6, user.getRole());
+            ps.setInt(7, isActive ? 1 : 0);
             if (ps.executeUpdate() > 0) {
                 return true;
             }
@@ -72,8 +73,27 @@ public class UserDAO {
         }
 
         user.setId(memoryUsers.size() + 1);
+        user.setActive(isActive);
         memoryUsers.add(0, user);
         return true;
+    }
+
+    public boolean approveUser(int userId) {
+        String sql = "UPDATE Users SET is_active = 1 WHERE id = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            if (ps.executeUpdate() > 0) return true;
+        } catch (SQLException e) {
+            // Fallback
+        }
+        for (User u : memoryUsers) {
+            if (u.getId() == userId) {
+                u.setActive(true);
+                return true;
+            }
+        }
+        return false;
     }
 
     public boolean updateUserRole(int userId, String newRole) {

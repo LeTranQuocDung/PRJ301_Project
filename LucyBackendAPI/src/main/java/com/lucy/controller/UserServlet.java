@@ -34,16 +34,13 @@ public class UserServlet extends HttpServlet {
 
     private boolean isSuper(HttpServletRequest req) {
         String role = req.getHeader("X-LUCY-ROLE");
-        return "super".equalsIgnoreCase(role);
+        if (role == null) return false;
+        return "super".equalsIgnoreCase(role) || "admin".equalsIgnoreCase(role);
     }
 
     private String sanitizeAndValidateRole(String role) {
         if (role == null) return "lucy";
         String r = role.trim().toLowerCase();
-        // Map legacy role names to new LUCY roles
-        if ("admin".equals(r)) r = "super";
-        if ("teacher".equals(r) || "mentor".equals(r)) r = "pro";
-        if ("student".equals(r) || "influencer".equals(r)) r = "lucy";
         if ("super".equals(r) || "pro".equals(r) || "lucy".equals(r)) {
             return r;
         }
@@ -164,7 +161,7 @@ public class UserServlet extends HttpServlet {
         user.setAvatarUrl(json.has("avatarUrl") ? json.get("avatarUrl").getAsString().trim() : "");
         user.setRole("lucy"); // FORCE role to lucy (anonymous learner) for public registration
 
-        if (userDAO.insertUser(user)) {
+        if (userDAO.insertUser(user, false)) {
             User created = userDAO.getUserByEmail(email);
             if (created != null) {
                 created.setPasswordHash(null);
@@ -200,6 +197,8 @@ public class UserServlet extends HttpServlet {
             sendError(resp, 401, "Invalid email/username or password");
             return;
         }
+        
+
         
         user.setPasswordHash(null);
         resp.getWriter().write(gson.toJson(user));
@@ -249,8 +248,8 @@ public class UserServlet extends HttpServlet {
             return;
         }
 
-        if (newPassword.isEmpty() || newPassword.length() < 8) {
-            sendError(resp, 400, "Password must be at least 8 characters");
+        if (newPassword.isEmpty() || newPassword.length() < 6) {
+            sendError(resp, 400, "Password must be at least 6 characters");
             return;
         }
         
@@ -272,8 +271,8 @@ public class UserServlet extends HttpServlet {
             return;
         }
 
-        if (password.isEmpty() || password.length() < 8) {
-            sendError(resp, 400, "Password must be at least 8 characters");
+        if (password.isEmpty() || password.length() < 6) {
+            sendError(resp, 400, "Password must be at least 6 characters");
             return;
         }
 
@@ -295,7 +294,7 @@ public class UserServlet extends HttpServlet {
         user.setAvatarUrl(json.has("avatarUrl") ? json.get("avatarUrl").getAsString().trim() : "");
         user.setRole(sanitizeAndValidateRole(role));
 
-        if (userDAO.insertUser(user)) {
+        if (userDAO.insertUser(user, true)) {
             User created = userDAO.getUserByEmail(email);
             if (created != null) {
                 created.setPasswordHash(null);
@@ -338,6 +337,13 @@ public class UserServlet extends HttpServlet {
                     resp.getWriter().write("{\"status\":\"success\"}");
                 } else {
                     sendError(resp, 500, "Failed to update role");
+                }
+            } else if (path.equals("/admin/approve-user")) {
+                boolean success = userDAO.approveUser(userId);
+                if (success) {
+                    resp.getWriter().write("{\"status\":\"success\"}");
+                } else {
+                    sendError(resp, 500, "Failed to approve user");
                 }
             } else {
                 sendError(resp, 404, "Endpoint not found");

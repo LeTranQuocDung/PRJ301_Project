@@ -99,7 +99,7 @@ export default function LoginPage({ onLogin }) {
       })
       if (res.ok) {
         const user = await res.json()
-        onLogin({ id: user.id, name: user.username, email: user.email, role: user.role, roleId: user.role, avatarUrl: user.avatarUrl })
+        onLogin({ id: user.id, name: user.username, email: user.email, role: user.role, roleId: user.role, avatarUrl: user.avatarUrl, isActive: user.isActive })
         return
       }
     } catch (e) {
@@ -123,7 +123,8 @@ export default function LoginPage({ onLogin }) {
           email: found.email || `${found.name}@lucy.edu`,
           role: found.role || found.roleId || 'lucy',
           roleId: found.roleId || found.role || 'lucy',
-          avatarUrl: found.avatarUrl || '🦊'
+          avatarUrl: found.avatarUrl || '👤',
+          isActive: found.isActive !== undefined ? found.isActive : true
         })
       }, 500)
     } else {
@@ -159,7 +160,7 @@ export default function LoginPage({ onLogin }) {
       if (res.ok) {
         setSuccess('Đăng ký thành công! Đang đăng nhập...')
         const user = await res.json()
-        setTimeout(() => onLogin({ id: user.id, name: user.username, email: user.email, role: user.role, roleId: user.role, avatarUrl: user.avatarUrl }), 800)
+        setTimeout(() => onLogin({ id: user.id, name: user.username, email: user.email, role: user.role, roleId: user.role, avatarUrl: user.avatarUrl, isActive: user.isActive }), 800)
         return
       } else {
         const errText = await res.text()
@@ -168,6 +169,9 @@ export default function LoginPage({ onLogin }) {
           setLoading(false)
           return
         }
+        setError('Đăng ký thất bại. Vui lòng thử lại.')
+        setLoading(false)
+        return
       }
     } catch (e) {
       console.warn('Backend register connection failed, using offline local account creation:', e)
@@ -181,7 +185,8 @@ export default function LoginPage({ onLogin }) {
       password: reqBody.password,
       role: 'lucy',
       roleId: 'lucy',
-      avatarUrl: reqBody.avatarUrl
+      avatarUrl: reqBody.avatarUrl,
+      isActive: false
     }
     saveAccount(newAcc)
     setSuccess('Đăng ký thành công! Đang đăng nhập...')
@@ -191,7 +196,8 @@ export default function LoginPage({ onLogin }) {
       email: newAcc.email,
       role: newAcc.role,
       roleId: newAcc.roleId,
-      avatarUrl: newAcc.avatarUrl
+      avatarUrl: newAcc.avatarUrl,
+      isActive: newAcc.isActive
     }), 800)
   }
 

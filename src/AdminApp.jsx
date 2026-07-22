@@ -1438,6 +1438,7 @@ function GeneratedQuestionsView() {
 function UsersView({ user }) {
     const roleHeader = user?.role || 'super'
     const [users, setUsers] = useState([])
+    const [viewTab, setViewTab] = useState('active')
     const [loading, setLoading] = useState(true)
     const [editId, setEditId] = useState(null)
     const [editingRole, setEditingRole] = useState(null)
@@ -1470,7 +1471,7 @@ function UsersView({ user }) {
     const submit = async e => {
       e.preventDefault(); if(!form.name || !form.email) return
       
-      const generatedPassword = 'Lucy@' + Math.floor(Math.random() * 900000 + 100000)
+      const generatedPassword = '123456'
       try {
         const res = await fetch(`${API_BASE}/api/users/admin/create-user`, {
           method: 'POST',
@@ -1484,7 +1485,7 @@ function UsersView({ user }) {
           })
         })
         if (res.ok) {
-          alert('Added successfully! Generated password is: ' + generatedPassword)
+          alert('Added successfully! Default password is: ' + generatedPassword)
           fetchUsers()
           setForm({name:'',email:'',role:'lucy'})
         } else {
@@ -1510,7 +1511,7 @@ function UsersView({ user }) {
     }
 
     const deleteUser = async (id) => {
-      if (!window.confirm('Are you sure you want to delete this user?')) return;
+      if (!window.confirm('Are you sure you want to delete/reject this user?')) return;
       try {
         const res = await fetch(`${API_BASE}/api/users?id=${id}`, {
           method: 'DELETE',
@@ -1520,10 +1521,22 @@ function UsersView({ user }) {
         else alert('Error deleting user');
       } catch(e) { alert('Server connection error: ' + e.message); }
     }
+
+    const approveUser = async (id) => {
+      try {
+        const res = await fetch(`${API_BASE}/api/users/admin/approve-user`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'X-LUCY-ROLE': roleHeader },
+          body: JSON.stringify({ id })
+        });
+        if (res.ok) fetchUsers();
+        else alert('Error approving user');
+      } catch(e) { alert('Server connection error: ' + e.message); }
+    }
   
     const resetPass = async (id) => {
-      const generatedPassword = 'Lucy@' + Math.floor(Math.random() * 900000 + 100000)
-      if(!window.confirm('Are you sure you want to reset this user\'s password?')) return;
+      const generatedPassword = '123456'
+      if(!window.confirm('Are you sure you want to reset this user\'s password to 123456?')) return;
       try {
         const res = await fetch(`${API_BASE}/api/users/admin/reset-password`, {
           method: 'POST',
@@ -1571,7 +1584,13 @@ function UsersView({ user }) {
             </form>
           </ACard>
           <ACard>
-            <ACardHead icon={<Users size={13}/>} title={`Users List (${users.length})`} accent="cyan" gradient />
+            <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 20px',borderBottom:`1px solid ${S.border}`,background:'linear-gradient(to right, rgba(6,182,212,0.05), transparent)' }}>
+              <div style={{ display:'flex',alignItems:'center',gap:8,fontWeight:700,color:ACCENTS.cyan.c }}><Users size={15}/> Users List ({users.filter(u=>viewTab==='active'?u.isActive:!u.isActive).length})</div>
+              <div style={{ display:'flex',background:'#f1f5f9',borderRadius:8,padding:4 }}>
+                <button onClick={()=>setViewTab('active')} style={{ padding:'6px 12px',borderRadius:6,border:'none',background:viewTab==='active'?'#fff':'transparent',fontWeight:600,fontSize:12,color:viewTab==='active'?S.text:S.muted,boxShadow:viewTab==='active'?'0 2px 4px rgba(0,0,0,0.05)':'none',cursor:'pointer',transition:'all 0.2s' }}>Active Users</button>
+                <button onClick={()=>setViewTab('pending')} style={{ padding:'6px 12px',borderRadius:6,border:'none',background:viewTab==='pending'?'#fff':'transparent',fontWeight:600,fontSize:12,color:viewTab==='pending'?ACCENTS.amber.c:S.muted,boxShadow:viewTab==='pending'?'0 2px 4px rgba(0,0,0,0.05)':'none',cursor:'pointer',transition:'all 0.2s' }}>Pending</button>
+              </div>
+            </div>
             <div style={{ overflowX:'auto' }}>
               <table style={{ width:'100%',borderCollapse:'collapse',fontSize:13 }}>
                 <thead>
@@ -1584,7 +1603,7 @@ function UsersView({ user }) {
                 <tbody>
                   {loading ? (
                     <tr><td colSpan="4" style={{padding:20,textAlign:'center'}}>Loading data...</td></tr>
-                  ) : users.map(u=>(
+                  ) : users.filter(u=>viewTab==='active'?u.isActive:!u.isActive).map(u=>(
                     <tr key={u.id} style={{ borderBottom:`1px solid ${S.borderLight}` }}
                       onMouseEnter={e=>e.currentTarget.style.background='#f8fafc'}
                       onMouseLeave={e=>e.currentTarget.style.background=''}
@@ -1609,12 +1628,25 @@ function UsersView({ user }) {
                         )}
                       </td>
                       <td style={{ padding:'12px 16px' }}>
-                        <span style={{ color:ACCENTS.green.c,display:'flex',alignItems:'center',gap:4,fontSize:12 }}><CheckCircle size={13}/>Active</span>
+                        {u.isActive ? (
+                          <span style={{ color:ACCENTS.green.c,display:'flex',alignItems:'center',gap:4,fontSize:12 }}><CheckCircle size={13}/>Active</span>
+                        ) : (
+                          <span style={{ color:ACCENTS.amber.c,display:'flex',alignItems:'center',gap:4,fontSize:12 }}>Pending</span>
+                        )}
                       </td>
                       <td style={{ padding:'12px 16px', display:'flex', gap:8 }}>
-                        <button onClick={()=>{setEditingRole(u.id); setTempRole(u.role)}} style={{ border:'none',color:'#fff',cursor:'pointer',padding:'6px 12px', borderRadius:6, background:'#8b5cf6', fontWeight:600, fontSize:12 }}>Edit Role</button>
-                        <button onClick={()=>resetPass(u.id)} style={{ border:'none',color:ACCENTS.blue.c,cursor:'pointer',padding:'6px 12px', borderRadius:6, background:'#eff6ff', fontWeight:600, fontSize:12 }}>Reset Pass</button>
-                        <button onClick={()=>deleteUser(u.id)} style={{ border:'none',color:'#fff',cursor:'pointer',padding:'6px 12px', borderRadius:6, background:'#ef4444', fontWeight:600, fontSize:12 }}>Delete</button>
+                        {u.isActive ? (
+                          <>
+                            <button onClick={()=>{setEditingRole(u.id); setTempRole(u.role)}} style={{ border:'none',color:'#fff',cursor:'pointer',padding:'6px 12px', borderRadius:6, background:'#8b5cf6', fontWeight:600, fontSize:12 }}>Edit Role</button>
+                            <button onClick={()=>resetPass(u.id)} style={{ border:'none',color:ACCENTS.blue.c,cursor:'pointer',padding:'6px 12px', borderRadius:6, background:'#eff6ff', fontWeight:600, fontSize:12 }}>Reset Pass</button>
+                            <button onClick={()=>deleteUser(u.id)} style={{ border:'none',color:'#fff',cursor:'pointer',padding:'6px 12px', borderRadius:6, background:'#ef4444', fontWeight:600, fontSize:12 }}>Delete</button>
+                          </>
+                        ) : (
+                          <>
+                            <button onClick={()=>approveUser(u.id)} style={{ border:'none',color:'#fff',cursor:'pointer',padding:'6px 12px', borderRadius:6, background:ACCENTS.green.c, fontWeight:600, fontSize:12 }}>Approve</button>
+                            <button onClick={()=>deleteUser(u.id)} style={{ border:'none',color:'#fff',cursor:'pointer',padding:'6px 12px', borderRadius:6, background:'#ef4444', fontWeight:600, fontSize:12 }}>Reject</button>
+                          </>
+                        )}
                       </td>
                     </tr>
                   ))}

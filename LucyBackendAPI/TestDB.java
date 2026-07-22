@@ -1,0 +1,1 @@
+import com.lucy.dao.UserDAO; import com.lucy.model.User; public class TestDB { public static void main(String[] args) { UserDAO dao = new UserDAO(); User u = dao.getUserByEmail(" sogay@gmail.com\); System.out.println(u == null ? \NULL\ : u.getUsername()); } }
