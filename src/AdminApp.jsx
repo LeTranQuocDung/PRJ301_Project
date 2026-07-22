@@ -1437,11 +1437,7 @@ function GeneratedQuestionsView() {
 // Users View
 function UsersView({ user }) {
     const roleHeader = user?.role || 'super'
-    const [users, setUsers] = useState([
-        { id: 1, name: "[Super] LUCY Super", email: "super@lucy.edu.vn", role: "super", status: "Active" },
-        { id: 2, name: "[Pro] Sarah Jenkins", email: "pro@lucy.edu.vn", role: "pro", status: "Active" },
-        { id: 3, name: "[LUCY] Nguyen Van A", email: "learner@gmail.com", role: "lucy", status: "Active" }
-    ])
+    const [users, setUsers] = useState([])
     const [viewTab, setViewTab] = useState('active')
     const [loading, setLoading] = useState(true)
     const [editId, setEditId] = useState(null)
