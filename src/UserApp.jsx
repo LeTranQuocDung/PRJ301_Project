@@ -269,6 +269,9 @@ function ExploreView({ completed, setActive, setLearnLang, setLearnLesson }) {
   const cfg = LANG[tab]
   const lessons = LESSONS[tab]
   const done = completed[tab] || []
+  const FREE_LIMIT = 5
+  const subType = (() => { try { const s = localStorage.getItem('lucy_sub_type'); return (s && typeof s === 'string') ? s : 'Free' } catch { return 'Free' } })()
+  const isPremium = subType !== 'Free'
 
   return (
     <div className="fade-up" style={{ padding: '28px 28px 40px' }}>
@@ -292,36 +295,67 @@ function ExploreView({ completed, setActive, setLearnLang, setLearnLesson }) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
-        {lessons.map(l => {
+        {lessons.map((l, idx) => {
           const isDone = done.includes(l.id)
+          const isLocked = !isPremium && idx >= FREE_LIMIT
           return (
             <div key={l.id} style={{
-              background: '#fff', border: `1.5px solid ${isDone ? cfg.primary + '44' : '#e2e8f0'}`,
-              borderRadius: 16, padding: '18px', cursor: 'pointer',
+              background: isLocked ? '#f8fafc' : '#fff',
+              border: `1.5px solid ${isLocked ? '#e2e8f0' : (isDone ? cfg.primary + '44' : '#e2e8f0')}`,
+              borderRadius: 16, padding: '18px', cursor: isLocked ? 'pointer' : 'pointer',
               transition: 'all 0.2s', position: 'relative',
-              boxShadow: isDone ? `0 4px 16px ${cfg.primary}18` : 'none',
+              boxShadow: isDone && !isLocked ? `0 4px 16px ${cfg.primary}18` : 'none',
+              opacity: isLocked ? 0.65 : 1,
+              filter: isLocked ? 'grayscale(0.4)' : 'none',
             }}
-              onClick={() => { setLearnLang(tab); setLearnLesson(l); setActive('learn') }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${cfg.primary}22` }}
-              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = isDone ? `0 4px 16px ${cfg.primary}18` : '' }}
+              onClick={() => {
+                if (isLocked) { setActive('premium'); return }
+                setLearnLang(tab); setLearnLesson(l); setActive('learn')
+              }}
+              onMouseEnter={e => { if (!isLocked) { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${cfg.primary}22` } }}
+              onMouseLeave={e => { if (!isLocked) { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = isDone ? `0 4px 16px ${cfg.primary}18` : '' } }}
             >
-              {isDone && (
+              {isLocked && (
+                <div style={{ position: 'absolute', top: 12, right: 12, width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg,#f59e0b,#ef4444)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#fff', boxShadow: '0 2px 8px rgba(245,158,11,0.4)' }}>🔒</div>
+              )}
+              {isDone && !isLocked && (
                 <div style={{ position: 'absolute', top: 12, right: 12, width: 24, height: 24, borderRadius: '50%', background: cfg.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#fff' }}>✓</div>
               )}
               <div style={{ fontSize: 32, marginBottom: 10 }}>{l.emoji}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <span style={{ width: 22, height: 22, borderRadius: '50%', background: isDone ? cfg.gradient : '#f1f5f9', color: isDone ? '#fff' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>{l.level}</span>
+                <span style={{ width: 22, height: 22, borderRadius: '50%', background: isDone && !isLocked ? cfg.gradient : '#f1f5f9', color: isDone && !isLocked ? '#fff' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>{l.level}</span>
                 <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>{l.stage}</span>
               </div>
-              <div style={{ fontWeight: 700, fontSize: 14.5, color: '#0f172a', marginBottom: 4 }}>{l.title}</div>
+              <div style={{ fontWeight: 700, fontSize: 14.5, color: isLocked ? '#94a3b8' : '#0f172a', marginBottom: 4 }}>{l.title}</div>
               <div style={{ fontSize: 12, color: '#64748b' }}>{l.vi}</div>
-              <div style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: isDone ? cfg.primary : '#94a3b8', background: isDone ? cfg.light : '#f8fafc', padding: '4px 10px', borderRadius: 20 }}>
-                {isDone ? '✅ Completed' : '▶ Learn Now'} {!isDone && `+${XP_PER_LESSON} XP`}
+              <div style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600,
+                color: isLocked ? '#f59e0b' : (isDone ? cfg.primary : '#94a3b8'),
+                background: isLocked ? '#fef3c7' : (isDone ? cfg.light : '#f8fafc'),
+                padding: '4px 10px', borderRadius: 20 }}>
+                {isLocked ? '🔒 Premium' : (isDone ? '✅ Completed' : '▶ Learn Now')} {!isDone && !isLocked && `+${XP_PER_LESSON} XP`}
               </div>
             </div>
           )
         })}
       </div>
+
+      {!isPremium && lessons.length > FREE_LIMIT && (
+        <div onClick={() => setActive('premium')} style={{
+          marginTop: 20, padding: '16px 24px', borderRadius: 16, cursor: 'pointer',
+          background: 'linear-gradient(135deg, #1e1b4b, #7c3aed)', color: '#fff',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          boxShadow: '0 8px 32px rgba(124,58,237,0.3)', transition: 'transform 0.2s',
+        }}
+          onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+          onMouseLeave={e => e.currentTarget.style.transform = ''}
+        >
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 800 }}>🔒 Mở khóa toàn bộ {lessons.length} bài học</div>
+            <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>Nâng cấp Premium để truy cập không giới hạn tất cả bài học</div>
+          </div>
+          <div style={{ fontSize: 24 }}>→</div>
+        </div>
+      )}
     </div>
   )
 }
@@ -487,17 +521,22 @@ function LearnView({ learnLang, setLearnLang, learnLesson, setLearnLesson, compl
       <div style={{ marginTop: 24, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 14 }}>Other Lessons — {cfg.flag} {cfg.name}</div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {lessons.slice(0, 8).map(l => (
-            <button key={l.id} onClick={() => { setLearnLesson(l); setStep(0); setShowAns(false) }} style={{
-              padding: '6px 14px', borderRadius: 20,
-              background: l.id === lesson.id ? cfg.gradient : '#f8fafc',
-              color: l.id === lesson.id ? '#fff' : '#64748b',
-              border: `1.5px solid ${l.id === lesson.id ? 'transparent' : '#e2e8f0'}`,
-              fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
-            }}>
-              {l.emoji} {l.level}
-            </button>
-          ))}
+          {lessons.slice(0, 8).map((l, idx) => {
+            const subType = (() => { try { const s = localStorage.getItem('lucy_sub_type'); return (s && typeof s === 'string') ? s : 'Free' } catch { return 'Free' } })()
+            const locked = subType === 'Free' && idx >= 5
+            return (
+              <button key={l.id} onClick={() => { if (!locked) { setLearnLesson(l); setStep(0); setShowAns(false) } }} style={{
+                padding: '6px 14px', borderRadius: 20,
+                background: l.id === lesson.id ? cfg.gradient : (locked ? '#fef3c7' : '#f8fafc'),
+                color: l.id === lesson.id ? '#fff' : (locked ? '#d97706' : '#64748b'),
+                border: `1.5px solid ${l.id === lesson.id ? 'transparent' : (locked ? '#fde68a' : '#e2e8f0')}`,
+                fontSize: 12, fontWeight: 600, cursor: locked ? 'not-allowed' : 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
+                opacity: locked ? 0.7 : 1,
+              }}>
+                {locked ? '🔒' : l.emoji} {l.level}
+              </button>
+            )
+          })}
         </div>
       </div>
     </div>

@@ -176,9 +176,11 @@ export default function LoginPage({ onLogin }) {
       })
 
       if (res.ok) {
-        setSuccess('Đăng ký thành công! Đang đăng nhập...')
-        const user = await res.json()
-        setTimeout(() => onLogin({ id: user.id, name: user.username, email: user.email, role: user.role, roleId: user.role, avatarUrl: user.avatarUrl, displayName: role === 'student' ? (selectedAvatarObj?.desc || user.username) : user.username }), 800)
+        setSuccess('Đăng ký thành công! Vui lòng đăng nhập lại.')
+        setTab('login')
+        setPassword('')
+        setConfirm('')
+        setLoading(false)
         return
       } else {
         const errText = await res.text()
@@ -203,16 +205,11 @@ export default function LoginPage({ onLogin }) {
       displayName: role === 'student' ? (selectedAvatarObj?.desc || reqBody.username) : reqBody.username,
     }
     saveAccount(newAcc)
-    setSuccess('Đăng ký thành công! Đang đăng nhập...')
-    setTimeout(() => onLogin({
-      id: newAcc.id,
-      name: newAcc.displayName,
-      email: newAcc.email,
-      role: newAcc.role,
-      roleId: newAcc.roleId,
-      avatarUrl: newAcc.avatarUrl,
-      displayName: newAcc.displayName,
-    }), 800)
+    setSuccess('Đăng ký thành công! Vui lòng đăng nhập lại.')
+    setTab('login')
+    setPassword('')
+    setConfirm('')
+    setLoading(false)
   }
 
   return (

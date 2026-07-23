@@ -16,23 +16,28 @@ public class DBConnection {
         }
         if (configuredPath != null && !configuredPath.trim().isEmpty()) {
             java.io.File configured = new java.io.File(configuredPath.trim());
-            if (configured.isFile() && configured.canRead()) return configured;
+            if (configured.isFile() && configured.canRead())
+                return configured;
         }
 
         java.util.List<java.io.File> roots = new java.util.ArrayList<>();
         roots.add(new java.io.File(System.getProperty("user.dir", ".")));
         try {
             java.net.URL classLocation = DBConnection.class.getProtectionDomain().getCodeSource().getLocation();
-            if (classLocation != null) roots.add(new java.io.File(classLocation.toURI()));
-        } catch (Exception ignored) { }
+            if (classLocation != null)
+                roots.add(new java.io.File(classLocation.toURI()));
+        } catch (Exception ignored) {
+        }
 
         for (java.io.File root : roots) {
             java.io.File current = root;
             for (int depth = 0; current != null && depth < 10; depth++) {
                 java.io.File candidate = new java.io.File(current, ".env");
-                if (candidate.isFile() && candidate.canRead()) return candidate;
+                if (candidate.isFile() && candidate.canRead())
+                    return candidate;
                 candidate = new java.io.File(current, "LucyBackendAPI/.env");
-                if (candidate.isFile() && candidate.canRead()) return candidate;
+                if (candidate.isFile() && candidate.canRead())
+                    return candidate;
                 current = current.getParentFile();
             }
         }
@@ -41,7 +46,8 @@ public class DBConnection {
 
     private static String loadSetting(String name, String defaultValue) {
         String value = System.getenv(name);
-        if (value == null || value.trim().isEmpty()) value = System.getProperty(name);
+        if (value == null || value.trim().isEmpty())
+            value = System.getProperty(name);
         if (value == null || value.trim().isEmpty()) {
             java.io.File envFile = findEnvFile();
             if (envFile.exists()) {
@@ -58,14 +64,16 @@ public class DBConnection {
                             break;
                         }
                     }
-                } catch (Exception ignored) { }
+                } catch (Exception ignored) {
+                }
             }
         }
         return (value != null && !value.trim().isEmpty()) ? value.trim() : defaultValue;
     }
 
     private static final String USER = loadSetting("LUCY_DB_USER", "lucy_admin");
-    private static final String URL = loadSetting("LUCY_DB_URL", "jdbc:sqlserver://localhost\\SQLEXPRESS;databaseName=LUCY_DBS;encrypt=false;trustServerCertificate=true;");
+    private static final String URL = loadSetting("LUCY_DB_URL",
+            "jdbc:sqlserver://localhost\\SQLEXPRESS;databaseName=LUCY_DBS;encrypt=false;trustServerCertificate=true;");
 
     public static Connection getConnection() throws SQLException {
         try {
@@ -99,4 +107,3 @@ public class DBConnection {
         }
     }
 }
-
