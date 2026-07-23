@@ -2,8 +2,8 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { AlertCircle, Check, Copy, MessageSquare, Mic, PhoneOff, Pin, Send, Square, Users, Volume2, Hand, Gift, Sparkles, ChevronRight, Clock, Layers } from 'lucide-react'
 import { agoraService } from './services/agoraClient'
 
-const API_BASE = import.meta.env.VITE_LUCY_API_BASE || 'http://localhost:8080/LucyBackendAPI'
-const TOKEN_BASE = import.meta.env.VITE_AGORA_TOKEN_BASE || 'http://localhost:3000'
+const API_BASE = (import.meta.env.VITE_LUCY_API_BASE || 'http://localhost:8080/LucyBackendAPI').replace('localhost', window.location.hostname)
+const TOKEN_BASE = (import.meta.env.VITE_AGORA_TOKEN_BASE || 'http://localhost:3000').replace('localhost', window.location.hostname)
 const APP_ID = import.meta.env.VITE_AGORA_APP_ID || ''
 
 // ─── Avatar Persona Generator ────────────────────────────────────────────────
@@ -228,15 +228,36 @@ export default function LiveRoomView({ canRecord = false, userRole = 'lucy', use
 
   // ─── Audio ──────────────────────────────────────────────────────────────────
   const connectAudio = async roomId => {
-    await agoraService.init(APP_ID)
+    if (!APP_ID) {
+      console.warn('[LiveRoom] No AGORA APP_ID configured, skipping audio')
+      return
+    }
+    console.log('[LiveRoom] connectAudio start, roomId:', roomId, 'APP_ID:', APP_ID)
+
+    // 1. Init client
+    const ok = await agoraService.init(APP_ID)
+    if (!ok) {
+      console.error('[LiveRoom] Agora init failed')
+      return
+    }
+
+    // 2. Register event handlers AFTER init (so client exists)
     agoraService.onUserPublished(user => setRemotes(old => old.some(x => x.uid === user.uid) ? old : [...old, { uid:user.uid }]))
     agoraService.onUserUnpublished(user => setRemotes(old => old.filter(x => x.uid !== user.uid)))
-    if (!APP_ID) return
+
+    // 3. Fetch token from our Token Server
+    console.log('[LiveRoom] Fetching token from:', `${TOKEN_BASE}/api/agora/token?channelName=${roomId}&uid=${uid}`)
     const tokenRes = await fetch(`${TOKEN_BASE}/api/agora/token?channelName=${roomId}&uid=${uid}`)
     const tokenData = await tokenRes.json()
+    console.log('[LiveRoom] Token response:', JSON.stringify(tokenData).substring(0, 100))
     if (!tokenData.token) throw new Error('Agora token is unavailable')
+
+    // 4. Join channel with real token
     await agoraService.joinRoom(APP_ID, roomId, tokenData.token, uid)
+
+    // 5. Publish local microphone
     await agoraService.publishAudio()
+    console.log('[LiveRoom] Audio connected successfully!')
   }
 
   // ─── Room actions ────────────────────────────────────────────────────────────
@@ -486,9 +507,9 @@ export default function LiveRoomView({ canRecord = false, userRole = 'lucy', use
 
         {/* Left: Create/Join + Public Rooms */}
         <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
-          <div style={{ display:'grid', gridTemplateColumns: userRole === 'mentor' ? '1fr 1fr' : '1fr', gap:16 }}>
+          <div style={{ display:'grid', gridTemplateColumns: ['mentor', 'teacher', 'super', 'admin'].includes(userRole) ? '1fr 1fr' : '1fr', gap:16 }}>
             {/* Create Room */}
-            {userRole === 'mentor' && (
+            {['mentor', 'teacher', 'super', 'admin'].includes(userRole) && (
               <div style={{ padding:22, border:'1px solid #e2e8f0', borderRadius:16, background:'#fff', boxShadow:'0 4px 12px rgba(0,0,0,0.02)' }}>
                 <h3 style={{ margin:'0 0 12px', fontSize:15, fontWeight:800, color:'#1e293b' }}>🎙️ Create Room</h3>
 

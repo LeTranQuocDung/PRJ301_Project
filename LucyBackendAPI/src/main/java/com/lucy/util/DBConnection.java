@@ -73,7 +73,7 @@ public class DBConnection {
         } catch (ClassNotFoundException e) {
             throw new SQLException("Microsoft SQL Server JDBC Driver class not found", e);
         }
-        String dbPassword = loadSetting("LUCY_DB_PASSWORD", "123456");
+        String dbPassword = loadSetting("LUCY_DB_PASSWORD", "Lucy@123456");
         return DriverManager.getConnection(URL, USER, dbPassword);
     }
 

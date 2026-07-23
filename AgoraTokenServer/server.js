@@ -7,7 +7,7 @@ dotenv.config();
 
 const app = express();
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || 'http://localhost:5173';
-app.use(cors({ origin: CLIENT_ORIGIN }));
+app.use(cors()); // Allow all origins for local testing
 
 const APP_ID = process.env.APP_ID || process.env.AGORA_APP_ID;
 const APP_CERTIFICATE = process.env.APP_CERTIFICATE || process.env.AGORA_APP_CERTIFICATE;
@@ -35,6 +35,8 @@ app.get('/api/agora/token', nocache, (req, res) => {
   let uid = req.query.uid;
   if (!uid || uid === '') {
     uid = 0;
+  } else {
+    uid = parseInt(uid, 10);
   }
   
   // get role
