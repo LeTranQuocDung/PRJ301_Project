@@ -140,11 +140,71 @@ Tạo LiveRoomView.jsx tích hợp Agora Web SDK 4.x:
 - Recording: ghi âm phòng (admin/mentor)
 ```
 
+### 1.3. Tính năng AI hỗ trợ học tập
+
+#### Prompt 12: AI Prompt Templates cho học viên
+```
+Thêm trang AI Templates vào UserApp.jsx để học viên có thể sử dụng nhanh
+các mẫu prompt học ngoại ngữ.
+
+Yêu cầu:
+- Thêm mục "AI Templates" trong nhóm AI ở sidebar.
+- Hiển thị các template dạng card gồm tên, mô tả, icon và nội dung prompt.
+- Có ít nhất 6 nhóm template:
+  Vocabulary Builder, Grammar Explainer, Conversation Starter,
+  Story Generator, Error Corrector và Cultural Context.
+- Prompt sử dụng placeholder như {topic}, {level}, {language}, {rule},
+  {words}, {text}, {phrase} để người học tùy biến.
+- Có nút Copy Prompt, hiển thị trạng thái "Copied!" sau khi sao chép.
+- Giao diện đồng bộ với design system hiện tại và responsive.
+```
+
+#### Prompt 13: AI Quiz Generator tích hợp Gemini
+```
+Thêm trang AI Questions/AI Quiz Generator cho học viên.
+
+Frontend:
+- Cho phép nhập chủ đề luyện tập, chọn ngôn ngữ, cấp độ và số lượng câu hỏi.
+- Gọi POST /api/ai/generate-questions với JSON body
+  { prompt, language, level, count }.
+- Hiển thị từng câu hỏi MCQ, các đáp án, kết quả đúng/sai và explanation.
+- Có loading state, error state và nút Try Again.
+
+Backend:
+- Cập nhật AIServlet.java để tạo system prompt chặt chẽ cho Gemini.
+- Yêu cầu Gemini chỉ trả về JSON array hợp lệ với các trường:
+  question, options, correctIndex, explanation.
+- Câu hỏi phải đúng ngôn ngữ, chủ đề và cấp độ người học đã chọn.
+- Validate count và dữ liệu đầu vào; loại bỏ Markdown code fence trước khi parse JSON.
+- Nếu Gemini/API key không khả dụng, trả về bộ câu hỏi fallback phù hợp
+  thay vì làm hỏng trải nghiệm người dùng.
+```
+
+#### Prompt 14: AI Coach và AI Mentor Feedback cá nhân hóa
+```
+Hoàn thiện trang LISA AI Learning Coach trong UserApp.jsx và AgentServlet.java.
+
+AI Coach:
+- GET /api/agent/coach?userId=... trả về coachName, bài học tiếp theo,
+  riskFlags và recommendedActions dựa trên XP, level và tiến độ học.
+- Hiển thị kế hoạch học tập cá nhân hóa, cảnh báo học tập và hành động đề xuất.
+
+AI Mentor:
+- POST /api/agent/mentor-feedback nhận nội dung luyện tập của học viên,
+  ngôn ngữ, cấp độ và context bài học.
+- Gemini phân tích ngữ pháp, từ vựng, độ tự nhiên; chỉ ra lỗi cụ thể,
+  đưa câu sửa mẫu và gợi ý cải thiện.
+- Phản hồi phải khích lệ, phù hợp trình độ và không bịa thông tin ngoài context.
+
+Bổ sung loading/error state và dữ liệu fallback khi backend hoặc Gemini tạm thời
+không khả dụng để giao diện vẫn có thể demo.
+```
+
 ---
 
-### 1.3. Tích hợp & Sửa lỗi
+### 1.4. Tích hợp & Sửa lỗi
 
-#### Prompt 12: Sửa lỗi Agora Token
+#### Prompt 15: Sửa lỗi Agora Token
 ```
 Agora voice chat không hoạt động. Đây là thông tin credentials:
 AGORA_APP_ID="88eae89fa6704f85a5ae63a2fb7ee73b"
@@ -152,7 +212,7 @@ AGORA_APP_CERTIFICATE="f9a37480bad2467bb7e23c9e8618cd2e"
 Fix lại Agora Token Server và frontend để voice chat hoạt động.
 ```
 
-#### Prompt 13: AI Discussion Suggestions — Fix sinh câu hỏi
+#### Prompt 16: AI Discussion Suggestions — Fix sinh câu hỏi
 ```
 Cái phần AI Discussion Suggestions, Gemini sẽ sinh câu hỏi thảo luận
 dựa trên bài học đang pin và cấp độ phòng.
@@ -161,20 +221,20 @@ Truyền API Gemini vào xong sinh câu hỏi đúng theo bài học đang pin
 và cấp độ phòng đi.
 ```
 
-#### Prompt 14: Luồng đăng ký — chuyển sang trang đăng nhập
+#### Prompt 17: Luồng đăng ký — chuyển sang trang đăng nhập
 ```
 Đăng ký xong rồi chuyển qua trang đăng nhập, nhập lại tài khoản
 mật khẩu rồi đăng nhập chứ đừng đăng ký xong phát là nhảy vào web luôn.
 ```
 
-#### Prompt 15: Khóa bài học Premium
+#### Prompt 18: Khóa bài học Premium
 ```
 Cái chưa mua gói premium thì chỉ cho mở khóa 5 bài đầu,
 còn các bài sau khóa lại. Hiển thị icon ổ khóa, bấm vào chuyển sang
 trang Premium để mua gói.
 ```
 
-#### Prompt 16: Database Connection & .env
+#### Prompt 19: Database Connection & .env
 ```
 Fix DBConnection.java để tự động tìm file .env từ nhiều vị trí khác nhau
 (thư mục hiện tại, thư mục cha, thư mục class), đọc biến môi trường
@@ -182,7 +242,7 @@ LUCY_DB_URL, LUCY_DB_USER, LUCY_DB_PASSWORD. Fallback giá trị mặc định
 nếu không tìm thấy.
 ```
 
-#### Prompt 17: Push code lên GitHub
+#### Prompt 20: Push code lên GitHub
 ```
 Push toàn bộ code đã cập nhật lên GitHub repository.
 Commit message mô tả rõ các thay đổi.
@@ -380,8 +440,3 @@ LUCY là một dự án EdTech platform **hoàn chỉnh và ấn tượng** cho 
 - **Production-grade UI/UX** (React + Vite)
 - **Gamification mechanics** (XP, levels, leaderboard)
 
-Tổng điểm đánh giá: **8.9/10** — Vượt kỳ vọng, thể hiện năng lực phát triển phần mềm toàn diện.
-
----
-
-*Tài liệu được tạo bởi AI (Google Gemini / Claude) dựa trên phân tích mã nguồn thực tế của dự án LUCY.*
