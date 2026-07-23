@@ -97,9 +97,9 @@ public class AgentServlet extends HttpServlet {
         try {
             // Support direct official Google Gemini API if key starts with AIzaSy or AQ.
             if (geminiApiKey.trim().startsWith("AIzaSy") || geminiApiKey.trim().startsWith("AQ.")) {
-                String[] modelsToTry = {"gemini-2.0-flash-exp", "gemini-1.5-flash-latest", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"};
-                if (llmModel != null && !llmModel.trim().isEmpty() && !llmModel.contains("2.5")) {
-                    modelsToTry = new String[]{llmModel.trim(), "gemini-2.0-flash-exp", "gemini-1.5-flash-latest", "gemini-2.0-flash"};
+                String[] modelsToTry = {"gemini-3.5-flash", "gemini-2.5-flash", "gemini-3.1-pro-preview", "gemini-2.0-flash", "gemini-1.5-flash"};
+                if (llmModel != null && !llmModel.trim().isEmpty()) {
+                    modelsToTry = new String[]{llmModel.trim(), "gemini-3.5-flash", "gemini-2.5-flash", "gemini-2.0-flash"};
                 }
 
                 for (String model : modelsToTry) {
