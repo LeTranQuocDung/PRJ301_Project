@@ -22,7 +22,8 @@ public class LucyDAO {
             try (PreparedStatement ps = conn.prepareStatement(INSERT_SQL)) {
                 for (LucyRow row : rows) {
                     ps.setString(1, row.getLanguageCode());
-                    ps.setInt(2, extractLevelNum(row.getLevelName()));
+                    int levelNum = row.getLevelNum() > 0 ? row.getLevelNum() : extractLevelNum(row.getLevelName());
+                    ps.setInt(2, levelNum);
                     ps.setString(3, row.getLevelName());
                     ps.setString(4, row.getStage());
                     

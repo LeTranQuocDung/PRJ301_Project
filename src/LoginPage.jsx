@@ -2,13 +2,22 @@ import { useState } from 'react'
 
 // ─── Seed default accounts ────────────────────────────────────────────────────
 const SEED_ACCOUNTS = [
-  { id: 'super-default', name: 'Super',   password: '123456', roleId: 'super',   role: 'super' },
-  { id: 'mentor-default', name: 'Mentor', password: '123456', roleId: 'pro',     role: 'pro' },
-  { id: 'user-default',  name: 'Student', password: '123456', roleId: 'lucy',    role: 'lucy'  },
+  { id: 'student-default', name: 'student',  password: '123456', roleId: 'student', role: 'student', avatarUrl: '🦊', displayName: 'Cáo Tinh Nghịch' },
+  { id: 'mentor-default',  name: 'mentor',   password: '123456', roleId: 'mentor',  role: 'mentor',  avatarUrl: '👨‍🏫', displayName: 'MentorLisa' },
+  { id: 'super-default',   name: 'super',    password: '123456', roleId: 'super',   role: 'super',   avatarUrl: '👑', displayName: 'SuperCreator' },
 ]
+
+const SEED_VERSION = 'v6-fix-2026'
 
 const getAccounts = () => {
   try {
+    const storedVersion = localStorage.getItem('lucy_seed_version')
+    if (storedVersion !== SEED_VERSION) {
+      localStorage.setItem('lucy_accounts', JSON.stringify(SEED_ACCOUNTS))
+      localStorage.setItem('lucy_seed_version', SEED_VERSION)
+      localStorage.removeItem('lucy_user')
+      return SEED_ACCOUNTS
+    }
     const stored = JSON.parse(localStorage.getItem('lucy_accounts') || '[]')
     if (stored.length === 0) {
       localStorage.setItem('lucy_accounts', JSON.stringify(SEED_ACCOUNTS))
@@ -75,11 +84,12 @@ function AuthInput({ label, type = 'text', value, onChange, placeholder, icon })
 
 // ─── LoginPage ─────────────────────────────────────────────────────────────────
 export default function LoginPage({ onLogin }) {
-  const [tab, setTab]           = useState('register')   // Default to register to show the UI
+  const [tab, setTab]           = useState('login')
   const [email, setEmail]       = useState('')
   const [name, setName]         = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm]   = useState('')
+  const [role, setRole]         = useState('student')
   const [selectedAvatar, setSelectedAvatar] = useState('fox')
   const [error, setError]       = useState('')
   const [success, setSuccess]   = useState('')
@@ -99,18 +109,21 @@ export default function LoginPage({ onLogin }) {
       })
       if (res.ok) {
         const user = await res.json()
-        onLogin({ id: user.id, name: user.username, email: user.email, role: user.role, roleId: user.role, avatarUrl: user.avatarUrl })
+        onLogin({ id: user.id, name: user.username, email: user.email, role: user.role === 'admin' ? 'super' : user.role, roleId: user.role === 'admin' ? 'super' : user.role, avatarUrl: user.avatarUrl })
         return
       }
     } catch (e) {
-      console.warn('Backend login connection failed, checking local seed accounts:', e)
+      console.warn('Backend login failed, checking local:', e)
     }
 
-    // Local / Offline fallback checking seed & local accounts
     const localAccounts = getAccounts()
     const inputName = name.trim().toLowerCase()
-    const found = localAccounts.find(a => 
-      (a.name?.toLowerCase() === inputName || a.email?.toLowerCase() === inputName || a.id?.toLowerCase() === inputName) &&
+    const found = localAccounts.find(a =>
+      (a.name?.toLowerCase() === inputName ||
+       a.email?.toLowerCase() === inputName ||
+       a.id?.toLowerCase() === inputName ||
+       a.role?.toLowerCase() === inputName ||
+       (inputName === 'admin' && (a.role === 'super' || a.role === 'admin'))) &&
       a.password === password
     )
 
@@ -119,15 +132,16 @@ export default function LoginPage({ onLogin }) {
       setTimeout(() => {
         onLogin({
           id: found.id,
-          name: found.name,
+          name: found.displayName || found.name,
           email: found.email || `${found.name}@lucy.edu`,
-          role: found.role || found.roleId || 'lucy',
-          roleId: found.roleId || found.role || 'lucy',
-          avatarUrl: found.avatarUrl || '🦊'
+          role: (found.role === 'admin' ? 'super' : found.role) || found.roleId || 'super',
+          roleId: (found.roleId === 'admin' ? 'super' : found.roleId) || found.role || 'super',
+          avatarUrl: found.avatarUrl || '👑',
+          displayName: found.displayName || found.name,
         })
       }, 500)
     } else {
-      setError('Sai tên đăng nhập hoặc mật khẩu.')
+      setError('Sai tên đăng nhập hoặc mật khẩu. Mật khẩu mặc định: 123456')
       setLoading(false)
     }
   }
@@ -135,18 +149,23 @@ export default function LoginPage({ onLogin }) {
   const handleRegister = async () => {
     setError('')
     if (!name.trim())       return setError('Vui lòng nhập tên đăng nhập.')
+    if (!email.trim() || !email.trim().toLowerCase().endsWith('@gmail.com')) return setError('Vui lòng nhập Email hợp lệ (phải có đuôi @gmail.com).')
     if (!password)          return setError('Vui lòng nhập mật khẩu.')
+    if (password.length < 9 || !/\d/.test(password) || !/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+      return setError('Mật khẩu phải có ít nhất 9 ký tự, gồm ít nhất 1 chữ số và 1 ký tự đặc biệt.')
+    }
     if (password !== confirm) return setError('Mật khẩu xác nhận không khớp.')
-    
+
     setLoading(true)
-    const selectedAvatarEmoji = AVATARS.find(a => a.id === selectedAvatar)?.icon || '🦊';
-    
+    const selectedAvatarObj = AVATARS.find(a => a.id === selectedAvatar)
+    const selectedAvatarEmoji = selectedAvatarObj?.icon || '🦊';
+
     const reqBody = {
       username: name.trim(),
       email: email.trim() || (name.trim() + '@lucy.edu'),
       password: password,
       avatarUrl: selectedAvatarEmoji,
-      role: 'lucy'
+      role: role
     }
 
     try {
@@ -155,11 +174,11 @@ export default function LoginPage({ onLogin }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(reqBody)
       })
-      
+
       if (res.ok) {
         setSuccess('Đăng ký thành công! Đang đăng nhập...')
         const user = await res.json()
-        setTimeout(() => onLogin({ id: user.id, name: user.username, email: user.email, role: user.role, roleId: user.role, avatarUrl: user.avatarUrl }), 800)
+        setTimeout(() => onLogin({ id: user.id, name: user.username, email: user.email, role: user.role, roleId: user.role, avatarUrl: user.avatarUrl, displayName: role === 'student' ? (selectedAvatarObj?.desc || user.username) : user.username }), 800)
         return
       } else {
         const errText = await res.text()
@@ -170,28 +189,29 @@ export default function LoginPage({ onLogin }) {
         }
       }
     } catch (e) {
-      console.warn('Backend register connection failed, using offline local account creation:', e)
+      console.warn('Backend register failed, using offline:', e)
     }
 
-    // Local offline registration fallback
     const newAcc = {
       id: 'local-' + Date.now(),
       name: reqBody.username,
       email: reqBody.email,
       password: reqBody.password,
-      role: 'lucy',
-      roleId: 'lucy',
-      avatarUrl: reqBody.avatarUrl
+      role: role,
+      roleId: role,
+      avatarUrl: reqBody.avatarUrl,
+      displayName: role === 'student' ? (selectedAvatarObj?.desc || reqBody.username) : reqBody.username,
     }
     saveAccount(newAcc)
     setSuccess('Đăng ký thành công! Đang đăng nhập...')
     setTimeout(() => onLogin({
       id: newAcc.id,
-      name: newAcc.name,
+      name: newAcc.displayName,
       email: newAcc.email,
       role: newAcc.role,
       roleId: newAcc.roleId,
-      avatarUrl: newAcc.avatarUrl
+      avatarUrl: newAcc.avatarUrl,
+      displayName: newAcc.displayName,
     }), 800)
   }
 
@@ -267,7 +287,7 @@ export default function LoginPage({ onLogin }) {
           {/* LOGIN FORM */}
           {tab === 'login' && (
             <div className="fade-in">
-              <AuthInput label="Tên đăng nhập / Email" value={name}     onChange={setName}     placeholder="Nhập admin hoặc admin@lucy.edu..." icon="👤" />
+              <AuthInput label="Tên đăng nhập / Email" value={name}     onChange={setName}     placeholder="Nhập tên đăng nhập hoặc email..." icon="👤" />
               <AuthInput label="Mật khẩu"      value={password} onChange={setPassword} placeholder="Nhập mật khẩu..."     icon="🔒" type="password" />
 
               <button onClick={handleLogin} disabled={loading} style={{
@@ -282,7 +302,6 @@ export default function LoginPage({ onLogin }) {
                 {loading ? 'Đang đăng nhập...' : '🔑 Đăng nhập'}
               </button>
 
-
             </div>
           )}
 
@@ -294,32 +313,36 @@ export default function LoginPage({ onLogin }) {
               <AuthInput value={password} onChange={setPassword} placeholder="Tạo mật khẩu..."       icon="🔒" type="password" />
               <AuthInput value={confirm}  onChange={setConfirm}  placeholder="Nhập lại mật khẩu..."  icon="🛡" type="password" />
 
+
+
               {/* AVATAR SELECTOR */}
-              <div style={{ marginBottom: 20 }}>
-                <div style={{ fontSize: 11, fontWeight: 800, color: '#64748b', marginBottom: 10, letterSpacing: '0.05em' }}>🎭 CHỌN AVATAR ẨN DANH</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, background: '#f8fafc', padding: 12, borderRadius: 16, border: '1px solid #e2e8f0' }}>
-                  {AVATARS.map((a) => (
-                    <div 
-                      key={a.id} 
-                      onClick={() => setSelectedAvatar(a.id)}
-                      style={{ 
-                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer',
-                        padding: '8px 0', borderRadius: 12,
-                        background: selectedAvatar === a.id ? '#6366f1' : '#fff',
-                        border: `1px solid ${selectedAvatar === a.id ? '#6366f1' : '#e2e8f0'}`,
-                        boxShadow: selectedAvatar === a.id ? '0 4px 12px rgba(99,102,241,0.3)' : '0 1px 2px rgba(0,0,0,0.05)',
-                        transition: 'all 0.2s',
-                      }}
-                    >
-                      <span style={{ fontSize: 24, lineHeight: 1 }}>{a.icon}</span>
-                      <span style={{ fontSize: 10, fontWeight: 600, color: selectedAvatar === a.id ? '#fff' : '#64748b' }}>{a.label}</span>
-                    </div>
-                  ))}
+              {role === 'student' && (
+                <div style={{ marginBottom: 20 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: '#64748b', marginBottom: 10, letterSpacing: '0.05em' }}>🎭 CHỌN AVATAR ẨN DANH</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, background: '#f8fafc', padding: 12, borderRadius: 16, border: '1px solid #e2e8f0' }}>
+                    {AVATARS.map((a) => (
+                      <div 
+                        key={a.id} 
+                        onClick={() => setSelectedAvatar(a.id)}
+                        style={{ 
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, cursor: 'pointer',
+                          padding: '8px 0', borderRadius: 12,
+                          background: selectedAvatar === a.id ? '#6366f1' : '#fff',
+                          border: `1px solid ${selectedAvatar === a.id ? '#6366f1' : '#e2e8f0'}`,
+                          boxShadow: selectedAvatar === a.id ? '0 4px 12px rgba(99,102,241,0.3)' : '0 1px 2px rgba(0,0,0,0.05)',
+                          transition: 'all 0.2s',
+                        }}
+                      >
+                        <span style={{ fontSize: 24, lineHeight: 1 }}>{a.icon}</span>
+                        <span style={{ fontSize: 10, fontWeight: 600, color: selectedAvatar === a.id ? '#fff' : '#64748b' }}>{a.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ textAlign: 'center', marginTop: 12, fontSize: 12, color: '#6366f1', fontWeight: 600 }}>
+                    {AVATARS.find(a => a.id === selectedAvatar)?.icon} {AVATARS.find(a => a.id === selectedAvatar)?.desc} — Danh tính ẩn trong phòng Live
+                  </div>
                 </div>
-                <div style={{ textAlign: 'center', marginTop: 12, fontSize: 12, color: '#6366f1', fontWeight: 600 }}>
-                  {AVATARS.find(a => a.id === selectedAvatar)?.icon} {AVATARS.find(a => a.id === selectedAvatar)?.desc} — Danh tính ẩn trong phòng Live
-                </div>
-              </div>
+              )}
 
               <button onClick={handleRegister} disabled={loading} style={{
                 width:'100%', padding:'14px 0', borderRadius:14, border:'none',
@@ -335,7 +358,7 @@ export default function LoginPage({ onLogin }) {
           )}
 
           <div style={{ textAlign:'center', marginTop:20, fontSize:11.5, color:'#94a3b8', fontWeight: 500 }}>
-            🌍 English · 中文 · 日本語 — LUCY Platform v2
+            🌍 English · 中文 · 日本語 — LUCY Platform v3
           </div>
         </div>
       </div>

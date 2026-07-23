@@ -61,6 +61,7 @@ public class EnglishExtractor {
                         rows.add(LucyRow.contentRow(
                             langCode,
                             stageOf(currentLevel),
+                            currentLevel,
                             levelTitle,
                             contentBuf.toString().trim()
                         ));
@@ -80,7 +81,7 @@ public class EnglishExtractor {
             if (currentLevel > 0) {
                 rows.add(LucyRow.contentRow(
                     langCode, stageOf(currentLevel),
-                    levelTitle, contentBuf.toString().trim()
+                    currentLevel, levelTitle, contentBuf.toString().trim()
                 ));
             }
         }
