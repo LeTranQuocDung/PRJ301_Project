@@ -2,8 +2,8 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { AlertCircle, Check, Copy, MessageSquare, Mic, PhoneOff, Pin, Send, Square, Users, Volume2, Hand, Gift, Sparkles, ChevronRight, Clock, Layers } from 'lucide-react'
 import { agoraService } from './services/agoraClient'
 
-const API_BASE = import.meta.env.VITE_LUCY_API_BASE || 'http://localhost:8080/LucyBackendAPI'
-const TOKEN_BASE = import.meta.env.VITE_AGORA_TOKEN_BASE || 'http://localhost:3000'
+const API_BASE = (import.meta.env.VITE_LUCY_API_BASE || 'http://localhost:8080/LucyBackendAPI').replace('localhost', window.location.hostname)
+const TOKEN_BASE = (import.meta.env.VITE_AGORA_TOKEN_BASE || 'http://localhost:3000').replace('localhost', window.location.hostname)
 const APP_ID = import.meta.env.VITE_AGORA_APP_ID || ''
 
 // ─── Avatar Persona Generator ────────────────────────────────────────────────
@@ -60,7 +60,7 @@ const STAGE_LABELS = {
   advanced:     { label: 'Cao cấp',  color: '#6366f1', bg: '#eef2ff', emoji: '🌳' },
 }
 
-export default function LiveRoomView({ canRecord = false, userRole = 'lucy', userName = '' }) {
+export default function LiveRoomView({ canRecord = false, userRole = 'lucy', userName = '', userId = 1 }) {
   const [roomInput, setRoomInput] = useState('')
   const [newRoomPublic, setNewRoomPublic] = useState(true)
   const [newRoomStage, setNewRoomStage] = useState('beginner')
@@ -228,15 +228,36 @@ export default function LiveRoomView({ canRecord = false, userRole = 'lucy', use
 
   // ─── Audio ──────────────────────────────────────────────────────────────────
   const connectAudio = async roomId => {
-    await agoraService.init(APP_ID)
+    if (!APP_ID) {
+      console.warn('[LiveRoom] No AGORA APP_ID configured, skipping audio')
+      return
+    }
+    console.log('[LiveRoom] connectAudio start, roomId:', roomId, 'APP_ID:', APP_ID)
+
+    // 1. Init client
+    const ok = await agoraService.init(APP_ID)
+    if (!ok) {
+      console.error('[LiveRoom] Agora init failed')
+      return
+    }
+
+    // 2. Register event handlers AFTER init (so client exists)
     agoraService.onUserPublished(user => setRemotes(old => old.some(x => x.uid === user.uid) ? old : [...old, { uid:user.uid }]))
     agoraService.onUserUnpublished(user => setRemotes(old => old.filter(x => x.uid !== user.uid)))
-    if (!APP_ID) return
+
+    // 3. Fetch token from our Token Server
+    console.log('[LiveRoom] Fetching token from:', `${TOKEN_BASE}/api/agora/token?channelName=${roomId}&uid=${uid}`)
     const tokenRes = await fetch(`${TOKEN_BASE}/api/agora/token?channelName=${roomId}&uid=${uid}`)
     const tokenData = await tokenRes.json()
+    console.log('[LiveRoom] Token response:', JSON.stringify(tokenData).substring(0, 100))
     if (!tokenData.token) throw new Error('Agora token is unavailable')
+
+    // 4. Join channel with real token
     await agoraService.joinRoom(APP_ID, roomId, tokenData.token, uid)
+
+    // 5. Publish local microphone
     await agoraService.publishAudio()
+    console.log('[LiveRoom] Audio connected successfully!')
   }
 
   // ─── Room actions ────────────────────────────────────────────────────────────
@@ -328,17 +349,32 @@ export default function LiveRoomView({ canRecord = false, userRole = 'lucy', use
   }
 
   // ─── Virtual Gift ────────────────────────────────────────────────────────────
-  const [myBalance, setMyBalance] = useState(150000)
-  const fetchMyBalance = async () => {
+  const [myBalance, setMyBalance] = useState(() => {
+    const stored = Number(localStorage.getItem('lucy_wallet_balance'))
+    return Number.isFinite(stored) ? stored : 0
+  })
+  const fetchMyBalance = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/wallet/balance?userId=1`)
+      const res = await fetch(`${API_BASE}/api/wallet/balance?userId=${userId}&_=${Date.now()}`, { cache:'no-store' })
       if (res.ok) {
         const data = await res.json()
-        if (data.balance !== undefined) setMyBalance(data.balance)
+        if (typeof data.balance === 'number') {
+          setMyBalance(data.balance)
+          localStorage.setItem('lucy_wallet_balance', String(data.balance))
+        }
       }
     } catch (ignored) {}
-  }
-  useEffect(() => { fetchMyBalance() }, [])
+  }, [userId])
+  useEffect(() => {
+    fetchMyBalance()
+    const timer = window.setInterval(fetchMyBalance, 3000)
+    const refreshOnFocus = () => fetchMyBalance()
+    window.addEventListener('focus', refreshOnFocus)
+    return () => {
+      window.clearInterval(timer)
+      window.removeEventListener('focus', refreshOnFocus)
+    }
+  }, [fetchMyBalance])
 
   const sendGift = async (gDef) => {
     setShowGiftPicker(false)
@@ -347,15 +383,20 @@ export default function LiveRoomView({ canRecord = false, userRole = 'lucy', use
       return
     }
     try {
-      // 1. Deduct balance from Student (id=1) and credit Mentor (id=2)
+      // 1. Deduct from the signed-in user's shared wallet and credit the mentor.
       const walletRes = await fetch(`${API_BASE}/api/wallet/send-gift`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fromUserId: 1, toMentorId: 2, giftCode: gDef.id, amount: gDef.price })
+        body: JSON.stringify({ fromUserId: userId, toMentorId: 2, giftCode: gDef.id, amount: gDef.price })
       })
       const walletData = await walletRes.json()
-      if (walletRes.ok && walletData.fromBalance !== undefined) {
-        setMyBalance(walletData.fromBalance)
+      if (!walletRes.ok) throw new Error(walletData.error || 'Không thể trừ tiền trong ví')
+      const updatedBalance = walletData.newBalance ?? walletData.fromBalance
+      if (typeof updatedBalance === 'number') {
+        setMyBalance(updatedBalance)
+        localStorage.setItem('lucy_wallet_balance', String(updatedBalance))
+      } else {
+        await fetchMyBalance()
       }
 
       // 2. Broadcast gift event to room
@@ -466,56 +507,58 @@ export default function LiveRoomView({ canRecord = false, userRole = 'lucy', use
 
         {/* Left: Create/Join + Public Rooms */}
         <div style={{ display:'flex', flexDirection:'column', gap:20 }}>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+          <div style={{ display:'grid', gridTemplateColumns: ['mentor', 'teacher', 'super', 'admin'].includes(userRole) ? '1fr 1fr' : '1fr', gap:16 }}>
             {/* Create Room */}
-            <div style={{ padding:22, border:'1px solid #e2e8f0', borderRadius:16, background:'#fff', boxShadow:'0 4px 12px rgba(0,0,0,0.02)' }}>
-              <h3 style={{ margin:'0 0 12px', fontSize:15, fontWeight:800, color:'#1e293b' }}>🎙️ Create Room</h3>
+            {['mentor', 'teacher', 'super', 'admin'].includes(userRole) && (
+              <div style={{ padding:22, border:'1px solid #e2e8f0', borderRadius:16, background:'#fff', boxShadow:'0 4px 12px rgba(0,0,0,0.02)' }}>
+                <h3 style={{ margin:'0 0 12px', fontSize:15, fontWeight:800, color:'#1e293b' }}>🎙️ Create Room</h3>
 
-              {/* Public / Private */}
-              <div style={{ display:'flex', gap:7, marginBottom:10 }}>
-                {[true, false].map(v => (
-                  <button key={String(v)} onClick={() => setNewRoomPublic(v)}
-                    style={{ flex:1, padding:'7px 6px', border:`1.5px solid ${newRoomPublic===v?'#6366f1':'#e2e8f0'}`, borderRadius:8, background:newRoomPublic===v?'#eef2ff':'#fff', color:newRoomPublic===v?'#4338ca':'#64748b', fontWeight:700, cursor:'pointer', fontSize:12 }}>
-                    {v ? 'Public' : 'Private'}
-                  </button>
-                ))}
+                {/* Public / Private */}
+                <div style={{ display:'flex', gap:7, marginBottom:10 }}>
+                  {[true, false].map(v => (
+                    <button key={String(v)} onClick={() => setNewRoomPublic(v)}
+                      style={{ flex:1, padding:'7px 6px', border:`1.5px solid ${newRoomPublic===v?'#6366f1':'#e2e8f0'}`, borderRadius:8, background:newRoomPublic===v?'#eef2ff':'#fff', color:newRoomPublic===v?'#4338ca':'#64748b', fontWeight:700, cursor:'pointer', fontSize:12 }}>
+                      {v ? 'Public' : 'Private'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Stage Selector */}
+                <label style={{ display:'block', fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4 }}>CẤPĐỘ</label>
+                <div style={{ display:'flex', gap:6, marginBottom:10 }}>
+                  {Object.entries(STAGE_LABELS).map(([k, v]) => (
+                    <button key={k} onClick={() => setNewRoomStage(k)}
+                      style={{ flex:1, padding:'6px 4px', border:`1.5px solid ${newRoomStage===k?v.color:'#e2e8f0'}`, borderRadius:8, background:newRoomStage===k?v.bg:'#fff', color:newRoomStage===k?v.color:'#64748b', fontWeight:700, cursor:'pointer', fontSize:10.5, display:'flex', flexDirection:'column', alignItems:'center', gap:1 }}>
+                      <span>{v.emoji}</span><span>{v.label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Duration */}
+                <label style={{ display:'block', fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4 }}>THỜI LƯỢNG</label>
+                <div style={{ display:'flex', gap:6, marginBottom:10 }}>
+                  {[60, 90, 120].map(d => (
+                    <button key={d} onClick={() => setNewRoomDuration(d)}
+                      style={{ flex:1, padding:'6px 4px', border:`1.5px solid ${newRoomDuration===d?'#6366f1':'#e2e8f0'}`, borderRadius:8, background:newRoomDuration===d?'#eef2ff':'#fff', color:newRoomDuration===d?'#4338ca':'#64748b', fontWeight:700, cursor:'pointer', fontSize:11 }}>
+                      {d} phút
+                    </button>
+                  ))}
+                </div>
+
+                {/* Sub-level */}
+                <label style={{ display:'block', fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4 }}>MỖI CHẶNG</label>
+                <div style={{ display:'flex', gap:6, marginBottom:14 }}>
+                  {[10, 15, 20].map(d => (
+                    <button key={d} onClick={() => setNewRoomSubLevel(d)}
+                      style={{ flex:1, padding:'6px 4px', border:`1.5px solid ${newRoomSubLevel===d?'#6366f1':'#e2e8f0'}`, borderRadius:8, background:newRoomSubLevel===d?'#eef2ff':'#fff', color:newRoomSubLevel===d?'#4338ca':'#64748b', fontWeight:700, cursor:'pointer', fontSize:11 }}>
+                      {d} phút
+                    </button>
+                  ))}
+                </div>
+
+                <button disabled={busy} onClick={createRoom} style={primaryButton}>{busy ? 'Creating...' : 'Create Room'}</button>
               </div>
-
-              {/* Stage Selector */}
-              <label style={{ display:'block', fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4 }}>CẤPĐỘ</label>
-              <div style={{ display:'flex', gap:6, marginBottom:10 }}>
-                {Object.entries(STAGE_LABELS).map(([k, v]) => (
-                  <button key={k} onClick={() => setNewRoomStage(k)}
-                    style={{ flex:1, padding:'6px 4px', border:`1.5px solid ${newRoomStage===k?v.color:'#e2e8f0'}`, borderRadius:8, background:newRoomStage===k?v.bg:'#fff', color:newRoomStage===k?v.color:'#64748b', fontWeight:700, cursor:'pointer', fontSize:10.5, display:'flex', flexDirection:'column', alignItems:'center', gap:1 }}>
-                    <span>{v.emoji}</span><span>{v.label}</span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Duration */}
-              <label style={{ display:'block', fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4 }}>THỜI LƯỢNG</label>
-              <div style={{ display:'flex', gap:6, marginBottom:10 }}>
-                {[60, 90, 120].map(d => (
-                  <button key={d} onClick={() => setNewRoomDuration(d)}
-                    style={{ flex:1, padding:'6px 4px', border:`1.5px solid ${newRoomDuration===d?'#6366f1':'#e2e8f0'}`, borderRadius:8, background:newRoomDuration===d?'#eef2ff':'#fff', color:newRoomDuration===d?'#4338ca':'#64748b', fontWeight:700, cursor:'pointer', fontSize:11 }}>
-                    {d} phút
-                  </button>
-                ))}
-              </div>
-
-              {/* Sub-level */}
-              <label style={{ display:'block', fontSize:11, fontWeight:700, color:'#64748b', marginBottom:4 }}>MỖI CHẶNG</label>
-              <div style={{ display:'flex', gap:6, marginBottom:14 }}>
-                {[10, 15, 20].map(d => (
-                  <button key={d} onClick={() => setNewRoomSubLevel(d)}
-                    style={{ flex:1, padding:'6px 4px', border:`1.5px solid ${newRoomSubLevel===d?'#6366f1':'#e2e8f0'}`, borderRadius:8, background:newRoomSubLevel===d?'#eef2ff':'#fff', color:newRoomSubLevel===d?'#4338ca':'#64748b', fontWeight:700, cursor:'pointer', fontSize:11 }}>
-                    {d} phút
-                  </button>
-                ))}
-              </div>
-
-              <button disabled={busy} onClick={createRoom} style={primaryButton}>{busy ? 'Creating...' : 'Create Room'}</button>
-            </div>
+            )}
 
             {/* Join by ID */}
             <div style={{ padding:22, border:'1px solid #e2e8f0', borderRadius:16, background:'#fff', boxShadow:'0 4px 12px rgba(0,0,0,0.02)' }}>

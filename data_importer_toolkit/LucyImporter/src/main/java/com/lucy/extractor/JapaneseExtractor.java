@@ -151,7 +151,7 @@ public class JapaneseExtractor {
                               StringBuilder buf, Map<Integer, LucyRow> map) {
         if (level <= 0) return;
         map.put(level, LucyRow.contentRow(
-            lang, stageOf(level), title, buf.toString().trim()
+            lang, stageOf(level), level, title, buf.toString().trim()
         ));
     }
 
@@ -170,7 +170,7 @@ public class JapaneseExtractor {
             // Nội dung = tất cả bullets của group
             String content = String.join("\n", bullets);
             map.put(levelNum, LucyRow.contentRow(
-                lang, stageOf(levelNum), title, content
+                lang, stageOf(levelNum), levelNum, title, content
             ));
         }
     }

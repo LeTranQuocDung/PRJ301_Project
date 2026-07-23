@@ -105,7 +105,7 @@ function Navbar({ active, setActive, user, xp, streak, onLogout }) {
             background: 'linear-gradient(135deg,#6366f1,#8b5cf6)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
             boxShadow: '0 4px 16px rgba(99,102,241,0.4)',
-          }}>🎵</div>
+          }}>{user?.avatarUrl || '🎵'}</div>
           <div>
             <div style={{ fontWeight: 900, fontSize: 18, color: '#fff', fontFamily: "'Outfit',sans-serif", letterSpacing: '-0.03em', lineHeight: 1 }}>LUCY</div>
             <div style={{ fontSize: 9, color: '#94a3b8', letterSpacing: '0.08em', fontWeight: 600, marginTop: 4 }}>LUCY PORTAL</div>
@@ -269,6 +269,9 @@ function ExploreView({ completed, setActive, setLearnLang, setLearnLesson }) {
   const cfg = LANG[tab]
   const lessons = LESSONS[tab]
   const done = completed[tab] || []
+  const FREE_LIMIT = 5
+  const subType = (() => { try { const s = localStorage.getItem('lucy_sub_type'); return (s && typeof s === 'string') ? s : 'Free' } catch { return 'Free' } })()
+  const isPremium = subType !== 'Free'
 
   return (
     <div className="fade-up" style={{ padding: '28px 28px 40px' }}>
@@ -292,36 +295,67 @@ function ExploreView({ completed, setActive, setLearnLang, setLearnLesson }) {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 14 }}>
-        {lessons.map(l => {
+        {lessons.map((l, idx) => {
           const isDone = done.includes(l.id)
+          const isLocked = !isPremium && idx >= FREE_LIMIT
           return (
             <div key={l.id} style={{
-              background: '#fff', border: `1.5px solid ${isDone ? cfg.primary + '44' : '#e2e8f0'}`,
-              borderRadius: 16, padding: '18px', cursor: 'pointer',
+              background: isLocked ? '#f8fafc' : '#fff',
+              border: `1.5px solid ${isLocked ? '#e2e8f0' : (isDone ? cfg.primary + '44' : '#e2e8f0')}`,
+              borderRadius: 16, padding: '18px', cursor: isLocked ? 'pointer' : 'pointer',
               transition: 'all 0.2s', position: 'relative',
-              boxShadow: isDone ? `0 4px 16px ${cfg.primary}18` : 'none',
+              boxShadow: isDone && !isLocked ? `0 4px 16px ${cfg.primary}18` : 'none',
+              opacity: isLocked ? 0.65 : 1,
+              filter: isLocked ? 'grayscale(0.4)' : 'none',
             }}
-              onClick={() => { setLearnLang(tab); setLearnLesson(l); setActive('learn') }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${cfg.primary}22` }}
-              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = isDone ? `0 4px 16px ${cfg.primary}18` : '' }}
+              onClick={() => {
+                if (isLocked) { setActive('premium'); return }
+                setLearnLang(tab); setLearnLesson(l); setActive('learn')
+              }}
+              onMouseEnter={e => { if (!isLocked) { e.currentTarget.style.transform = 'translateY(-3px)'; e.currentTarget.style.boxShadow = `0 8px 24px ${cfg.primary}22` } }}
+              onMouseLeave={e => { if (!isLocked) { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = isDone ? `0 4px 16px ${cfg.primary}18` : '' } }}
             >
-              {isDone && (
+              {isLocked && (
+                <div style={{ position: 'absolute', top: 12, right: 12, width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg,#f59e0b,#ef4444)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#fff', boxShadow: '0 2px 8px rgba(245,158,11,0.4)' }}>🔒</div>
+              )}
+              {isDone && !isLocked && (
                 <div style={{ position: 'absolute', top: 12, right: 12, width: 24, height: 24, borderRadius: '50%', background: cfg.gradient, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: '#fff' }}>✓</div>
               )}
               <div style={{ fontSize: 32, marginBottom: 10 }}>{l.emoji}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <span style={{ width: 22, height: 22, borderRadius: '50%', background: isDone ? cfg.gradient : '#f1f5f9', color: isDone ? '#fff' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>{l.level}</span>
+                <span style={{ width: 22, height: 22, borderRadius: '50%', background: isDone && !isLocked ? cfg.gradient : '#f1f5f9', color: isDone && !isLocked ? '#fff' : '#94a3b8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>{l.level}</span>
                 <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>{l.stage}</span>
               </div>
-              <div style={{ fontWeight: 700, fontSize: 14.5, color: '#0f172a', marginBottom: 4 }}>{l.title}</div>
+              <div style={{ fontWeight: 700, fontSize: 14.5, color: isLocked ? '#94a3b8' : '#0f172a', marginBottom: 4 }}>{l.title}</div>
               <div style={{ fontSize: 12, color: '#64748b' }}>{l.vi}</div>
-              <div style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: isDone ? cfg.primary : '#94a3b8', background: isDone ? cfg.light : '#f8fafc', padding: '4px 10px', borderRadius: 20 }}>
-                {isDone ? '✅ Completed' : '▶ Learn Now'} {!isDone && `+${XP_PER_LESSON} XP`}
+              <div style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600,
+                color: isLocked ? '#f59e0b' : (isDone ? cfg.primary : '#94a3b8'),
+                background: isLocked ? '#fef3c7' : (isDone ? cfg.light : '#f8fafc'),
+                padding: '4px 10px', borderRadius: 20 }}>
+                {isLocked ? '🔒 Premium' : (isDone ? '✅ Completed' : '▶ Learn Now')} {!isDone && !isLocked && `+${XP_PER_LESSON} XP`}
               </div>
             </div>
           )
         })}
       </div>
+
+      {!isPremium && lessons.length > FREE_LIMIT && (
+        <div onClick={() => setActive('premium')} style={{
+          marginTop: 20, padding: '16px 24px', borderRadius: 16, cursor: 'pointer',
+          background: 'linear-gradient(135deg, #1e1b4b, #7c3aed)', color: '#fff',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          boxShadow: '0 8px 32px rgba(124,58,237,0.3)', transition: 'transform 0.2s',
+        }}
+          onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+          onMouseLeave={e => e.currentTarget.style.transform = ''}
+        >
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 800 }}>🔒 Mở khóa toàn bộ {lessons.length} bài học</div>
+            <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>Nâng cấp Premium để truy cập không giới hạn tất cả bài học</div>
+          </div>
+          <div style={{ fontSize: 24 }}>→</div>
+        </div>
+      )}
     </div>
   )
 }
@@ -487,17 +521,22 @@ function LearnView({ learnLang, setLearnLang, learnLesson, setLearnLesson, compl
       <div style={{ marginTop: 24, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 16, padding: 20 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 14 }}>Other Lessons — {cfg.flag} {cfg.name}</div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {lessons.slice(0, 8).map(l => (
-            <button key={l.id} onClick={() => { setLearnLesson(l); setStep(0); setShowAns(false) }} style={{
-              padding: '6px 14px', borderRadius: 20,
-              background: l.id === lesson.id ? cfg.gradient : '#f8fafc',
-              color: l.id === lesson.id ? '#fff' : '#64748b',
-              border: `1.5px solid ${l.id === lesson.id ? 'transparent' : '#e2e8f0'}`,
-              fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
-            }}>
-              {l.emoji} {l.level}
-            </button>
-          ))}
+          {lessons.slice(0, 8).map((l, idx) => {
+            const subType = (() => { try { const s = localStorage.getItem('lucy_sub_type'); return (s && typeof s === 'string') ? s : 'Free' } catch { return 'Free' } })()
+            const locked = subType === 'Free' && idx >= 5
+            return (
+              <button key={l.id} onClick={() => { if (!locked) { setLearnLesson(l); setStep(0); setShowAns(false) } }} style={{
+                padding: '6px 14px', borderRadius: 20,
+                background: l.id === lesson.id ? cfg.gradient : (locked ? '#fef3c7' : '#f8fafc'),
+                color: l.id === lesson.id ? '#fff' : (locked ? '#d97706' : '#64748b'),
+                border: `1.5px solid ${l.id === lesson.id ? 'transparent' : (locked ? '#fde68a' : '#e2e8f0')}`,
+                fontSize: 12, fontWeight: 600, cursor: locked ? 'not-allowed' : 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
+                opacity: locked ? 0.7 : 1,
+              }}>
+                {locked ? '🔒' : l.emoji} {l.level}
+              </button>
+            )
+          })}
         </div>
       </div>
     </div>
@@ -505,8 +544,8 @@ function LearnView({ learnLang, setLearnLang, learnLesson, setLearnLesson, compl
 }
 
 // Live View (integrated with Agora Web SDK service)
-function LiveView() {
-  return <LiveRoomView />
+function LiveView({ user }) {
+  return <LiveRoomView userId={user?.id || 1} userName={user?.fullName || user?.name || user?.username || ''} />
 }
 
 function LegacyLiveView() {
@@ -1051,6 +1090,7 @@ function PremiumView({ user, setActive, setLearnLang }) {
   const [topupOpen, setTopupOpen] = useState(false)
   const [topupLoading, setTopupLoading] = useState(false)
   const [topupAmount, setTopupAmount] = useState(1000000)
+  const [topupAmountInput, setTopupAmountInput] = useState('1000000')
   const [paymentReference, setPaymentReference] = useState('')
   const [sepayPaymentInfo, setSepayPaymentInfo] = useState(null)
   const [sepayPaymentLoading, setSepayPaymentLoading] = useState(false)
@@ -1145,6 +1185,19 @@ function PremiumView({ user, setActive, setLearnLang }) {
     setTopupSecondsLeft(300)
     setPaymentReference(`LUCY${userId}${Date.now().toString().slice(-8)}`)
     setTopupOpen(true)
+  }
+
+  const applyTopupAmount = (rawAmount) => {
+    const amount = Math.floor(Number(String(rawAmount).replace(/[^0-9]/g, '')))
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setTopupAmountInput(String(topupAmount))
+      return
+    }
+    setTopupAmount(amount)
+    setTopupAmountInput(String(amount))
+    setTopupExpiresAt('')
+    setTopupSecondsLeft(300)
+    setPaymentReference(`LUCY${user?.id || 1}${Date.now().toString().slice(-8)}`)
   }
 
   useEffect(() => {
@@ -1458,9 +1511,27 @@ function PremiumView({ user, setActive, setLearnLang }) {
             </div>
 
             <label style={{ display:'block', fontSize:12, fontWeight:800, color:'#475569', marginBottom:7 }}>Số tiền nạp</label>
-            <select value={topupAmount} onChange={e => { setTopupAmount(Number(e.target.value)); setTopupExpiresAt(''); setTopupSecondsLeft(300); setPaymentReference(`LUCY${user?.id || 1}${Date.now().toString().slice(-8)}`) }} style={{ width:'100%', padding:'11px 12px', border:'1px solid #cbd5e1', borderRadius:10, fontFamily:'inherit', marginBottom:12 }}>
-              {[100000, 200000, 500000, 1000000, 2000000].map(amount => <option key={amount} value={amount}>{amount.toLocaleString('vi-VN')} VND</option>)}
-            </select>
+            <div style={{ position:'relative', marginBottom:10 }}>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={topupAmountInput}
+                onChange={e => setTopupAmountInput(e.target.value.replace(/[^0-9]/g, ''))}
+                onBlur={e => applyTopupAmount(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') { applyTopupAmount(e.currentTarget.value); e.currentTarget.blur() } }}
+                aria-label="Số tiền nạp tùy chọn"
+                placeholder="Nhập số tiền muốn nạp"
+                style={{ width:'100%', boxSizing:'border-box', padding:'11px 54px 11px 12px', border:'1px solid #cbd5e1', borderRadius:10, fontFamily:'inherit', fontWeight:700 }}
+              />
+              <span style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', color:'#64748b', fontSize:12, fontWeight:800 }}>VND</span>
+            </div>
+            <div style={{ display:'flex', flexWrap:'wrap', gap:7, marginBottom:12 }}>
+              {[100000, 200000, 500000, 1000000, 2000000].map(amount => (
+                <button key={amount} type="button" onClick={() => applyTopupAmount(amount)} style={{ border:'1px solid #cbd5e1', borderRadius:999, padding:'6px 9px', background:topupAmount === amount ? '#eef2ff' : '#fff', color:topupAmount === amount ? '#4338ca' : '#475569', cursor:'pointer', fontSize:11.5, fontWeight:800 }}>
+                  {amount.toLocaleString('vi-VN')}đ
+                </button>
+              ))}
+            </div>
 
             <div style={{ marginBottom:16, padding:'10px 12px', borderRadius:10, textAlign:'center', background:topupSecondsLeft <= 60 ? '#fff1f2' : '#eef2ff', color:topupSecondsLeft <= 60 ? '#be123c' : '#4338ca', fontSize:13, fontWeight:800 }}>
               Mã thanh toán còn hiệu lực: {String(Math.floor(topupSecondsLeft / 60)).padStart(2, '0')}:{String(topupSecondsLeft % 60).padStart(2, '0')}
@@ -2015,7 +2086,7 @@ function ProfileView({ user, xp, streak, completed, onLogout }) {
       <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', fontFamily: "'Outfit',sans-serif", margin: '0 0 20px' }}>User Profile 👤</h1>
 
       <div style={{ background: 'linear-gradient(135deg,#6366f1,#06b6d4)', borderRadius: 20, padding: '28px 32px', color: '#fff', marginBottom: 22, display: 'flex', alignItems: 'center', gap: 24 }}>
-        <div style={{ width: 72, height: 72, borderRadius: 20, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 38, flexShrink: 0 }}>🎓</div>
+        <div style={{ width: 72, height: 72, borderRadius: 20, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 38, flexShrink: 0 }}>{user?.avatarUrl || '🎓'}</div>
         <div>
           <div style={{ fontSize: 26, fontWeight: 900, fontFamily: "'Outfit',sans-serif", marginBottom: 4 }}>{user.name}</div>
           <div style={{ fontSize: 14, opacity: 0.85 }}>{roleLabel[user.roleId] || roleLabel[user.role] || '🎓 Student'}</div>
@@ -2663,23 +2734,33 @@ function enrichLesson(title, langCode, rawVocab, rawGrammar) {
 
     let generatedGrammar = "";
     let cleanT = cleanTitle.toLowerCase();
-    if (cleanT.includes("routine") || cleanT.includes("daily") || cleanT.includes("week")) {
-      generatedGrammar = "Subject + Simple Present Verb + time/frequency\n(Diễn tả thói quen hàng ngày)\nExample: I usually exercise in the morning. (Tôi thường tập thể dục vào buổi sáng)";
-    } else if (cleanT.includes("food") || cleanT.includes("drink") || cleanT.includes("eat")) {
-      generatedGrammar = "Subject + like/prefer + Food/Drink\n(Bày tỏ sở thích ăn uống)\nExample: I like drinking hot milk before sleeping. (Tôi thích uống sữa nóng trước khi ngủ)";
-    } else if (cleanT.includes("family") || cleanT.includes("home") || cleanT.includes("age")) {
-      generatedGrammar = "Subject + have/has + Noun\n(Diễn tả sự sở hữu hoặc giới thiệu mối quan hệ)\nExample: I have a small family with 4 members. (Tôi có một gia đình nhỏ gồm 4 thành viên)";
-    } else if (cleanT.includes("yesterday") || cleanT.includes("past") || cleanT.includes("last")) {
-      generatedGrammar = "Subject + Simple Past Verb (V2/V-ed)\n(Diễn đạt sự việc đã kết thúc trong quá khứ)\nExample: I cleaned my house yesterday. (Hôm qua tôi đã dọn dẹp nhà cửa)";
-    } else if (cleanT.includes("travel") || cleanT.includes("transport") || cleanT.includes("place")) {
-      generatedGrammar = "Subject + go to + Location + by + Vehicle\n(Nói về cách thức di chuyển đến một địa điểm)\nExample: We go to school by bus. (Chúng tôi đi học bằng xe buýt)";
+    
+    // Dynamic Grammar Generator
+    if (cleanT.includes("routine") || cleanT.includes("daily") || cleanT.includes("week") || cleanT.includes("time")) {
+      generatedGrammar = "Structure: Subject + Adverb of Frequency + Verb\n(Mẫu câu miêu tả thói quen/lịch trình)\nExample: I always practice English in the morning.";
+    } else if (cleanT.includes("food") || cleanT.includes("drink") || cleanT.includes("eat") || cleanT.includes("restaurant")) {
+      generatedGrammar = "Structure: Subject + would like / prefer + Noun\n(Mẫu câu gọi món hoặc sở thích ăn uống)\nExample: I would like a cup of coffee, please.";
+    } else if (cleanT.includes("family") || cleanT.includes("home") || cleanT.includes("age") || cleanT.includes("friend")) {
+      generatedGrammar = "Structure: Subject + be/have + Noun/Adjective\n(Mẫu câu miêu tả người hoặc sự sở hữu)\nExample: My best friend is very kind and helpful.";
+    } else if (cleanT.includes("yesterday") || cleanT.includes("past") || cleanT.includes("last") || cleanT.includes("history")) {
+      generatedGrammar = "Structure: Subject + Verb(past) + Object + Time\n(Mẫu câu kể lại sự việc đã xảy ra)\nExample: We visited the museum last weekend.";
+    } else if (cleanT.includes("travel") || cleanT.includes("transport") || cleanT.includes("place") || cleanT.includes("trip")) {
+      generatedGrammar = "Structure: Subject + plan to / go to + Location\n(Mẫu câu dự định du lịch hoặc di chuyển)\nExample: I plan to travel to Japan next year.";
+    } else if (cleanT.includes("work") || cleanT.includes("job") || cleanT.includes("business") || cleanT.includes("office")) {
+      generatedGrammar = "Structure: Subject + am/is/are responsible for + Verb-ing\n(Mẫu câu miêu tả trách nhiệm công việc)\nExample: I am responsible for managing the project.";
+    } else if (cleanT.includes("problem") || cleanT.includes("solution") || cleanT.includes("advice")) {
+      generatedGrammar = "Structure: Subject + should / ought to + Verb\n(Mẫu câu đưa ra lời khuyên hoặc giải pháp)\nExample: You should take a rest when feeling tired.";
+    } else if (cleanT.includes("future") || cleanT.includes("plan") || cleanT.includes("goal")) {
+      generatedGrammar = "Structure: Subject + will / am going to + Verb\n(Mẫu câu diễn tả dự định trong tương lai)\nExample: I am going to achieve my goals this year.";
     } else {
-      generatedGrammar = `Subject + modal verb (can/must/should) + Verb\n(Mẫu câu thông dụng trong chủ đề ${title})\nExample: You should study daily to improve. (Bạn nên học hàng ngày để tiến bộ)`;
+      generatedGrammar = `Key Structure for ${title}\n(Mẫu câu trọng tâm cho chủ đề ${title})\nExample: Understanding ${title.toLowerCase()} is essential for daily communication.`;
     }
 
-    const firstWord = lines.length > 0 ? lines[0].replace(/^\d+[:：\.\-\s]*/g, "").trim() : (title || "Lesson");
-    const question = `Dịch hoặc tạo câu hoàn chỉnh sử dụng: "${firstWord}"`;
-    const answer = `Create a meaningful sentence with: "${firstWord}"`;
+    const firstWord = lines.length > 0 ? lines[0].replace(/^[\d:：\.\-\s•]*/g, "").trim() : (title || "this topic");
+    const secondWord = lines.length > 1 ? lines[1].replace(/^[\d:：\.\-\s•]*/g, "").trim() : "practice";
+    
+    const question = `Complete the translation for this sentence:\n"Mọi người thường nói về [${firstWord}] khi thảo luận chủ đề ${title}."`;
+    const answer = `People often talk about ${firstWord} when discussing ${title.toLowerCase()}.`;
 
     return {
       vocab: formattedVocab,
@@ -2692,30 +2773,40 @@ function enrichLesson(title, langCode, rawVocab, rawGrammar) {
     const answerText = rawGrammar || "";
     
     let zhVocab = "";
-    if (questionText.includes("名字")) {
+    if (questionText.includes("名字") || cleanTitle.includes("NAME")) {
       zhVocab = "• 你 (nǐ): Bạn, Anh, Chị\n• 叫 (jiào): Gọi là\n• 什么 (shénme): Cái gì\n• 名字 (míngzi): Tên";
-    } else if (questionText.includes("国") || questionText.includes("人")) {
+    } else if (questionText.includes("国") || questionText.includes("人") || cleanTitle.includes("COUNTRY")) {
       zhVocab = "• 是 (shì): Là\n• 哪 (nǎ): Nào\n• 国 (guó): Nước, quốc gia\n• 人 (rén): Người";
-    } else if (questionText.includes("岁") || questionText.includes("多大")) {
+    } else if (questionText.includes("岁") || questionText.includes("多大") || cleanTitle.includes("AGE")) {
       zhVocab = "• 多大 (duōdà): Bao nhiêu tuổi\n• 岁 (suì): Tuổi\n• 几 (jǐ): Mấy";
+    } else if (cleanTitle.includes("WORK") || cleanTitle.includes("JOB")) {
+      zhVocab = "• 工作 (gōngzuò): Công việc\n• 公司 (gōngsī): Công ty\n• 忙 (máng): Bận rộn";
     } else {
-      zhVocab = `• ${questionText} (Học mẫu câu giao tiếp tiếng Trung)`;
+      // Dynamic fallback for Chinese
+      const lines = (rawVocab || "").split("\n").map(s => s.trim()).filter(s => s);
+      const fw = lines.length > 0 ? lines[0] : title;
+      zhVocab = `• ${fw}\n  (Mẫu câu giao tiếp tiếng Trung cơ bản. Hãy dịch nghĩa sang tiếng Việt để ghi nhớ tốt hơn)\n  Ví dụ: 我喜欢学习 ${fw}.`;
     }
 
     let zhGrammar = "";
-    if (questionText.includes("什么")) {
-      zhGrammar = "Chủ ngữ + Verb + 什么 + Noun?\n(Cấu trúc câu hỏi 'cái gì' phổ biến)\nExample: 你吃什么？ (Bạn ăn cái gì?)";
-    } else if (questionText.includes("是")) {
-      zhGrammar = "Chủ ngữ + 是 + Noun\n(Cấu trúc khẳng định: Ai đó/Cái gì là cái gì)\nExample: 我是学生。 (Tôi là học sinh.)";
+    if (questionText.includes("什么") || cleanTitle.includes("NAME")) {
+      zhGrammar = "Cấu trúc: Chủ ngữ + Verb + 什么 + Noun?\n(Dùng để hỏi 'cái gì')\nExample: 你叫什么名字？ (Bạn tên là gì?)";
+    } else if (questionText.includes("是") || cleanTitle.includes("COUNTRY")) {
+      zhGrammar = "Cấu trúc: Chủ ngữ + 是 + Noun\n(Cấu trúc khẳng định: Ai đó/Cái gì là cái gì)\nExample: 我是学生。 (Tôi là học sinh.)";
+    } else if (cleanTitle.includes("AGE")) {
+      zhGrammar = "Cấu trúc: Chủ ngữ + 多大？\n(Dùng để hỏi tuổi)\nExample: 你今年多大？ (Năm nay bạn bao nhiêu tuổi?)";
+    } else if (cleanTitle.includes("WORK") || cleanTitle.includes("JOB")) {
+      zhGrammar = "Cấu trúc: Chủ ngữ + 在 + Địa điểm + 工作\n(Dùng để chỉ nơi làm việc)\nExample: 我在银行工作。 (Tôi làm việc ở ngân hàng.)";
     } else {
-      zhGrammar = "Chủ ngữ + 怎么样？\n(Hỏi về tính chất, tình trạng của sự việc)\nExample: 今天天气怎么样？ (Thời tiết hôm nay thế nào?)";
+      zhGrammar = `Cấu trúc trọng tâm bài ${title}\n(Mẫu câu giao tiếp chủ đề ${title})\nExample: 你的 ${title} 怎么样？ (Chủ đề ${title} của bạn thế nào?)`;
     }
 
+    const firstWord = (rawVocab || title || "").split("\n")[0].trim() || title;
     return {
       vocab: zhVocab,
       grammar: zhGrammar,
-      question: `Translate to Chinese: "${questionText}"`,
-      answer: answerText
+      question: `Translate this sentence to Chinese: "Chủ đề hôm nay chúng ta học là ${firstWord}."`,
+      answer: `我们今天学习的主题是 ${firstWord}。`
     };
   }
 
@@ -2912,7 +3003,7 @@ export default function UserApp({ user, onLogout }) {
       case 'home':      return <HomeView user={user} xp={xp} streak={streak} completed={completed} setActive={setActive} setLearnLang={setLearnLang} />
       case 'explore':   return <ExploreView completed={completed} setActive={setActive} setLearnLang={setLearnLang} setLearnLesson={setLearnLesson} />
       case 'learn':     return <LearnView learnLang={learnLang} setLearnLang={setLearnLang} learnLesson={learnLesson} setLearnLesson={setLearnLesson} completed={completed} onComplete={handleComplete} />
-      case 'live':      return <LiveView />
+      case 'live':      return <LiveView user={user} />
       case 'podcasts':  return <PodcastsView />
       case 'premium':   return <PremiumView user={user} setActive={setActive} setLearnLang={setLearnLang} />
       case 'gifts':     return <GiftsView xp={xp} onRedeem={handleRedeem} />

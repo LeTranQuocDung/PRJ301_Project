@@ -128,6 +128,13 @@ public class Main {
             return;
         }
 
+        // Sort allRows by languageCode and levelNum so insertion order matches progression
+        allRows.sort((r1, r2) -> {
+            int cmpLang = r1.getLanguageCode().compareTo(r2.getLanguageCode());
+            if (cmpLang != 0) return cmpLang;
+            return Integer.compare(r1.getLevelNum(), r2.getLevelNum());
+        });
+
         // Buoc 4: Insert vao DB
         System.out.println("\n[4] Insert vao LucyContents...");
         try {

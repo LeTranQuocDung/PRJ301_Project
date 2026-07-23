@@ -4,6 +4,10 @@ import AdminApp from './AdminApp.jsx'
 import UserApp from './UserApp.jsx'
 
 export default function App() {
+  if (localStorage.getItem('lucy_seed_version') !== 'v7-force-logout') {
+    localStorage.removeItem('lucy_user');
+    localStorage.setItem('lucy_seed_version', 'v7-force-logout');
+  }
   const [user, setUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem('lucy_user')) } catch { return null }
   })

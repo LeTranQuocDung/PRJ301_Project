@@ -151,44 +151,53 @@ const StatCard = ({ label, value, icon, accent = 'blue', sub }) => {
 }
 
 // ─── Sidebar ────────────────────────────────────────────────────────────────
+// LUCY Pro (Mentor): Tạo phòng dạy học, quản lý giáo trình, nhận quà, bảng xếp hạng
+// LUCY Super (Content Creator): Tất cả quyền Pro + ghi âm Podcast, Premium Content, Import, AI, Users
 const NAV_GROUPS = [
   { items: [{ id:'dashboard', icon:<LayoutDashboard size={15}/>, label:'Dashboard', emoji:'📊' }] },
-  { label:'COURSES', color:'#3b82f6', items:[
+  // --- Mentor: Quản lý giáo trình ---
+  { label:'GIÁO TRÌNH', showOnlyFor: ['mentor'], color:'#3b82f6', items:[
     { id:'courses', icon:<BookOpen size={15}/>, label:'Courses', emoji:'📚' },
     { id:'chapters', icon:<Layers size={15}/>, label:'Chapters', emoji:'📖' },
     { id:'lessons', icon:<FileText size={15}/>, label:'Lessons', emoji:'📝' },
   ]},
-  { label:'ROOMS', color:'#10b981', items:[
+  // --- Mentor: Phòng dạy học ---
+  { label:'PHÒNG DẠY HỌC', color:'#10b981', items:[
     { id:'live-rooms', icon:<Mic size={15}/>, label:'Live Rooms', emoji:'🎙' },
   ]},
-  { label:'CONTENT', color:'#8b5cf6', items:[
-    { id:'podcasts', icon:<Headphones size={15}/>, label:'Podcasts', emoji:'🎧' },
-    { id:'premium', icon:<Star size={15}/>, label:'Premium', emoji:'⭐' },
+  // --- Mentor Workspace (chỉ Mentor) ---
+  { label:'MENTOR WORKSPACE', showOnlyFor: ['mentor'], color:'#8b5cf6', items:[
+    { id:'teacher-profile', icon:<Users size={15}/>, label:'Hồ sơ Mentor', emoji:'👤' },
+    { id:'teacher-classrooms', icon:<BookOpen size={15}/>, label:'Lớp học', emoji:'👨‍🏫' },
+    { id:'teacher-materials', icon:<FileText size={15}/>, label:'Tài liệu', emoji:'📚' },
   ]},
-  { label:'IMPORT', hideFor: ['pro'], color:'#f59e0b', items:[
+  // --- Super: Podcast & Premium (chỉ Super) ---
+  { label:'NỘI DUNG SÁNG TẠO', hideFor: ['mentor'], color:'#8b5cf6', items:[
+    { id:'podcasts', icon:<Headphones size={15}/>, label:'Podcasts', emoji:'🎧', desc:'Ghi âm Live → Podcast' },
+    { id:'premium', icon:<Star size={15}/>, label:'Premium Content', emoji:'⭐', desc:'Nội dung thu phí' },
+  ]},
+  // --- Super: Import (chỉ Super) ---
+  { label:'IMPORT', hideFor: ['mentor'], color:'#f59e0b', items:[
     { id:'import', icon:<Upload size={15}/>, label:'Import Files', emoji:'📤' },
     { id:'preview', icon:<Eye size={15}/>, label:'DOCX Preview', emoji:'👁' },
     { id:'imported-data', icon:<Database size={15}/>, label:'Imported Data', emoji:'🗄️' },
   ]},
-  { label:'AI', hideFor: ['pro'], color:'#ec4899', items:[
+  // --- Super: AI (chỉ Super) ---
+  { label:'AI', hideFor: ['mentor'], color:'#ec4899', items:[
     { id:'insights', icon:<Sparkles size={15}/>, label:'AI Insights', emoji:'✨' },
     { id:'templates', icon:<Zap size={15}/>, label:'AI Templates', emoji:'⚡' },
     { id:'questions', icon:<MessageSquare size={15}/>, label:'AI Questions', emoji:'🤖' },
   ]},
-  { label:'USERS', hideFor: ['pro'], color:'#06b6d4', items:[
+  // --- Super: Quản lý Users (chỉ Super) ---
+  { label:'USERS', hideFor: ['mentor'], color:'#06b6d4', items:[
     { id:'users', icon:<Users size={15}/>, label:'Users', emoji:'👥' },
-  ]},
-  { label:'MENTOR WORKSPACE', showOnlyFor: ['pro'], color:'#8b5cf6', items:[
-    { id:'teacher-profile', icon:<Users size={15}/>, label:'Profile', emoji:'👤' },
-    { id:'teacher-classrooms', icon:<BookOpen size={15}/>, label:'Classrooms', emoji:'👨‍🏫' },
-    { id:'teacher-materials', icon:<FileText size={15}/>, label:'Materials', emoji:'📚' },
   ]},
 ]
 
 function Sidebar({ active, setActive, user, onLogout }) {
   const [hov, setHov] = useState(null)
   const sidebarBorder = 'rgba(255,255,255,0.07)';
-  const isMentor = user.role === 'pro';
+  const isMentor = user?.role === 'mentor' || user?.name?.toLowerCase().includes('mentor');
   
   return (
     <nav style={{
@@ -223,14 +232,14 @@ function Sidebar({ active, setActive, user, onLogout }) {
               background: isMentor ? 'linear-gradient(135deg,#8b5cf6,#d946ef)' : 'linear-gradient(135deg,#6366f1,#06b6d4)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0
             }}>
-              {isMentor ? '👨‍🏫' : '🌟'}
+              {isMentor ? '👨‍🏫' : '👑'}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {user.displayName || user.username || user.name}
               </div>
               <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 2, fontWeight: 600 }}>
-                {isMentor ? 'LUCY Pro · Mentor' : 'LUCY Super · Creator'}
+                {isMentor ? 'LUCY Pro · Giảng viên' : 'LUCY Super · Content Creator'}
               </div>
             </div>
           </div>
@@ -292,7 +301,7 @@ function Sidebar({ active, setActive, user, onLogout }) {
 // ─── Dashboard View ─────────────────────────────────────────────────────────
 function DashboardView({ setActive, user }) {
   const [liveRoomStats, setLiveRoomStats] = useState({ total:0, publicCount:0 })
-  const isMentor = user?.role === 'pro';
+  const isMentor = user?.role === 'mentor' || user?.name?.toLowerCase().includes('mentor');
 
   useEffect(() => {
     let active = true
@@ -305,24 +314,40 @@ function DashboardView({ setActive, user }) {
     return () => { active=false; clearInterval(timer) }
   }, [])
 
-  const stats = [
-    { label:'Courses', value:'7', icon:'📚', accent:'blue', sub:'3 languages' },
-    { label:'Students', value:'455', icon:'🎓', accent:'green', sub:'+12 this week' },
-    { label:'Lessons', value:'159', icon:'📝', accent:'purple', sub:'EN/ZH/JA' },
+  const stats = isMentor ? [
+    { label:'Khóa học', value:'7', icon:'📚', accent:'blue', sub:'3 ngôn ngữ' },
+    { label:'Học viên', value:'455', icon:'🎓', accent:'green', sub:'+12 tuần này' },
+    { label:'Bài học', value:'159', icon:'📝', accent:'purple', sub:'EN/ZH/JA' },
+    { label:'Live Rooms', value:String(liveRoomStats.total), icon:'🔴', accent:'red', sub:`${liveRoomStats.publicCount} public` },
+  ] : [
+    { label:'Khóa học', value:'7', icon:'📚', accent:'blue', sub:'3 ngôn ngữ' },
+    { label:'Học viên', value:'455', icon:'🎓', accent:'green', sub:'+12 tuần này' },
+    { label:'Podcasts', value:'12', icon:'🎧', accent:'purple', sub:'3 đã thu phí' },
     { label:'Live Rooms', value:String(liveRoomStats.total), icon:'🔴', accent:'red', sub:`${liveRoomStats.publicCount} public` },
   ]
-  const recent = [
-    { action:'New student registered', who:'Nguyen_An', when:'5 min ago', icon:'🎓', color:'#10b981' },
-    { action:'DOCX import success', who:'LISA_English_Stage1.docx', when:'1 hour ago', icon:'📤', color:'#3b82f6' },
-    { action:'Live Room started', who:'English Beginner – Daily Conversation', when:'2 hours ago', icon:'🎙', color:'#ef4444' },
-    { action:'AI generated 5 new questions', who:'AI Assistant', when:'3 hours ago', icon:'🤖', color:'#8b5cf6' },
-    { action:'Student completed Level 3', who:'Tran_Linh', when:'4 hours ago', icon:'🏆', color:'#f59e0b' },
+  const recent = isMentor ? [
+    { action:'Học viên mới đăng ký', who:'Nguyen_An', when:'5 phút trước', icon:'🎓', color:'#10b981' },
+    { action:'Phòng Live bắt đầu', who:'English Beginner – Daily Conversation', when:'2 giờ trước', icon:'🎙', color:'#ef4444' },
+    { action:'Học viên hoàn thành Level 3', who:'Tran_Linh', when:'4 giờ trước', icon:'🏆', color:'#f59e0b' },
+    { action:'Nhận quà từ học viên', who:'Nguyen_Bao tặng ⭐ Star', when:'5 giờ trước', icon:'🎁', color:'#8b5cf6' },
+    { action:'Tài liệu mới được ghim', who:'LISA Unit 5 – Grammar Notes', when:'6 giờ trước', icon:'📌', color:'#3b82f6' },
+  ] : [
+    { action:'Podcast mới được tạo', who:'Live English Beginner #12', when:'1 giờ trước', icon:'🎧', color:'#8b5cf6' },
+    { action:'Premium Content đã đăng', who:'LISA Stage 2 – Full Course', when:'2 giờ trước', icon:'⭐', color:'#f59e0b' },
+    { action:'DOCX import thành công', who:'LISA_English_Stage1.docx', when:'3 giờ trước', icon:'📤', color:'#3b82f6' },
+    { action:'AI tạo 5 câu hỏi mới', who:'AI Assistant', when:'4 giờ trước', icon:'🤖', color:'#ec4899' },
+    { action:'Học viên mới đăng ký', who:'Nguyen_An', when:'5 giờ trước', icon:'🎓', color:'#10b981' },
   ]
-  const quickActions = [
-    { label:'Add Course', icon:'📚', accent:'blue', id:'courses' },
-    { label:'Live Room', icon:'🎙', accent:'green', id:'live-rooms' },
-    { label:'AI Questions', icon:'🤖', accent:'purple', id:'questions' },
-    { label:'Import File', icon:'📤', accent:'amber', id:'import' },
+  const quickActions = isMentor ? [
+    { label:'Tạo phòng dạy', icon:'🎙', accent:'green', id:'live-rooms' },
+    { label:'Giáo trình', icon:'📚', accent:'blue', id:'courses' },
+    { label:'Lớp học', icon:'👨‍🏫', accent:'purple', id:'teacher-classrooms' },
+    { label:'Tài liệu', icon:'📝', accent:'amber', id:'teacher-materials' },
+  ] : [
+    { label:'Tạo phòng', icon:'🎙', accent:'green', id:'live-rooms' },
+    { label:'Podcasts', icon:'🎧', accent:'purple', id:'podcasts' },
+    { label:'Premium', icon:'⭐', accent:'amber', id:'premium' },
+    { label:'Import', icon:'📤', accent:'blue', id:'import' },
   ]
 
   return (
@@ -339,7 +364,7 @@ function DashboardView({ setActive, user }) {
         <div style={{ position: 'absolute', top: -30, right: -30, width: 150, height: 150, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
         <div style={{ position: 'absolute', bottom: -20, right: 60, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
         <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 6, fontWeight: 700, letterSpacing: '0.1em' }}>
-          {isMentor ? 'LUCY PRO WORKSPACE' : 'LUCY SUPER DASHBOARD'}
+          {isMentor ? 'LUCY PRO · GIẢNG VIÊN' : 'LUCY SUPER · CONTENT CREATOR'}
         </div>
         <h1 style={{ fontSize: 28, fontWeight: 900, margin: '0 0 8px', fontFamily: "'Outfit',sans-serif", letterSpacing: '-0.03em' }}>
           Welcome back, {user?.displayName || user?.username || 'User'}! 👋
@@ -1442,10 +1467,10 @@ function UsersView({ user }) {
     const [editId, setEditId] = useState(null)
     const [editingRole, setEditingRole] = useState(null)
     const [tempRole, setTempRole] = useState('')
-    const [form,   setForm]   = useState({ name:'', email:'', role:'lucy' })
+    const [form,   setForm]   = useState({ name:'', email:'', role:'student' })
   
-    const roleAccent = { 'lucy':'blue', 'pro':'purple', 'super':'green' }
-    const roleIcon   = { 'lucy':'[LUCY] ', 'pro':'[Pro] ', 'super':'[Super] ' }
+    const roleAccent = { 'student':'blue', 'mentor':'purple', 'super':'green' }
+    const roleIcon   = { 'student':'[LUCY] ', 'mentor':'[Pro] ', 'super':'[Super] ' }
 
     useEffect(() => {
       fetchUsers()
@@ -1486,7 +1511,7 @@ function UsersView({ user }) {
         if (res.ok) {
           alert('Added successfully! Generated password is: ' + generatedPassword)
           fetchUsers()
-          setForm({name:'',email:'',role:'lucy'})
+          setForm({name:'',email:'',role:'student'})
         } else {
           const err = await res.json()
           alert('Error: ' + err.error)
@@ -2705,15 +2730,74 @@ export default function AdminApp({ user, onLogout }) {
         const fetchLang = async (dbLangCode) => {
           const res = await fetch(`${API_BASE}/api/lessons?lang=${dbLangCode}`)
           const data = await res.json()
-          return data.map((l, idx) => ({
-            id: dbLangCode.toLowerCase() + (idx + 1),
-            level: idx + 1,
-            title: l.title,
-            stage: l.stage,
-            vocab: l.vocab,
-            grammar: l.grammar,
-            emoji: '📖'
-          }))
+          return data.map((l, idx) => {
+            let genGrammar = l.grammar || "";
+            let genVocab = l.vocab || "";
+            let genQ = "";
+            let genA = "";
+            
+            const cleanT = (l.title || "").toLowerCase();
+            const lines = genVocab.split("\n").map(s => s.trim()).filter(s => s);
+            const firstWord = lines.length > 0 ? lines[0].replace(/^[\d:：\.\-\s•]*/g, "").trim() : (l.title || "this topic");
+
+            if (dbLangCode === 'LISA' || dbLangCode === 'JA') {
+              if (!genGrammar || genGrammar.trim() === "") {
+                if (cleanT.includes("routine") || cleanT.includes("daily") || cleanT.includes("week") || cleanT.includes("time")) {
+                  genGrammar = "Structure: Subject + Adverb of Frequency + Verb\n(Mẫu câu miêu tả thói quen/lịch trình)\nExample: I always practice English in the morning.";
+                } else if (cleanT.includes("food") || cleanT.includes("drink") || cleanT.includes("eat") || cleanT.includes("restaurant")) {
+                  genGrammar = "Structure: Subject + would like / prefer + Noun\n(Mẫu câu gọi món hoặc sở thích ăn uống)\nExample: I would like a cup of coffee, please.";
+                } else if (cleanT.includes("family") || cleanT.includes("home") || cleanT.includes("age") || cleanT.includes("friend")) {
+                  genGrammar = "Structure: Subject + be/have + Noun/Adjective\n(Mẫu câu miêu tả người hoặc sự sở hữu)\nExample: My best friend is very kind and helpful.";
+                } else if (cleanT.includes("yesterday") || cleanT.includes("past") || cleanT.includes("last") || cleanT.includes("history")) {
+                  genGrammar = "Structure: Subject + Verb(past) + Object + Time\n(Mẫu câu kể lại sự việc đã xảy ra)\nExample: We visited the museum last weekend.";
+                } else if (cleanT.includes("travel") || cleanT.includes("transport") || cleanT.includes("place") || cleanT.includes("trip")) {
+                  genGrammar = "Structure: Subject + plan to / go to + Location\n(Mẫu câu dự định du lịch hoặc di chuyển)\nExample: I plan to travel to Japan next year.";
+                } else if (cleanT.includes("work") || cleanT.includes("job") || cleanT.includes("business") || cleanT.includes("office")) {
+                  genGrammar = "Structure: Subject + am/is/are responsible for + Verb-ing\n(Mẫu câu miêu tả trách nhiệm công việc)\nExample: I am responsible for managing the project.";
+                } else if (cleanT.includes("problem") || cleanT.includes("solution") || cleanT.includes("advice")) {
+                  genGrammar = "Structure: Subject + should / ought to + Verb\n(Mẫu câu đưa ra lời khuyên hoặc giải pháp)\nExample: You should take a rest when feeling tired.";
+                } else if (cleanT.includes("future") || cleanT.includes("plan") || cleanT.includes("goal")) {
+                  genGrammar = "Structure: Subject + will / am going to + Verb\n(Mẫu câu diễn tả dự định trong tương lai)\nExample: I am going to achieve my goals this year.";
+                } else {
+                  genGrammar = `Key Structure for ${l.title}\n(Mẫu câu trọng tâm cho chủ đề ${l.title})\nExample: Understanding ${l.title} is essential for daily communication.`;
+                }
+                genQ = `Complete the translation for this sentence:\n"Mọi người thường nói về [${firstWord}] khi thảo luận chủ đề ${l.title}."`;
+                genA = `People often talk about ${firstWord} when discussing ${l.title.toLowerCase()}.`;
+              }
+            } else if (dbLangCode === 'ZH') {
+              if (genVocab.includes("什么") || cleanT.includes("NAME")) {
+                genVocab = "• 你 (nǐ): Bạn, Anh, Chị\n• 叫 (jiào): Gọi là\n• 什么 (shénme): Cái gì\n• 名字 (míngzi): Tên";
+                genGrammar = "Cấu trúc: Chủ ngữ + Verb + 什么 + Noun?\n(Dùng để hỏi 'cái gì')\nExample: 你叫什么名字？ (Bạn tên là gì?)";
+              } else if (genVocab.includes("是") || cleanT.includes("COUNTRY")) {
+                genVocab = "• 是 (shì): Là\n• 哪 (nǎ): Nào\n• 国 (guó): Nước, quốc gia\n• 人 (rén): Người";
+                genGrammar = "Cấu trúc: Chủ ngữ + 是 + Noun\n(Cấu trúc khẳng định: Ai đó/Cái gì là cái gì)\nExample: 我是学生。 (Tôi là học sinh.)";
+              } else if (cleanT.includes("AGE")) {
+                genVocab = "• 多大 (duōdà): Bao nhiêu tuổi\n• 岁 (suì): Tuổi\n• 几 (jǐ): Mấy";
+                genGrammar = "Cấu trúc: Chủ ngữ + 多大？\n(Dùng để hỏi tuổi)\nExample: 你今年多大？ (Năm nay bạn bao nhiêu tuổi?)";
+              } else if (cleanT.includes("WORK") || cleanT.includes("JOB")) {
+                genVocab = "• 工作 (gōngzuò): Công việc\n• 公司 (gōngsī): Công ty\n• 忙 (máng): Bận rộn";
+                genGrammar = "Cấu trúc: Chủ ngữ + 在 + Địa điểm + 工作\n(Dùng để chỉ nơi làm việc)\nExample: 我在银行工作。 (Tôi làm việc ở ngân hàng.)";
+              } else {
+                const fw = lines.length > 0 ? lines[0] : l.title;
+                genVocab = `• ${fw}\n  (Mẫu câu giao tiếp tiếng Trung cơ bản. Hãy dịch nghĩa sang tiếng Việt để ghi nhớ tốt hơn)\n  Ví dụ: 我喜欢学习 ${fw}.`;
+                genGrammar = `Cấu trúc trọng tâm bài ${l.title}\n(Mẫu câu giao tiếp chủ đề ${l.title})\nExample: 你的 ${l.title} 怎么样？ (Chủ đề ${l.title} của bạn thế nào?)`;
+              }
+              genQ = `Translate this sentence to Chinese: "Chủ đề hôm nay chúng ta học là ${firstWord}."`;
+              genA = `我们今天学习的主题是 ${firstWord}。`;
+            }
+
+            return {
+              id: dbLangCode.toLowerCase() + (idx + 1),
+              level: idx + 1,
+              title: l.title,
+              stage: l.stage,
+              vocab: genVocab,
+              grammar: genGrammar,
+              question: genQ,
+              answer: genA,
+              emoji: '📖'
+            }
+          })
         }
 
         const [en, zh, ja] = await Promise.all([
